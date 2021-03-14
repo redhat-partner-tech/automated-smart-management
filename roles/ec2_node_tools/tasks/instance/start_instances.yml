@@ -1,0 +1,13 @@
+---
+- name: Start instances
+  ec2_instance:
+    instance_ids: "{{ item.0 }}"
+#    vpc_subnet_id: "{{ item.1 }}"
+    state: started
+    filters: "{{ec2_remote_tags.stdout}}"
+    region: "{{ ec2_region }}"
+  delegate_to: localhost
+  connection: local
+  with_together:
+    - "{{ instances_details.instances|map(attribute='instance_id')|list|unique }}"
+#    - "{{ instances_details.instances|[0]|network_interfaces[0].subnet_id }}"

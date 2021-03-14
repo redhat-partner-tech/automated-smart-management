@@ -1,0 +1,219 @@
+---
+tower_templates:
+  - name: SERVER / Register - RHEL7
+    project: Automated Management
+    playbook: server_register.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Workshop Credential
+    limit: rhel7
+    extra_vars:
+      org_id: "Default_Organization"
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Server Name or Pattern
+          type: text
+          variable: PREFIX
+          required: false
+        - question_name: Choose Environment
+          type: multiplechoice
+          variable: env
+          choices:
+            - Dev
+            - QA
+            - Prod
+          required: true
+
+  - name: SERVER / Register - CentOS7
+    project: Automated Management
+    playbook: server_register.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Workshop Credential
+    limit: centos7
+    extra_vars:
+      org_id: "Default_Organization"
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Server Name or Pattern
+          type: text
+          variable: PREFIX
+          required: false
+        - question_name: Choose Environment
+          type: multiplechoice
+          variable: env
+          choices:
+            - Dev
+            - QA
+            - Prod
+          required: true
+
+  - name: SATELLITE / Publish Content View - RHEL
+    project: Automated Management
+    playbook: satellite_publish.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Satellite Credential
+    extra_vars:
+      env: Dev
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Select Content View
+          variable: content_view
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          required: true
+
+  - name: SATELLITE / Publish Content View - CentOS
+    project: Automated Management
+    playbook: satellite_publish.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Satellite Credential
+    extra_vars:
+      env: Dev
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Select Content View
+          variable: content_view
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          required: true
+
+  - name: SATELLITE / Promote Content View - RHEL
+    project: Automated Management
+    playbook: satellite_promote.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Satellite Credential
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Select Content View
+          variable: content_view
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          required: true
+        - question_name: Current Lifecycle Environment
+          variable: current_lifecycle_environment
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          required: true
+        - question_name: Next Lifecycle Environment
+          variable: lifecycle_environment
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          required: true
+
+  - name: SATELLITE / Promote Content View - CentOS
+    project: Automated Management
+    playbook: satellite_promote.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Satellite Credential
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Select Content View
+          variable: content_view
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          required: true
+        - question_name: Current Lifecycle Environment
+          variable: current_lifecycle_environment
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          required: true
+        - question_name: Next Lifecycle Environment
+          variable: lifecycle_environment
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          required: true  
+
+  - name: SERVER / Patch - RHEL7
+    project: Automated Management
+    playbook: server_patch.yml
+    inventory: Workshop Inventory
+    use_fact_cache: true
+    credentials:
+      - Workshop Credential
+    limit: rhel7
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Select Environment
+          type: multiplechoice
+          variable: server_type
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          required: true
+        - question_name: Check
+          type: multiplechoice
+          variable: check_only
+          choices:
+            - 'yes'
+            - 'no'
+          required: true
+
+  - name: SERVER / Patch - CentOS7
+    project: Automated Management
+    playbook: server_patch.yml
+    inventory: Workshop Inventory
+    use_fact_cache: true
+    credentials:
+      - Workshop Credential
+    limit: centos7
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Select Environment
+          type: multiplechoice
+          variable: server_type
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          required: true
+        - question_name: Check
+          type: multiplechoice
+          variable: check_only
+          choices:
+            - 'yes'
+            - 'no'
+          required: true
+
+  - name: SERVER / Fact Scan - RHEL7
+    project: Fact Scan
+    playbook: scan_facts.yml
+    inventory: Workshop Inventory
+    ask_limit_on_launch: true
+    use_fact_cache: true
+    credentials:
+      - Workshop Credential
+    limit: rhel7
+
+  - name: SERVER / Fact Scan - CentOS7
+    project: Fact Scan
+    playbook: scan_facts.yml
+    inventory: Workshop Inventory
+    ask_limit_on_launch: true
+    use_fact_cache: true
+    credentials:
+      - Workshop Credential
+    limit: centos7

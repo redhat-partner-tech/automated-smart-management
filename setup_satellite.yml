@@ -1,0 +1,29 @@
+---
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  vars:
+    satellite_infra_workloads:
+      - theforeman.foreman.repositories
+      - theforeman.foreman.lifecycle_environments
+      - content_views
+      - theforeman.foreman.activation_keys
+
+  tasks:
+    - name: check satellite status
+      redhat.satellite.status_info:
+        validate_certs: false
+
+#    - name: refresh manifest
+#      redhat.satellite.subscription_manifest:
+#        organization: "Default Organization"
+#        state: refreshed
+#      async: 2000
+#      poll: 60
+#      when: '{{ refresh_satellite_manifest | | default(false) }}'
+
+    - name: deploy satellite_infra workloads
+      include_role:
+        name: "{{ satellite_infra_vars }}"
+      loop: "{{ satellite_infra_workloads }}"
+      loop_control:
+        loop_var: satellite_infra_vars

@@ -1,0 +1,3 @@
+ansible.cfg
+private
+*/*.pem

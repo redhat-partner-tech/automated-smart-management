@@ -1,0 +1,19 @@
+---
+- name: Stop instances
+  ec2_instance:
+    instance_ids: "{{ item.0 }}"
+#    vpc_subnet_id: "{{ item.1 }}"
+    state: stopped
+    filters: "{{ec2_remote_tags.stdout}}"
+    region: "{{ ec2_region }}"
+  delegate_to: localhost
+  connection: local
+  with_together:
+    - "{{ instances_details.instances|map(attribute='instance_id')|list|unique }}"
+#    - "{{ instances_details.instances|[0]|network_interfaces[0].subnet_id }}"
+
+- name: ensure host is down via ssh port probe 
+  wait_for: "port=22 host={{ item }} delay=10 state=stopped timeout=60"
+  delegate_to: localhost
+  connection: local
+  with_items: "{{ instances_details.instances|map(attribute='private_ip_address')|list|unique }}"

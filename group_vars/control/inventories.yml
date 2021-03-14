@@ -1,0 +1,19 @@
+---
+tower_inventories:
+  - name: Workshop Inventory
+    organization: Default
+
+tower_inventory_sources:
+  - name: satellite_source
+    inventory: Workshop Inventory
+    credential: Inventory Credential
+    source: satellite6
+    update_on_launch: true
+    source_vars:
+      keyed_groups:
+        - prefix: env
+          key: foreman_content_facet_attributes.lifecycle_environment_name
+        - prefix: cv
+          key: foreman_content_facet_attributes.content_view_name
+        - prefix: os
+          key: foreman_operatingsystem_name

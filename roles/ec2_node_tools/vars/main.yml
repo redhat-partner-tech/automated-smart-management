@@ -1,0 +1,16 @@
+---
+# vars file for ec2_node_tools
+
+# Example for defining instances yaml
+#instances:
+#  tags:
+#    Name: 'node_name1'
+#    guid: 'example_guid'
+#    Student: 'student1'
+
+# Example for defining snapshots yaml
+#snapshots:
+#  tags:
+#    Name: 'snap_name1'
+#    guid: 'example_guid'
+#    Student: 'student1'

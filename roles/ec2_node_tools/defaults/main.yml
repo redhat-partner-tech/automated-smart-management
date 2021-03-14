@@ -1,0 +1,6 @@
+---
+# defaults file for ec2_node_tools
+
+ec2_instance_action: "start"
+roles_directory: roles
+display_debug_output: false

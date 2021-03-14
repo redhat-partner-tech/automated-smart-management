@@ -1,0 +1,8 @@
+---
+collections:
+  - redhat.satellite
+  - redhat.insights
+  - ansible.tower
+  - amazon.aws
+  - redhat_cop.tower_configuration
+  #https://github.com/theforeman/foreman-ansible-modules

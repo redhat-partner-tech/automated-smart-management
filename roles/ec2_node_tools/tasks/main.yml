@@ -1,0 +1,28 @@
+---
+# tasks file for ec2_node_tools
+
+# Gather info
+- name: Get instance details
+  include: get_instance_details.yml
+  when: ec2_instance_action != "snapshot_delete"
+
+# Actions
+- name: Start instance
+  include: instance/start_instances.yml
+  when: ec2_instance_action == "start"
+
+- name: Stop instance
+  include: instance/stop_instances.yml
+  when: ec2_instance_action == "stop"
+
+- name: Create instance snapshot
+  include: snapshot/create.yml
+  when: ec2_instance_action == "snapshot_create"
+
+- name: Delete instance snapshot
+  include: snapshot/delete.yml
+  when: ec2_instance_action == "snapshot_delete"
+
+- name: Revert instance snapshot
+  include: snapshot/revert.yml
+  when: ec2_instance_action == "snapshot_revert"

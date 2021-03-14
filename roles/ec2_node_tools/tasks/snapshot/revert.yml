@@ -1,0 +1,24 @@
+---
+- block:
+
+  - include_tasks: instance/stop_instances.yml
+
+  - include_tasks: snapshot/detach_volume.yml
+
+  - name: Create new EBS volume from snapshot and attach to instance
+    vars:
+      snapshots: '{"tags": {"Instance_id": "{{ lc_item }}"} }'
+      display_debug_output: true
+    include_tasks: snapshot/snapshot_revert.yml
+    with_items: "{{ instances_details.instances | map(attribute='instance_id') | list }}"
+    loop_control:
+        loop_var: lc_item
+
+  - include_tasks: snapshot/snapshot_delete.yml
+    when:
+      - "snapshot_delete_after_revert is defined"
+      - "snapshot_delete_after_revert"
+
+  - include_tasks: instance/start_instances.yml
+
+  delegate_to: localhost

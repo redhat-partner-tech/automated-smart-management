@@ -1,0 +1,14 @@
+---
+- name: Format snapshot selection tags for ec2_snapshot_info
+  command: python3 roles/ec2_node_tools/files/build_tags_dict.py "{{snapshots.tags}}"
+  delegate_to: localhost
+  connection: local
+  register: ec2_snapshot_tags
+
+- name: Get snapshot info
+  ec2_snapshot_info:
+    filters: "{{ec2_snapshot_tags.stdout}}"
+    region: "{{ ec2_region }}"
+  delegate_to: localhost
+  connection: local
+  register: snapshots_details

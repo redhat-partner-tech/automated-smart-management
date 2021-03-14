@@ -1,0 +1,10 @@
+---
+- block:
+
+  - include_tasks: instance/stop_instances.yml
+
+  - include_tasks: snapshot/snapshot_create.yml
+
+  - include_tasks: instance/start_instances.yml
+
+  delegate_to: localhost

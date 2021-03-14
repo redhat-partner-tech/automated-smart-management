@@ -1,0 +1,9 @@
+---
+- hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
+  become: yes
+  vars:
+    env: Dev
+    activation_key: undef
+    sat_url: satellite.example.com
+  roles:
+    - rhsm_register

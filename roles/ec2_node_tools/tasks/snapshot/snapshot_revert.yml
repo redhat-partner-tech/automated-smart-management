@@ -1,0 +1,4 @@
+---
+- include_tasks: get_snapshot_details.yml
+
+- include_tasks: snapshot/new_volume_and_attach.yml
