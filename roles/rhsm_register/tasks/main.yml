@@ -33,7 +33,7 @@
     set_fact:
       activation_key: "{{ 'RHEL' + ansible_distribution_major_version + '_' + env }}"
 
-  - name: register subscription mangler
+  - name: register system via subscription manager
     redhat_subscription:
       state: present
       activationkey: "{{ activation_key }}"
@@ -76,7 +76,7 @@
     set_fact:
       activation_key: "{{ 'CentOS' + ansible_distribution_major_version + '_' + env }}"
 
-  - name: register subscription mangler
+  - name: register system via subscription manager
     redhat_subscription:
       state: present
       activationkey: "{{ activation_key }}"
