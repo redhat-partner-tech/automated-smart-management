@@ -70,7 +70,7 @@ tower_templates:
         - question_name: Select Content View
           variable: content_view
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
 
   - name: SATELLITE / Publish Content View - CentOS
@@ -89,7 +89,7 @@ tower_templates:
         - question_name: Select Content View
           variable: content_view
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true
 
   - name: SATELLITE / Promote Content View - RHEL
@@ -106,17 +106,17 @@ tower_templates:
         - question_name: Select Content View
           variable: content_view
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Current Lifecycle Environment
           variable: current_lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Next Lifecycle Environment
           variable: lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
 
   - name: SATELLITE / Promote Content View - CentOS
@@ -133,17 +133,17 @@ tower_templates:
         - question_name: Select Content View
           variable: content_view
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Current Lifecycle Environment
           variable: current_lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Next Lifecycle Environment
           variable: lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true  
 
   - name: SERVER / Patch - RHEL7
@@ -162,7 +162,7 @@ tower_templates:
         - question_name: Select Environment
           type: multiplechoice
           variable: server_type
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Check
           type: multiplechoice
@@ -188,7 +188,7 @@ tower_templates:
         - question_name: Select Environment
           type: multiplechoice
           variable: server_type
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Check
           type: multiplechoice
