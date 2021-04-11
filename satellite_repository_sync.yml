@@ -1,0 +1,69 @@
+---
+- hosts: all
+  tasks:
+  - name: hammer org list
+    command: >-
+      hammer --output json organization list
+    register: hammer_org_list_result
+    ignore_errors: true
+
+  - name: set the Organization Id from specific org selection via "{{ organization }}" variable and .Id
+    set_fact: sat_org_id={{ hammer_org_list_result.stdout | from_json | json_query(my_query) }}
+    vars:
+      my_query: "[?Name=='{{ organization }}'].Id"
+
+  - name: What is the Org Id? 
+    debug:
+      msg: "The Org Id selected is: {{ sat_org_id[0] }}"
+
+  - name: hammer repo list
+    command: >-
+      hammer --output json repository list --organization-id {{ sat_org_id[0] }}
+    register: hammer_repo_list_result
+    ignore_errors: true
+
+  - name: set the Repo Id from specific repo selection via "{{ repository }}" variable and .Id
+    set_fact: sat_repo_id={{ hammer_repo_list_result.stdout | from_json | json_query(my_query) }}
+    vars:
+      my_query: "[?Name=='{{ repository }}'].Id"
+
+  - fail: msg="The repo {{ repository }} does not exist in this organization"
+    when: sat_repo_id |length == 0
+
+  - name: What is the Repo Id? 
+    debug:
+      msg: "The Repo Id selected is: {{ sat_repo_id[0] }}"
+
+  - name: set the Product Name via "{{ repository }}" variable and .Product
+    set_fact: sat_product_name={{ hammer_repo_list_result.stdout | from_json | json_query(my_query) }}
+    vars:
+      my_query: "[?Name=='{{ repository }}'].Product"
+
+  - name: What is the Product Name? 
+    debug:
+      msg: "The Product Name is: {{ sat_product_name[0] }}"
+
+  - name: hammer product list
+    command: >-
+      hammer --output json product list --organization-id {{ sat_org_id[0] }}
+    register: hammer_product_list_result
+    ignore_errors: true
+
+  - name: set the Product Id from specific Product Name selection via "{{ sat_product_name[0] }}" variable and .Name
+    set_fact: sat_product_id={{ hammer_product_list_result.stdout | from_json | json_query(my_query) }}
+    vars:
+      my_query: "[?Name=='{{ sat_product_name[0] }}'].ID"
+
+  - name: What is the Product Id? 
+    debug:
+      msg: "The Product Id is: {{ sat_product_id[0] }}"
+
+  - name: hammer repository synchronize
+    command: >-
+      hammer repository synchronize --async --id {{ sat_repo_id[0] }} --organization-id {{ sat_org_id[0] }} --product-id {{ sat_product_id[0] }}
+    register: hammer_repo_sync_result
+    ignore_errors: true
+
+  - name: Repo sync output 
+    debug:
+      msg: "{{ hammer_repo_sync_result.stdout }}"

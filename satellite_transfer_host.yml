@@ -1,0 +1,27 @@
+---
+- hosts: all
+  gather_facts: no
+  tasks:
+  - name: Dynamically add satellite.example.com to inventory
+    add_host:
+      name: satellite.example.com
+
+- hosts: satellite.example.com
+  connection: local
+  gather_facts: no
+  vars:
+    organization: "Default Organization"
+    validate_certs: false
+  tasks:
+  - set_fact:
+      node_group: "env_{{ centos_lifecycle_environment }}"
+  - name: Transfer hosts in Satellite LE "{{ centos_lifecycle_environment }}" to LE "{{ rhel_lifecycle_environment }}"
+    theforeman.foreman.host:
+      name: "{{ item }}"
+      lifecycle_environment: "{{ rhel_lifecycle_environment }}"
+      content_view: "{{ rhel_lifecycle_environment.split('_')[0] }}"
+      organization: "{{ organization }}"
+    with_items: "{{ groups[node_group] }}"
+    register: transfer_hosts_result
+  - debug:
+      var: transfer_hosts_result

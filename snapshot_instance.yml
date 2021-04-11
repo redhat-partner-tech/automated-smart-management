@@ -1,0 +1,11 @@
+---
+- name: Take snapshot of instance
+  hosts: ansible-1.example.com
+  connection: local
+  gather_facts: no
+  tasks:
+  - name: Take snapshot of instances in region "{{ ec2_region }}"
+    include_role:
+      name: ec2_node_tools
+    vars:
+      ec2_instance_action: "snapshot_create"

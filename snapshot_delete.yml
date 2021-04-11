@@ -1,0 +1,12 @@
+---
+- name: Delete snapshot
+  hosts: ansible-1.example.com
+  connection: local
+  gather_facts: no
+  tasks:
+  - name: Delete snapshot in region "{{ ec2_region }}"
+    include_role:
+      name: ec2_node_tools
+    vars:
+      ec2_instance_action: "snapshot_delete"
+    when: should_i_delete_snapshot|default(false)|bool
