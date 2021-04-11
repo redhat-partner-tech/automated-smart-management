@@ -12,6 +12,15 @@
     tower_validate_certs: false
 
   tasks:
+    - name: Slurp dynamic_development_source_vars.yaml
+      slurp: src=files/dynamic_development_source_vars.yaml
+      register: dynamic_development_source_vars_slurped
+
+    - set_fact:
+        dynamic_development_source_vars: "{{ dynamic_development_source_vars_slurped['content'] | b64decode }}"
+
+    - debug:
+        msg: "{{ dynamic_development_source_vars }}"   
     - name: deploy tower_infra workloads
       include_role:
         name: "{{ tower_infra_vars }}"
