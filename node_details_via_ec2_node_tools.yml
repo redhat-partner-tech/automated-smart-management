@@ -1,0 +1,13 @@
+---
+- hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
+  gather_facts: false
+  tasks:
+  - name: "Get instance details"
+    import_role:
+      name: ec2_node_tools
+      tasks_from: get_instance_details
+
+  - name: Debug output - instances_details
+    debug:
+      msg: "{{ instances_details }}"

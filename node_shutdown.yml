@@ -1,0 +1,7 @@
+---
+- hosts: all
+  gather_facts: false
+  vars:
+    ec2_instance_action: "stop"
+  roles:
+  - ec2_node_tools

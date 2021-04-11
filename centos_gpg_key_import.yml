@@ -1,0 +1,67 @@
+---
+- hosts: all
+  tasks:
+  - name: Create gpg key directory for importing keys
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: 0755
+    with_items:
+      - /etc/pki/rpm-gpg/import
+
+  - name: Pull down CentOS 7 GPG key
+    get_url:
+      url: https://www.centos.org/keys/RPM-GPG-KEY-CentOS-7
+      dest: /etc/pki/rpm-gpg/import
+      mode: '0440'
+    register: getcentos7gpgkey
+    until: getcentos7gpgkey is succeeded
+
+  - name: Pull down CentOS 8 GPG key
+    get_url:
+      url: https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official
+      dest: /etc/pki/rpm-gpg/import
+      mode: '0440'
+    register: getcentos8gpgkey
+    until: getcentos8gpgkey is succeeded
+
+  - name: hammer org list
+    command: >-
+      hammer --output json organization list
+    register: hammer_org_list_result
+    ignore_errors: true
+
+  - name: set the Organization Id from specific org selection via "{{ organization }}" variable and .Id
+    set_fact: sat_org_id={{ hammer_org_list_result.stdout | from_json | json_query(my_query) }}
+    vars:
+      my_query: "[?Name=='{{ organization }}'].Id"
+
+  - name: What is the Org Id? 
+    debug:
+      msg: "The Org Id selected is: {{ sat_org_id[0] }}"
+
+  - name: hammer create RPM-GPG-KEY-CentOS-7 key
+    command: >-
+      hammer content-credentials create --organization-id {{ sat_org_id[0] }}
+      --key "/etc/pki/rpm-gpg/import/RPM-GPG-KEY-CentOS-7"
+      --name "RPM-GPG-KEY-CentOS-7"
+      --content-type gpg_key
+    register: hammer_centos7_gpgkey_result
+    ignore_errors: true
+
+  - name: RPM-GPG-KEY-CentOS-7 key creation output 
+    debug:
+      msg: "{{ hammer_centos7_gpgkey_result.stdout }}"
+
+  - name: hammer create RPM-GPG-KEY-CentOS-8 key
+    command: >-
+      hammer content-credentials create --organization-id {{ sat_org_id[0] }}
+      --key "/etc/pki/rpm-gpg/import/RPM-GPG-KEY-CentOS-Official"
+      --name "RPM-GPG-KEY-CentOS-8"
+      --content-type gpg_key
+    register: hammer_centos8_gpgkey_result
+    ignore_errors: true
+
+  - name: RPM-GPG-KEY-CentOS-8 key creation output 
+    debug:
+      msg: "{{ hammer_centos8_gpgkey_result.stdout }}"

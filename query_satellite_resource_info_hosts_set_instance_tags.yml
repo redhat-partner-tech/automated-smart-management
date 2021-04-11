@@ -1,0 +1,82 @@
+---
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  vars:
+    organization: "Default Organization"
+    validate_certs: false
+  tasks:
+  - name: Get all existing hosts resource_info for org "Default Organization"
+    theforeman.foreman.resource_info:
+      resource: hosts
+    register: resource_info_hosts_result
+
+  - debug:
+      msg: "{{ resource_info_hosts_result | to_json | from_json | json_query(ansible_host_name_query) }}"
+    vars:
+      ansible_host_name_query: "resources[?starts_with(name, 'node')].name"
+    when: display_debug_output
+
+  - name: "Get instance details"
+    import_role:
+      name: ec2_node_tools
+      tasks_from: get_instance_details
+
+  - set_fact:
+      host_satellite_lifecycle_env: {}
+      host_satellite_content_view: {}
+      host_satellite_os: {}
+      host_ec2_instance_id: {}
+
+  - name: "Set facts based on individual host's LE, CV, OS from Satellite and ec2 instance_id"
+    set_fact:
+      host_satellite_lifecycle_env: >
+        {{
+          host_satellite_lifecycle_env |
+          combine(
+            { item : resource_info_hosts_result | to_json | from_json | json_query(ansible_specific_host_name_le_query) }
+                 )
+        }}
+      host_satellite_content_view: >
+        {{
+          host_satellite_content_view |
+          combine(
+            { item : resource_info_hosts_result | to_json | from_json | json_query(ansible_specific_host_name_cv_query) }
+                 )
+        }}
+      host_satellite_os: >
+        {{
+          host_satellite_os |
+          combine(
+            { item : resource_info_hosts_result | to_json | from_json | json_query(ansible_specific_host_name_os_query) | replace('.','_') | replace(' ','_') }
+                 )
+        }}
+      host_ec2_instance_id: >
+        {{
+          host_ec2_instance_id |
+          combine(
+            { item : instances_details | json_query(ansible_instance_id_query) }
+                 )
+        }}
+    vars:
+      ansible_host_name_query: "resources[?starts_with(name, 'node')].name"
+      ansible_specific_host_name_le_query: "resources[?contains(['{{ item }}'], name)].content_facet_attributes.lifecycle_environment_name | [0]"
+      ansible_specific_host_name_cv_query: "resources[?contains(['{{ item }}'], name)].content_facet_attributes.content_view_name | [0]"
+      ansible_specific_host_name_os_query: "resources[?contains(['{{ item }}'], name)].operatingsystem_name | [0]"
+      ansible_instance_id_query: "instances[?contains(['{{ item.split('.')[0] | lower }}'], tags.short_name)].instance_id | [0]"
+    with_items: "{{ resource_info_hosts_result | to_json | from_json | json_query(ansible_host_name_query) | list }}"
+    when: instances_details is not none
+
+  - name: "Populate EC2 instance tags that reflect current host's LE, CV, OS state on Satellite"
+    vars:
+      ansible_host_name_query: "resources[?starts_with(name, 'node')].name"
+    ec2_tag:
+      region: "{{ ec2_region }}"
+      resource: "{{ host_ec2_instance_id[item] }}"
+      state: present
+      tags:
+        Environment: "{{ host_satellite_lifecycle_env[item].split('_')[1] }}"
+        ContentView: "{{ host_satellite_content_view[item] }}"
+        foreman_operatingsystem_name: "{{ host_satellite_os[item] }}"
+        NodeName: "{{ item }}"
+    with_items: "{{ resource_info_hosts_result | to_json | from_json | json_query(ansible_host_name_query) | list }}"
+    when: instances_details is not none
