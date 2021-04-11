@@ -10,6 +10,7 @@
       Environment: convert2rhel
       root_device_type: "{{ item.2 }}"
       root_device_name: "{{ item.3 }}"
+      Workshop: "{{ item.6 }}"
     description: "{{ item.0 }} pre convert2rhel snapshot"
     region: "{{ ec2_region }}"
     wait: yes
@@ -20,3 +21,4 @@
     - "{{ instances_details.instances | map(attribute='root_device_name') | list }}"
     - "{{ instances_details.instances | map(attribute='tags.Student') | list }}"
     - "{{ instances_details.instances | map(attribute='instance_id') | list }}"
+    - "{{ instances_details.instances | map(attribute='tags.Workshop') | list }}"
