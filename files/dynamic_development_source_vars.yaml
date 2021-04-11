@@ -1,0 +1,17 @@
+---
+source_vars:
+  regions:
+    - us-east-1
+  filters:
+    tag:Environment: Dev
+    instance-state-name : running
+  hostnames:
+    - tag:Name
+    - private-dns-name
+  keyed_groups:
+    - prefix: Env
+      key: tags['Environment']
+    - prefix: AnsibleGroup
+      key: tags['AnsibleGroup']
+  compose:
+    ansible_host: private_ip_address
