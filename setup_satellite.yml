@@ -1,6 +1,58 @@
 ---
 - hosts: "{{ HOSTS | default('satellite.example.com') }}"
   connection: local
+  gather_facts: no
+  tasks:
+    - name: check satellite status
+      redhat.satellite.status_info:
+        validate_certs: false
+
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  become: true
+- name: satellite disconnected mode
+  import_playbook: satellite_disconnected_mode.yml
+  vars:
+    disconnected_mode: "false"
+  when: refresh_satellite_manifest
+
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  gather_facts: no
+  vars:
+    refresh_satellite_manifest: no
+    refresh_timeout: 14400
+    refresh_retry_interval: 15
+
+  tasks:
+    - name: refresh manifest
+      redhat.satellite.subscription_manifest:
+        organization: "Default Organization"
+        state: refreshed
+      async: "{{ refresh_timeout }}"
+      poll: 0
+      register: refresh_async
+      when: refresh_satellite_manifest
+
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  become: true
+  vars:
+    refresh_satellite_manifest: no
+    refresh_timeout: 14400
+    refresh_retry_interval: 15
+
+  tasks:
+    - name: >
+        Watch the Satellite production.log until ManifestRefresh result ==> success appears before continuing...
+      wait_for:
+        path: /var/log/foreman/production.log
+        search_regex: "^.*ManifestRefresh.*state\ changed.*\ stopped\ \ result.*\ success"
+        timeout: 1500
+        sleep: 20
+      when: refresh_satellite_manifest
+
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  gather_facts: no
   vars:
     satellite_infra_workloads:
       - theforeman.foreman.repositories
@@ -9,17 +61,6 @@
       - theforeman.foreman.activation_keys
 
   tasks:
-    - name: check satellite status
-      redhat.satellite.status_info:
-        validate_certs: false
-
-#    - name: refresh manifest
-#      redhat.satellite.subscription_manifest:
-#        organization: "Default Organization"
-#        state: refreshed
-#      async: 2000
-#      poll: 60
-#      when: '{{ refresh_satellite_manifest | | default(false) }}'
 
     - name: deploy satellite_infra workloads
       include_role:
