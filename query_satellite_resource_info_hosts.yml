@@ -1,0 +1,13 @@
+---
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  vars:
+    organization: "Default Organization"
+    validate_certs: false
+  tasks:
+  - name: Get all existing hosts resource_info for org "Default Organization"
+    theforeman.foreman.resource_info:
+      resource: hosts
+    register: resource_info_hosts_result
+  - debug:
+      var: resource_info_hosts_result

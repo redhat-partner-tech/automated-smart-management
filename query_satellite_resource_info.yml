@@ -1,0 +1,15 @@
+---
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  vars:
+    organization: "Default Organization"
+    validate_certs: false
+  tasks:
+  - name: Get all existing resource_info for org "Default Organization"
+    theforeman.foreman.resource_info:
+      # resource: activation_keys
+      # or if you want to see all available resource options, use a bogus value, like "blah"
+      resource: blah
+    register: resource_info_result
+  - debug:
+      var: resource_info_result
