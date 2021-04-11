@@ -1,0 +1,92 @@
+---
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  vars:
+    organization: "Default Organization"
+    validate_certs: false
+  tasks:
+  - name: Get all existing hosts resource_info for org "Default Organization"
+    theforeman.foreman.resource_info:
+      resource: hosts
+    register: resource_info_hosts_result
+
+  - debug:
+      # | to_json | from_json ...is workaround found here...
+      # https://stackoverflow.com/questions/44546154/jmespathtypeerror-when-using-json-query-filter-in-ansible-with-starts-with
+      msg: "{{ resource_info_hosts_result | to_json | from_json | json_query(ansible_host_name_query) }}"
+    vars:
+      ansible_host_name_query: "resources[?starts_with(name, 'node')].name"
+      # this also works...
+      # ansible_host_name_query: "resources[?starts_with(name, 'node') == `true`].name"
+
+  - name: "Get instance details"
+    import_role:
+      name: ec2_node_tools
+      tasks_from: get_instance_details
+  # If you comment out the below vars, you can pass them as Tower job template extra vars    
+  # vars:
+  #   instances:
+  #     tags:
+  #       short_name: 'node*'
+  #       guid: 'EC2_NAME_PREFIX'
+  #       Student: 'STUDENT_NAME_WITH_NUM'
+
+  # this is just to avoid a call to |default on each iteration later
+  - set_fact:
+      host_satellite_lifecycle_env: {}
+      host_satellite_content_view: {}
+      host_satellite_os: {}
+      host_ec2_instance_id: {}
+
+  - name: "Set facts based on individual host's LE, CV, OS from Satellite and ec2 instance_id"
+    set_fact:
+      host_satellite_lifecycle_env: >
+        {{
+          host_satellite_lifecycle_env |
+          combine(
+            { item : resource_info_hosts_result | to_json | from_json | json_query(ansible_specific_host_name_le_query) }
+                 )
+        }}
+      host_satellite_content_view: >
+        {{
+          host_satellite_content_view |
+          combine(
+            { item : resource_info_hosts_result | to_json | from_json | json_query(ansible_specific_host_name_cv_query) }
+                 )
+        }}
+      host_satellite_os: >
+        {{
+          host_satellite_os |
+          combine(
+            { item : resource_info_hosts_result | to_json | from_json | json_query(ansible_specific_host_name_os_query) | replace('.','_') | replace(' ','_') }
+                 )
+        }}
+      host_ec2_instance_id: >
+        {{
+          host_ec2_instance_id |
+          combine(
+            { item : instances_details | json_query(ansible_instance_id_query) }
+                 )
+        }}
+    vars:
+      ansible_host_name_query: "resources[?starts_with(name, 'node')].name"
+      ansible_specific_host_name_le_query: "resources[?contains(['{{ item }}'], name)].content_facet_attributes.lifecycle_environment_name | [0]"
+      ansible_specific_host_name_cv_query: "resources[?contains(['{{ item }}'], name)].content_facet_attributes.content_view_name | [0]"
+      ansible_specific_host_name_os_query: "resources[?contains(['{{ item }}'], name)].operatingsystem_name | [0]"
+      ansible_instance_id_query: "instances[?contains(['{{ item.split('.')[0] | lower }}'], tags.short_name)].instance_id | [0]"
+    with_items: "{{ resource_info_hosts_result | to_json | from_json | json_query(ansible_host_name_query) | list }}"
+    when: instances_details is not none
+
+  - debug:
+      msg:
+        - "Instance ID ==> {{ host_ec2_instance_id[item] }}"
+        - "Node ==> {{ item }}"
+        - "LE   ==> {{ host_satellite_lifecycle_env[item] }}"
+        - "CV   ==> {{ host_satellite_content_view[item] }}"
+        - "OS   ==> {{ host_satellite_os[item] }}"
+        - "Env  ==> {{ host_satellite_lifecycle_env[item].split('_')[1] }}"
+        - "Distro > {{ host_satellite_os[item].split('_')[0] }}"
+    vars:
+      ansible_host_name_query: "resources[?starts_with(name, 'node')].name"
+    with_items: "{{ resource_info_hosts_result | to_json | from_json | json_query(ansible_host_name_query) | list }}"
+    when: instances_details is not none
