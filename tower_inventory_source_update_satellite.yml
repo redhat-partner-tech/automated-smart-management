@@ -1,0 +1,15 @@
+---
+- hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
+  collections:
+    - awx.awx
+  vars:
+    tower_hostname: "{{ hostvars[inventory_hostname].ansible_host }}"
+    tower_validate_certs: false
+
+  tasks:
+  - name: Update the "satellite_source" source inventory
+    tower_inventory_source_update:
+      name: "satellite_source"
+      inventory: "Workshop Inventory"
+      organization: Default
