@@ -1,0 +1,84 @@
+---
+- hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
+  vars:
+    organization: "Default Organization"
+    validate_certs: no
+  tasks:
+  - name: "Get instance details"
+    import_role:
+      name: ec2_node_tools
+      tasks_from: get_instance_details
+
+  - name: route53 tower dns update
+    become: no
+    vars:
+      tower_dns_record_state: present
+    route53:
+      state: "{{ tower_dns_record_state }}"
+      zone: "{{ workshop_dns_zone }}"
+      record: "{{ student }}.{{ instances.tags.Workshop | lower }}.{{ workshop_dns_zone }}"
+      type: A
+      overwrite: yes
+      value: "{{ instances_details.instances
+      | selectattr('tags.short_name', 'equalto', 'ansible-1')
+      | selectattr('tags.Student', 'equalto', student)
+      | map(attribute='public_ip_address')
+      | list }}"
+      wait: yes
+    when: instances_details is not none
+
+  - name: route53 code server dns update
+    become: no
+    vars:
+      code_dns_record_state: present
+    route53:
+      state: "{{ code_dns_record_state }}"
+      zone: "{{ workshop_dns_zone }}"
+      record: "{{ student }}-code.{{ instances.tags.Workshop | lower }}.{{ workshop_dns_zone }}"
+      type: A
+      overwrite: yes
+      value: "{{ instances_details.instances
+      | selectattr('tags.short_name', 'equalto', 'ansible-1')
+      | selectattr('tags.Student', 'equalto', student)
+      | map(attribute='public_ip_address')
+      | list }}"
+      wait: yes
+    when: instances_details is not none
+
+  - name: route53 satellite dns update
+    become: no
+    vars:
+      satellite_dns_record_state: present
+    route53:
+      state: "{{ satellite_dns_record_state }}"
+      zone: "{{ workshop_dns_zone }}"
+      record: "{{ student }}-sat.{{ instances.tags.Workshop | lower }}.{{ workshop_dns_zone }}"
+      type: A
+      overwrite: yes
+      value: "{{ instances_details.instances
+      | selectattr('tags.short_name', 'equalto', 'satellite')
+      | selectattr('tags.Student', 'equalto', student)
+      | map(attribute='public_ip_address')
+      | list }}"
+      wait: yes
+    when: instances_details is not none
+
+  - name: route53 attendance dns update
+    become: no
+    vars:
+      attendance_dns_record_state: present
+    route53:
+      state: "{{ attendance_dns_record_state }}"
+      zone: "{{ workshop_dns_zone }}"
+      record: "{{ instances.tags.Workshop | lower }}.{{ workshop_dns_zone }}"
+      type: A
+      overwrite: yes
+      value: "{{ instances_details.instances
+      | selectattr('tags.short_name', 'equalto', 'attendance-host')
+      | map(attribute='public_ip_address')
+      | list }}"
+      wait: yes
+    when:
+      - instances_details is not none
+      - student == 'student1'
