@@ -1,0 +1,20 @@
+---
+plugin: aws_ec2
+regions:
+  - us-east-1
+filters:
+  tag:ContentView: RHEL7
+  tag:Environment: Dev
+  tag:Student: STUDENT_NAME_WITH_NUM
+  tag:guid: EC2_NAME_PREFIX
+hostnames:
+  - tag:NodeName
+compose:
+  ansible_host: private_ip_address
+keyed_groups:
+  - prefix: cv
+    key: tags['ContentView']
+  - prefix: env
+    key: tags['ContentView'] ~ '_' ~ tags['Environment']
+  - prefix: os
+    key: tags['foreman_operatingsystem_name']
