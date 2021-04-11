@@ -33,7 +33,7 @@
     set_fact:
       activation_key: "{{ 'RHEL' + ansible_distribution_major_version + '_' + env }}"
 
-  - name: register system via subscription manager
+  - name: register system via subscription-manager
     redhat_subscription:
       state: present
       activationkey: "{{ activation_key }}"
@@ -76,12 +76,25 @@
     set_fact:
       activation_key: "{{ 'CentOS' + ansible_distribution_major_version + '_' + env }}"
 
-  - name: register system via subscription manager
+  - name: register system via subscription-manager
     redhat_subscription:
       state: present
       activationkey: "{{ activation_key }}"
       org_id: "{{ org_id | default('Default_Organization')}}"
     throttle: 1
+
+  - name: Create backup repos dir
+    file:
+      path: "/etc/yum.repos.centos"
+      state: directory
+      mode: 0755
+
+  - name: Copy repo defs to backup dir
+    copy:
+      src: "/etc/yum.repos.d/{{ item }}"
+      dest: "/etc/yum.repos.centos/{{ item }}"
+      remote_src: yes
+    loop: "{{ repos.stdout_lines }}"
 
   - name: remove pre-existing CentOS repos
     file:
