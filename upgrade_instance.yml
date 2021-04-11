@@ -1,0 +1,45 @@
+---
+- name: Dynamically add ansible-1 to inventory
+  hosts: all[0]
+  gather_facts: no
+  tasks:
+  - name: Dynamically add ansible-1.example.com to inventory
+    add_host:
+      name: ansible-1.example.com
+
+- name: Ensure nodes are started
+  hosts: ansible-1.example.com
+  connection: local
+  gather_facts: no
+  tasks:
+  - name: Ensure instances in "env_{{ instances.tags.ContentView }}_{{ instances.tags.Environment }}" are running in region "{{ ec2_region }}"
+    include_role:
+      name: ec2_node_tools
+
+- name: Confirm node startup
+  hosts: all:!ansible-1.example.com
+  gather_facts: no
+  become: yes
+  tasks:
+  - name: Wait for connection...
+    wait_for_connection:
+      connect_timeout: 20
+      sleep: 5
+      delay: 5
+      timeout: 300
+
+  - name: Upgrade OS to latest packages available
+    yum:
+      name: '*'
+      state: latest
+
+  - name: Reboot server
+    reboot:
+    register: reboot_result
+
+  - name: Wait for connection...
+    wait_for_connection:
+      connect_timeout: 20
+      sleep: 5
+      delay: 5
+      timeout: 300
