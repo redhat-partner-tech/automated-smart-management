@@ -11,6 +11,8 @@
     organization: Default Organization
     lifecycle_environment: "{{ content_view }}_{{ env }}"
     content_view: undef
+    publish_timeout: 14400
+    publish_retry_interval: 15
 
   tasks:
   - name: Publish Content View
@@ -19,3 +21,14 @@
       content_view: "{{ content_view }}"
       organization: "{{ organization }}"
       lifecycle_environments: "{{ lifecycle_environment }}"
+    async: "{{ publish_timeout }}"
+    poll: 0
+    register: publish_async
+
+  - name: Check if content view  is finished
+    async_status:
+      jid: "{{ publish_async.ansible_job_id }}"
+    register: job_result
+    until: job_result.finished
+    retries: "{{ ( publish_timeout / publish_retry_interval ) | int }}"
+    delay: "{{ publish_retry_interval }}"
