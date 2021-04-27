@@ -395,7 +395,7 @@ tower_templates:
         tags:
           Workshop: EC2_NAME_PREFIX
       student: STUDENT_NAME_WITH_NUM
-      workshop_dns_zone: WORKSHOP_DNS_ZONE
+      workshop_dns_zone: WRKSHP_DNS_ZONE
 
   - name: TOWER / Update CentOS7 Dev inventories
     project: Automated Management
