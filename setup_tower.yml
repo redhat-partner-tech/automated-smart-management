@@ -19,6 +19,12 @@
     - set_fact:
         dynamic_development_source_vars: "{{ dynamic_development_source_vars_slurped['content'] | b64decode }}"
 
+    # Gather EC2 metadata facts
+    - amazon.aws.ec2_metadata_facts:
+  
+    - set_fact:
+        workshop_ec2_region: "{{ ansible_ec2_instance_identity_document_region }}"
+
     - debug:
         msg: "{{ dynamic_development_source_vars }}"   
     - name: deploy tower_infra workloads
