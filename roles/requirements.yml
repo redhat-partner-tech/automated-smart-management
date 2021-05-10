@@ -1,0 +1,10 @@
+# from galaxy, install in local roles directory
+# ansible-galaxy install --roles-path=./roles -r requirements.yaml
+
+# from Ansible Galaxy
+#- src: devnullcake.redhat-subscription
+
+# from GitHub, overriding the name and specifying a specific tag (master)
+- src: https://github.com/heatmiser/ansible-git
+  version: master
+  name: ansible_git
