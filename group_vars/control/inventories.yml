@@ -11,8 +11,8 @@ tower_inventories:
         tags:
           ContentView: CentOS7
           Environment: Dev
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
 
   - name: CentOS7 Production
     organization: Default
@@ -22,8 +22,8 @@ tower_inventories:
         tags:
           ContentView: CentOS7
           Environment: Prod
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
 
   - name: RHEL7 Development
     organization: Default
@@ -32,8 +32,8 @@ tower_inventories:
         tags:
           ContentView: RHEL7
           Environment: Dev
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
 
   - name: RHEL7 Production
     organization: Default
@@ -42,10 +42,13 @@ tower_inventories:
         tags:
           ContentView: RHEL7
           Environment: Prod
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
 
   - name: ALL Development
+    organization: Default
+
+  - name: EXAMPLE dynamic project inventory
     organization: Default
 
 tower_inventory_sources:
@@ -69,12 +72,42 @@ tower_inventory_sources:
     source: ec2
     source_vars:
       regions:
-        - us-east-1
+        - "{{ workshop_ec2_region }}"
       filters:
         tag:ContentView: CentOS7
         tag:Environment: Dev
-        tag:Student: STUDENT_NAME_WITH_NUM
-        tag:guid: EC2_NAME_PREFIX
+        tag:Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+        tag:guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+      hostnames:
+        - tag:NodeName
+      keyed_groups:
+        - prefix: cv
+          key: tags['ContentView']
+        - prefix: env
+          key: tags['ContentView'] ~ '_' ~ tags['Environment']
+        - prefix: os
+          key: tags['foreman_operatingsystem_name']
+        - prefix: AnsibleGroup
+          key: tags['AnsibleGroup']
+      compose:
+        # set the ansible_host variable to connect with the private IP address without changing the hostname
+        ansible_host: private_ip_address
+        ansible_user: "'centos'"
+    overwrite: true
+    update_on_launch: true
+    update_cache_timeout: 0
+
+  - name: EC2 Dynamic Source - CentOS7 Development
+    inventory: ALL Development
+    source: ec2
+    source_vars:
+      regions:
+        - "{{ workshop_ec2_region }}"
+      filters:
+        tag:ContentView: CentOS7
+        tag:Environment: Dev
+        tag:Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+        tag:guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
       hostnames:
         - tag:NodeName
       keyed_groups:
@@ -99,12 +132,12 @@ tower_inventory_sources:
     source: ec2
     source_vars:
       regions:
-        - us-east-1
+        - "{{ workshop_ec2_region }}"
       filters:
         tag:ContentView: CentOS7
         tag:Environment: Prod
-        tag:Student: STUDENT_NAME_WITH_NUM
-        tag:guid: EC2_NAME_PREFIX
+        tag:Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+        tag:guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
       hostnames:
         - tag:NodeName
         - tag:Name
@@ -131,12 +164,41 @@ tower_inventory_sources:
     source: ec2
     source_vars:
       regions:
-        - us-east-1
+        - "{{ workshop_ec2_region }}"
       filters:
         tag:ContentView: RHEL7
         tag:Environment: Dev
-        tag:Student: STUDENT_NAME_WITH_NUM
-        tag:guid: EC2_NAME_PREFIX
+        tag:Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+        tag:guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+      hostnames:
+        - tag:NodeName
+      keyed_groups:
+        - prefix: cv
+          key: tags['ContentView']
+        - prefix: env
+          key: tags['ContentView'] ~ '_' ~ tags['Environment']
+        - prefix: os
+          key: tags['foreman_operatingsystem_name']
+        - prefix: AnsibleGroup
+          key: tags['AnsibleGroup']
+      compose:
+        # set the ansible_host variable to connect with the private IP address without changing the hostname
+        ansible_host: private_ip_address
+    overwrite: true
+    update_on_launch: true
+    update_cache_timeout: 0
+
+  - name: EC2 Dynamic Source - RHEL7 Development
+    inventory: ALL Development
+    source: ec2
+    source_vars:
+      regions:
+        - "{{ workshop_ec2_region }}"
+      filters:
+        tag:ContentView: RHEL7
+        tag:Environment: Dev
+        tag:Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+        tag:guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
       hostnames:
         - tag:NodeName
       keyed_groups:
@@ -160,12 +222,12 @@ tower_inventory_sources:
     source: ec2
     source_vars:
       regions:
-        - us-east-1
+        - "{{ workshop_ec2_region }}"
       filters:
         tag:ContentView: RHEL7
         tag:Environment: Prod
-        tag:Student: STUDENT_NAME_WITH_NUM
-        tag:guid: EC2_NAME_PREFIX
+        tag:Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+        tag:guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
       hostnames:
         - tag:NodeName
         - tag:Name
@@ -187,7 +249,7 @@ tower_inventory_sources:
     update_cache_timeout: 0
 
   - name: inventory_centos7_dev.aws_ec2
-    inventory: ALL Development
+    inventory: EXAMPLE dynamic project inventory
     source: scm
     source_project: Automated Management
     source_path: inventory/inventory_centos7_dev.aws_ec2.yml
@@ -196,7 +258,7 @@ tower_inventory_sources:
     update_cache_timeout: 0
 
   - name: inventory_rhel7_dev.aws_ec2
-    inventory: ALL Development
+    inventory: EXAMPLE dynamic project inventory
     source: scm
     source_project: Automated Management
     source_path: inventory/inventory_rhel7_dev.aws_ec2.yml

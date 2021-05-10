@@ -256,11 +256,11 @@ tower_templates:
     inventory: Workshop Inventory
     limit: control
     extra_vars:
-      ec2_region: us-east-1
+      ec2_region: "{{ workshop_ec2_region }}"
       instances:
         tags:
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
           short_name: node*
 
   - name: SERVER / Stop node via ec2_node_tools
@@ -270,11 +270,11 @@ tower_templates:
     inventory: Workshop Inventory
     limit: control
     extra_vars:
-      ec2_region: us-east-1
+      ec2_region: "{{ workshop_ec2_region }}"
       instances:
         tags:
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
           short_name: node*
 
   - name: CONVERT2RHEL / 01 - Take node snapshot
@@ -284,12 +284,12 @@ tower_templates:
     inventory: Workshop Inventory
     limit: control
     extra_vars:
-      ec2_region: us-east-1
+      ec2_region: "{{ workshop_ec2_region }}"
       instances:
         tags:
           short_name: node*
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
           username: centos
 
   - name: CONVERT2RHEL / 02 - Upgrade OS to latest release
@@ -300,7 +300,7 @@ tower_templates:
     credentials:
       - Workshop Credential
     extra_vars:
-      ec2_region: us-east-1
+      ec2_region: "{{ workshop_ec2_region }}"
 
   - name: CONVERT2RHEL / 03 - convert2rhel
     description: Convert OS to RHEL OS via targetted LE
@@ -332,11 +332,11 @@ tower_templates:
     inventory: Workshop Inventory
     limit: control
     extra_vars:
-      ec2_region: us-east-1
+      ec2_region: "{{ workshop_ec2_region }}"
       instances:
         tags:
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
           username: centos
 
   - name: CONVERT2RHEL / 99 - Delete snapshot
@@ -346,11 +346,11 @@ tower_templates:
     inventory: Workshop Inventory
     limit: control
     extra_vars:
-      ec2_region: us-east-1
+      ec2_region: "{{ workshop_ec2_region }}"
       snapshots:
         tags:
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
 
   - name: EC2 / Set instance tags based on Satellite(Foreman) facts
     description: Set instance tags - selection via existing EC2 instance tags
@@ -360,11 +360,11 @@ tower_templates:
     credentials:
       - Satellite Credential
     extra_vars:
-      ec2_region: us-east-1
+      ec2_region: "{{ workshop_ec2_region }}"
       instances:
         tags:
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
           short_name: node*
 
   - name: EC2 / Get instance details via ec2_node_tools role
@@ -375,11 +375,11 @@ tower_templates:
     credentials:
       - Workshop Credential
     extra_vars:
-      ec2_region: us-east-1
+      ec2_region: "{{ workshop_ec2_region }}"
       instances:
         tags:
-          guid: EC2_NAME_PREFIX
-          Student: STUDENT_NAME_WITH_NUM
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
           short_name: node*
 
   - name: EC2 / Update Route53
@@ -390,12 +390,12 @@ tower_templates:
     credentials:
       - Workshop Credential
     extra_vars:
-      ec2_region: us-east-1
+      ec2_region: "{{ workshop_ec2_region }}"
       instances:
         tags:
-          Workshop: EC2_NAME_PREFIX
-      student: STUDENT_NAME_WITH_NUM
-      workshop_dns_zone: WRKSHP_DNS_ZONE
+          Workshop: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+      student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+      workshop_dns_zone: "{{ lookup('env', 'AWX_HOST').split('.',2)[2] }}"
 
   - name: TOWER / Update CentOS7 Dev inventories
     project: Automated Management
