@@ -97,7 +97,7 @@ tower_inventory_sources:
     update_on_launch: true
     update_cache_timeout: 0
 
-  - name: EC2 Dynamic Source - CentOS7 Development
+  - name: EC2 Dynamic Source - CentOS7 Development - ALL
     inventory: ALL Development
     source: ec2
     source_vars:
@@ -188,7 +188,7 @@ tower_inventory_sources:
     update_on_launch: true
     update_cache_timeout: 0
 
-  - name: EC2 Dynamic Source - RHEL7 Development
+  - name: EC2 Dynamic Source - RHEL7 Development - ALL
     inventory: ALL Development
     source: ec2
     source_vars:
