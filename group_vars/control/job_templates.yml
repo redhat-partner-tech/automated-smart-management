@@ -180,11 +180,11 @@ tower_templates:
   - name: SERVER / RHEL7 - Patch
     project: Automated Management
     playbook: server_patch.yml
-    inventory: Workshop Inventory
+    inventory: RHEL7 Development
     use_fact_cache: true
     credentials:
       - Workshop Credential
-    limit: rhel7
+    limit: ''
     survey_enabled: true
     survey:
       name: ''
@@ -232,12 +232,12 @@ tower_templates:
   - name: SERVER / RHEL7 - Fact Scan
     project: Fact Scan
     playbook: scan_facts.yml
-    inventory: Workshop Inventory
+    inventory: RHEL7 Development
     ask_limit_on_launch: true
     use_fact_cache: true
     credentials:
       - Workshop Credential
-    limit: rhel7
+    limit: ''
 
   - name: SERVER / CentOS7 - Fact Scan
     project: Fact Scan
