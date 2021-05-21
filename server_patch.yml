@@ -1,5 +1,5 @@
 ---
-- hosts: "env_{{ server_type }}"
+- hosts: "env_{{ lifecycle_stage }}"
   become: yes
   vars:
     check_only: yes
