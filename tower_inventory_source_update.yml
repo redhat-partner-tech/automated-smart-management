@@ -28,6 +28,6 @@
 
   - name: Update "ALL {{ environment_name_expanded }}" inventory via source ==> "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
     tower_inventory_source_update:
-      name: "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
+      name: "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }} - ALL"
       inventory: "ALL {{ environment_name_expanded }}"
       organization: Default
