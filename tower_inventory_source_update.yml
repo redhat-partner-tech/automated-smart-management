@@ -20,14 +20,14 @@
       environment_name_expanded: "Production"
     when: env == "Prod"
 
-  - name: Update inventory via source ==> EC2 Dynamic Source - "{{ content_view }}" "{{ environment_name_expanded }}"
+  - name: Update "{{ content_view }} {{ environment_name_expanded }}" inventory via source ==> "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
     tower_inventory_source_update:
       name: "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
       inventory: "{{ content_view }} {{ environment_name_expanded }}"
       organization: Default
 
-  - name: Update inventory via source ==> inventory_{{ content_view | lower }}_{{ env | lower }}.aws_ec2
+  - name: Update "ALL {{ environment_name_expanded }}" inventory via source ==> "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
     tower_inventory_source_update:
-      name: "inventory_{{ content_view | lower }}_{{ env | lower }}.aws_ec2"
+      name: "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
       inventory: "ALL {{ environment_name_expanded }}"
       organization: Default
