@@ -192,7 +192,7 @@ tower_templates:
       spec:
         - question_name: Select Environment
           type: multiplechoice
-          variable: server_type
+          variable: lifecycle_stage
           choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Check
@@ -218,7 +218,7 @@ tower_templates:
       spec:
         - question_name: Select Environment
           type: multiplechoice
-          variable: server_type
+          variable: lifecycle_stage
           choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Check
