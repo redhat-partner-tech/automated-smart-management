@@ -27,3 +27,4 @@
     loop: "{{ updates.changes.updated }}"
     loop_control:
       label: "{{ item[0] }}"
+    when: updates.changes is defined
