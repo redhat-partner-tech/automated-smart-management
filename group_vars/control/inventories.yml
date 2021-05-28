@@ -94,7 +94,7 @@ tower_inventory_sources:
         ansible_host: private_ip_address
         ansible_user: "'centos'"
     overwrite: true
-    update_on_launch: true
+    update_on_launch: false
     update_cache_timeout: 0
 
   - name: EC2 Dynamic Source - CentOS7 Development - ALL
@@ -124,7 +124,7 @@ tower_inventory_sources:
         ansible_host: private_ip_address
         ansible_user: "'centos'"
     overwrite: true
-    update_on_launch: true
+    update_on_launch: false
     update_cache_timeout: 0
 
   - name: EC2 Dynamic Source - CentOS7 Production
@@ -156,7 +156,7 @@ tower_inventory_sources:
         ansible_host: private_ip_address
         ansible_user: "'centos'"
     overwrite: true
-    update_on_launch: true
+    update_on_launch: false
     update_cache_timeout: 0
 
   - name: EC2 Dynamic Source - RHEL7 Development
@@ -185,7 +185,7 @@ tower_inventory_sources:
         # set the ansible_host variable to connect with the private IP address without changing the hostname
         ansible_host: private_ip_address
     overwrite: true
-    update_on_launch: true
+    update_on_launch: false
     update_cache_timeout: 0
 
   - name: EC2 Dynamic Source - RHEL7 Development - ALL
@@ -214,7 +214,7 @@ tower_inventory_sources:
         # set the ansible_host variable to connect with the private IP address without changing the hostname
         ansible_host: private_ip_address
     overwrite: true
-    update_on_launch: true
+    update_on_launch: false
     update_cache_timeout: 0
 
   - name: EC2 Dynamic Source - RHEL7 Production
@@ -245,7 +245,7 @@ tower_inventory_sources:
         # set the ansible_host variable to connect with the private IP address without changing the hostname
         ansible_host: private_ip_address
     overwrite: true
-    update_on_launch: true
+    update_on_launch: false
     update_cache_timeout: 0
 
   - name: inventory_centos7_dev.aws_ec2
@@ -254,7 +254,7 @@ tower_inventory_sources:
     source_project: Automated Management
     source_path: inventory/inventory_centos7_dev.aws_ec2.yml
     overwrite: true
-    update_on_launch: true
+    update_on_launch: false
     update_cache_timeout: 0
 
   - name: inventory_rhel7_dev.aws_ec2
@@ -263,5 +263,5 @@ tower_inventory_sources:
     source_project: Automated Management
     source_path: inventory/inventory_rhel7_dev.aws_ec2.yml
     overwrite: true
-    update_on_launch: true
+    update_on_launch: false
     update_cache_timeout: 0
