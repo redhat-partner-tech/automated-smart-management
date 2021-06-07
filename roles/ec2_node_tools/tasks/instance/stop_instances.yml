@@ -16,9 +16,9 @@
   wait_for: "port=22 host={{ item }} delay=10 state=stopped timeout=60"
   delegate_to: localhost
   connection: local
-  with_together:
-    - "{{ instances_details.instances|map(attribute='private_ip_address')|list|unique }}"
-    - "{{ instances_details | json_query('instances[*].platform') }}"
+  loop: "{{ instances_details.instances|map(attribute='private_ip_address')|list|unique |
+         zip(instances_details | json_query('instances[*].platform'))
+         |list }}"
   when:
     - item.1 == None
 
