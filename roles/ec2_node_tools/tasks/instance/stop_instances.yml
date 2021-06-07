@@ -16,4 +16,18 @@
   wait_for: "port=22 host={{ item }} delay=10 state=stopped timeout=60"
   delegate_to: localhost
   connection: local
-  with_items: "{{ instances_details.instances|map(attribute='private_ip_address')|list|unique }}"
+  with_together:
+    - "{{ instances_details.instances|map(attribute='private_ip_address')|list|unique }}"
+    - "{{ instances_details | json_query('instances[*].platform') }}"
+  when:
+    - item.1 == None
+
+- name: ensure host is down via WinRM port probe 
+  wait_for: "port=5986 host={{ item.0 }} delay=10 state=stopped timeout=60"
+  delegate_to: localhost
+  connection: local
+  with_together:
+    - "{{ instances_details.instances|map(attribute='private_ip_address')|list|unique }}"
+    - "{{ instances_details | json_query('instances[*].platform') }}"
+  when:
+    - item.1 == 'windows'
