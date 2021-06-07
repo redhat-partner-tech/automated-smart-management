@@ -20,8 +20,6 @@ Content in this collection is included downstream in Red Hat Ansible Automation 
 
 Code standards, test coverage, and other supportability criteria may be higher in this collection. 
 
-The `amazon.aws` collection is an [Ansible-maintained collection](https://docs.ansible.com/ansible/devel/community/contributing_maintained_collections.html).
-
 ### community.aws
 This collection contains modules and plugins contributed and maintained by the Ansible AWS
 community.  The `community.aws` collection is tested and generally assured to work in
@@ -32,8 +30,8 @@ Content in this collection that is stable and meets other acceptance criteria ha
 to be promoted and migrated into `amazon.aws`.
 
 ## Submitting Issues
-All software has bugs, and the `amazon.aws` collection is no exception. When you find a bug, 
-you can help tremendously by [telling us about it](https://github.com/ansible-collections/amazon.aws/issues/new/choose).
+All software has bugs, and the `community.aws` collection is no exception. When you find a bug, 
+you can help tremendously by [telling us about it](https://github.com/ansible-collections/community.aws/issues/new/choose).
 
 If you should discover that the bug you're trying to file already exists in an issue, 
 you can help by verifying the behavior of the reported bug with a comment in that 
@@ -69,7 +67,7 @@ be found on Freenode IRC as detailed below.
 
 
 ### Code of Conduct
-The `amazon.aws` collection follows the Ansible project's 
+The `community.aws` collection follows the Ansible project's 
 [Code of Conduct](https://docs.ansible.com/ansible/devel/community/code_of_conduct.html). 
 Please read and familiarize yourself with this document.
 
@@ -78,4 +76,4 @@ Our IRC channels may require you to register your nickname. If you receive an er
 [Freenode's Nickname Registration guide](https://freenode.net/kb/answer/registration) for instructions
 
 The `#ansible-aws` channel on Freenode irc is the main and official place to discuss use and development
-of the `amazon.aws` collection.
+of the `community.aws` collection.
