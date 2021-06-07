@@ -13,12 +13,12 @@
 #    - "{{ instances_details.instances|[0]|network_interfaces[0].subnet_id }}"
 
 - name: ensure host is down via ssh port probe 
-  wait_for: "port=22 host={{ item }} delay=10 state=stopped timeout=60"
+  wait_for: "port=22 host={{ item.0 }} delay=10 state=stopped timeout=60"
   delegate_to: localhost
   connection: local
-  loop: "{{ instances_details.instances|map(attribute='private_ip_address')|list|unique |
-         zip(instances_details | json_query('instances[*].platform'))
-         |list }}"
+  with_together:
+    - "{{ instances_details.instances|map(attribute='private_ip_address')|list|unique }}"
+    - "{{ instances_details | json_query('instances[*].platform') }}"
   when:
     - item.1 == None
 
