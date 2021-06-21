@@ -1,9 +1,6 @@
 ---
 - hosts: "{{ HOSTS | default('control[0]') }}"
   connection: local
-  #vars:
-    #organization: "Default Organization"
-    #validate_certs: false
   tasks:
   - name: "Get instance details"
     import_role:
@@ -32,19 +29,17 @@
         - "Instance ID ==> {{ host_ec2_instance_id[item.key] }}"
         - "Node ==> {{ item.key }}"
         - "AnsibleGroup ==> {{ item.value }}"
-    #vars:
-    #  ansible_host_name_query: "resources[?starts_with(name, 'node')].name"
+    loop: "{{ lookup('dict', group_tag_map) }}"
+    when:
+      - instances_details is not none
+      - display_debug_output
+
+  - name: "Populate EC2 instance tags"
+    ec2_tag:
+      region: "{{ ec2_region }}"
+      resource: "{{ host_ec2_instance_id[item.key] }}"
+      state: present
+      tags:
+        AnsibleGroup: "{{ item.value }}"
     loop: "{{ lookup('dict', group_tag_map) }}"
     when: instances_details is not none
-
-  #- name: "Populate EC2 instance tags"
-  #  vars:
-  #    ansible_host_name_query: "resources[?starts_with(name, 'node')].name"
-  #  ec2_tag:
-  #    region: "{{ ec2_region }}"
-  #    resource: "{{ host_ec2_instance_id[item] }}"
-  #    state: present
-  #    tags:
-  #      Environment: "{{ host_satellite_lifecycle_env[item].split('_')[1] }}"
-  #  with_items: "{{ resource_info_hosts_result | to_json | from_json | json_query(ansible_host_name_query) | list }}"
-  #  when: instances_details is not none
