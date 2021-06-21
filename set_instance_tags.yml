@@ -19,7 +19,7 @@
         {{
           host_ec2_instance_id |
           combine(
-            { item : instances_details | json_query(ansible_instance_id_query) }
+            { item.key : instances_details | json_query(ansible_instance_id_query) }
                  )
         }}
     vars:
