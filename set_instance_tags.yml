@@ -23,17 +23,18 @@
                  )
         }}
     vars:
-      ansible_instance_id_query: "instances[?contains(['{{ item.split('.')[0] | lower }}'], tags.short_name)].instance_id | [0]"
-    with_items: "{{ group_tag_map | list }}"
+      ansible_instance_id_query: "instances[?contains(['{{ item.key.split('.')[0] | lower }}'], tags.short_name)].instance_id | [0]"
+    loop: "{{ lookup('dict', group_tag_map) }}"
     when: instances_details is not none
 
   - debug:
       msg:
-        - "Instance ID ==> {{ host_ec2_instance_id[item] }}"
-        - "Node ==> {{ item }}"
+        - "Instance ID ==> {{ host_ec2_instance_id[item.key] }}"
+        - "Node ==> {{ item.key }}"
+        - "AnsibleGroup ==> {{ item.value }}"
     #vars:
     #  ansible_host_name_query: "resources[?starts_with(name, 'node')].name"
-    with_items: "{{ group_tag_map | list }}"
+    loop: "{{ lookup('dict', group_tag_map) }}"
     when: instances_details is not none
 
   #- name: "Populate EC2 instance tags"
