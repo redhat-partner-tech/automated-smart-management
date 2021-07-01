@@ -290,7 +290,6 @@ tower_templates:
           short_name: node*
           guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
           Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
-          username: centos
 
   - name: CONVERT2RHEL / 02 - Upgrade OS to latest release
     description: Upgrade OS to latest available packages
