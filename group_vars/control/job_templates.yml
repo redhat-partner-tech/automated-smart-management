@@ -332,9 +332,9 @@ tower_templates:
     credentials:
       - Workshop Credential
     extra_vars:
-      pg_db_name: "db01"
-      pg_db_user: "user01"
-      pg_db_passwd: "Xtr4Sup3rS3cr3tP4ssw0rd?!"
+      pg_db_name: db01
+      pg_db_user: user01
+      pg_db_passwd: Xtr4Sup3rS3cr3tP4ssw0rd?!
 
   - name: CONVERT2RHEL / 98 - Revert node state via snapshot
     description: Revert via snapshot - selection via EC2 instance tags
