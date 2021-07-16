@@ -9,6 +9,6 @@ tower_projects:
     organization: Default
     scm_type: git
     scm_url: 'https://github.com/heatmiser/ansible-3tier-app.git'
-    scm_branch: 'delete'
+    scm_branch: development
     scm_delete_on_update: true
     scm_update_on_launch: true
