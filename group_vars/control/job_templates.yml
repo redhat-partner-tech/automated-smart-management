@@ -324,10 +324,22 @@ tower_templates:
           choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
 
-  - name: CONVERT2RHEL / 97 - Three Tier App deployment
+  - name: CONVERT2RHEL / 96 - Three Tier App deployment
     description: Deploy three tier app
     project: Three Tier App / Dev
     playbook: Configure_3TA_AWS.yml
+    inventory: CentOS7 Development
+    credentials:
+      - Workshop Credential
+    extra_vars:
+      pg_db_name: db01
+      pg_db_user: user01
+      pg_db_passwd: Xtr4Sup3rS3cr3tP4ssw0rd?!
+
+  - name: CONVERT2RHEL / 97 - Three Tier App smoke test
+    description: Smoke test three tier app
+    project: Three Tier App / Dev
+    playbook: SmokeTest_3TA_AWS.yml
     inventory: CentOS7 Development
     credentials:
       - Workshop Credential
