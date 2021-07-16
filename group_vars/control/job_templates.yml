@@ -326,7 +326,7 @@ tower_templates:
 
   - name: CONVERT2RHEL / 97 - Three Tier App deployment
     description: Deploy three tier app
-    project: Automated Management
+    project: Three Tier App / Dev
     playbook: Configure_3TA_AWS.yml
     inventory: CentOS7 Development
     credentials:
