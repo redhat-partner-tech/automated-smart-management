@@ -366,6 +366,23 @@ tower_templates:
           Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
           short_name: node*
 
+  - name: EC2 / Set instance tag- AnsibleGroup
+    description: Set instance tag - AnsibleGroup via provided extra_vars dict
+    project: Automated Management
+    playbook: set_instance_tags.yml
+    inventory: Workshop Inventory
+    extra_vars:
+      ec2_region: "{{ workshop_ec2_region }}"
+      instances:
+        tags:
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+          short_name: node*
+      group_tag_map:
+        node4.example.com: frontends
+        node5.example.com: apps
+        node6.example.com: appdbs
+
   - name: EC2 / Get instance details via ec2_node_tools role
     description: Utilize ec2_node_tools role to display info available per instance/node
     project: Automated Management
