@@ -12,3 +12,4 @@ tower_projects:
     scm_branch: development
     scm_delete_on_update: true
     scm_update_on_launch: true
+    scm_update_cache_timeout: 3600
