@@ -378,7 +378,7 @@ tower_templates:
           Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
           short_name: node*
 
-  - name: EC2 / Set instance tag- AnsibleGroup
+  - name: EC2 / Set instance tag - AnsibleGroup
     description: Set instance tag - AnsibleGroup via provided extra_vars dict
     project: Automated Management
     playbook: set_instance_tags.yml
