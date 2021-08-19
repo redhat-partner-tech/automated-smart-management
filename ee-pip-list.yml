@@ -3,6 +3,8 @@
   hosts: ansible-1.example.com
   connection: local
   gather_facts: no
+  collections:
+  - name: community.general
   tasks:
   - name: Just get the list from default pip
     pip_package_info:
