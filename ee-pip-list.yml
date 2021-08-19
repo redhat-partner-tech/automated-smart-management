@@ -1,8 +1,8 @@
 ---
-- hosts: localhost
+- name: pip list from default EE
+  hosts: ansible-1.example.com
   connection: local
-  gather_facts: false
-
+  gather_facts: no
   tasks:
   - name: Just get the list from default pip
     community.general.pip_package_info:
