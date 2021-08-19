@@ -10,4 +10,4 @@
     register: pips
 
   - debug:
-      msg: "{{ pips.packages.pip }}"
+      msg: "{{ pips.packages.pip3 }}"
