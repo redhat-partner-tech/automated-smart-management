@@ -5,7 +5,8 @@
   gather_facts: no
   tasks:
   - name: Just get the list from default pip
-    pip_package_info:
+    community.general.pip_package_info:
+    #pip_package_info:
       clients: pip3
     register: pips
 
