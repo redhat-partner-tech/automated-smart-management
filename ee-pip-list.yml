@@ -3,11 +3,9 @@
   hosts: ansible-1.example.com
   connection: local
   gather_facts: no
-  collections:
-  - community.general
   tasks:
   - name: Just get the list from default pip
-    community.general.pip_package_info:
+    pip_package_info:
       clients: pip
     register: pips
 
