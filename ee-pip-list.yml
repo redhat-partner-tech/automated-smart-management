@@ -6,7 +6,7 @@
   tasks:
   - name: Just get the list from default pip
     pip_package_info:
-      #clients: pip
+      clients: pip3
     register: pips
 
   - debug:
