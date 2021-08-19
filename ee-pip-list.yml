@@ -11,4 +11,3 @@
 
   - debug:
       msg: "{{ pips.packages.pip }
-...
