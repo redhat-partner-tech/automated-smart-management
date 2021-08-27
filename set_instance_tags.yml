@@ -1,0 +1,45 @@
+---
+- hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
+  tasks:
+  - name: "Get instance details"
+    import_role:
+      name: ec2_node_tools
+      tasks_from: get_instance_details
+
+  - set_fact:
+      host_ec2_instance_id: {}
+
+  - name: "Set facts based on individual host's ec2 instance_id"
+    set_fact:
+      host_ec2_instance_id: >
+        {{
+          host_ec2_instance_id |
+          combine(
+            { item.key : instances_details | json_query(ansible_instance_id_query) }
+                 )
+        }}
+    vars:
+      ansible_instance_id_query: "instances[?contains(['{{ item.key.split('.')[0] | lower }}'], tags.short_name)].instance_id | [0]"
+    loop: "{{ lookup('dict', group_tag_map) }}"
+    when: instances_details is not none
+
+  - debug:
+      msg:
+        - "Instance ID ==> {{ host_ec2_instance_id[item.key] }}"
+        - "Node ==> {{ item.key }}"
+        - "AnsibleGroup ==> {{ item.value }}"
+    loop: "{{ lookup('dict', group_tag_map) }}"
+    when:
+      - instances_details is not none
+      - display_debug_output
+
+  - name: "Populate EC2 instance tags"
+    ec2_tag:
+      region: "{{ ec2_region }}"
+      resource: "{{ host_ec2_instance_id[item.key] }}"
+      state: present
+      tags:
+        AnsibleGroup: "{{ item.value }}"
+    loop: "{{ lookup('dict', group_tag_map) }}"
+    when: instances_details is not none

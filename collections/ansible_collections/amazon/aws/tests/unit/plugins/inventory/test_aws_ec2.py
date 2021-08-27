@@ -29,7 +29,9 @@ boto3 = pytest.importorskip('boto3')
 botocore = pytest.importorskip('botocore')
 
 from ansible.errors import AnsibleError
+from ansible.parsing.dataloader import DataLoader
 from ansible_collections.amazon.aws.plugins.inventory.aws_ec2 import InventoryModule, instance_data_filter_to_boto_attr
+
 
 instances = {
     u'Instances': [
@@ -102,7 +104,7 @@ instances = {
          u'RootDeviceType': 'ebs',
          u'RootDeviceName': '/dev/xvda',
          u'VirtualizationType': 'hvm',
-         u'Tags': [{u'Value': 'test', u'Key': 'ansible'}, {u'Value': 'aws_ec2', u'Key': 'name'}],
+         u'Tags': [{u'Value': 'test', u'Key': 'ansible'}, {u'Value': 'aws_ec2', u'Key': 'Name'}],
          u'AmiLaunchIndex': 0}],
     u'ReservationId': 'r-01234567890000000',
     u'Groups': [],
@@ -134,7 +136,8 @@ def test_boto3_conn(inventory):
                           "aws_secret_key": "test_secret_key",
                           "aws_security_token": "test_security_token",
                           "iam_role_arn": None}
-    inventory._set_credentials()
+    loader = DataLoader()
+    inventory._set_credentials(loader)
     with pytest.raises(AnsibleError) as error_message:
         for connection, region in inventory._boto3_conn(regions=['us-east-1']):
             assert "Insufficient credentials found" in error_message
@@ -151,13 +154,20 @@ def test_get_hostname(inventory):
     assert inventory._get_hostname(instance, hostnames) == "12.345.67.890"
 
 
+def test_get_hostname_dict(inventory):
+    hostnames = [{'name': 'private-ip-address', 'separator': '_', 'prefix': 'tag:Name'}]
+    instance = instances['Instances'][0]
+    assert inventory._get_hostname(instance, hostnames) == "aws_ec2_098.76.54.321"
+
+
 def test_set_credentials(inventory):
     inventory._options = {'aws_access_key': 'test_access_key',
                           'aws_secret_key': 'test_secret_key',
                           'aws_security_token': 'test_security_token',
                           'aws_profile': 'test_profile',
                           'iam_role_arn': 'arn:aws:iam::112233445566:role/test-role'}
-    inventory._set_credentials()
+    loader = DataLoader()
+    inventory._set_credentials(loader)
 
     assert inventory.boto_profile == "test_profile"
     assert inventory.aws_access_key_id == "test_access_key"
@@ -175,7 +185,8 @@ def test_insufficient_credentials(inventory):
         'iam_role_arn': None
     }
     with pytest.raises(AnsibleError) as error_message:
-        inventory._set_credentials()
+        loader = DataLoader()
+        inventory._set_credentials(loader)
         assert "Insufficient credentials found" in error_message
 
 

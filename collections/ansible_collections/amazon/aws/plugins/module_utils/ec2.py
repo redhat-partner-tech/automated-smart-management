@@ -39,14 +39,15 @@ from ansible.module_utils._text import to_text
 from ansible.module_utils.ansible_release import __version__
 from ansible.module_utils.basic import env_fallback
 from ansible.module_utils.basic import missing_required_lib
-from ansible.module_utils.common.dict_transformations import _camel_to_snake
-from ansible.module_utils.common.dict_transformations import _snake_to_camel
-from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
-from ansible.module_utils.common.dict_transformations import snake_dict_to_camel_dict
 from ansible.module_utils.six import binary_type
 from ansible.module_utils.six import string_types
 from ansible.module_utils.six import text_type
 from ansible.module_utils.six import integer_types
+# Used to live here, moved into ansible.module_utils.common.dict_transformations
+from ansible.module_utils.common.dict_transformations import _camel_to_snake  # pylint: disable=unused-import
+from ansible.module_utils.common.dict_transformations import _snake_to_camel  # pylint: disable=unused-import
+from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict  # pylint: disable=unused-import
+from ansible.module_utils.common.dict_transformations import snake_dict_to_camel_dict  # pylint: disable=unused-import
 
 from .cloud import CloudRetry
 
@@ -190,7 +191,7 @@ def aws_common_argument_spec():
     return dict(
         debug_botocore_endpoint_logs=dict(fallback=(env_fallback, ['ANSIBLE_DEBUG_BOTOCORE_LOGS']), default=False, type='bool'),
         ec2_url=dict(aliases=['aws_endpoint_url', 'endpoint_url']),
-        aws_access_key=dict(aliases=['ec2_access_key', 'access_key']),
+        aws_access_key=dict(aliases=['ec2_access_key', 'access_key'], no_log=False),
         aws_secret_key=dict(aliases=['ec2_secret_key', 'secret_key'], no_log=True),
         security_token=dict(aliases=['access_token', 'aws_security_token'], no_log=True),
         validate_certs=dict(default=True, type='bool'),
@@ -581,7 +582,6 @@ def get_ec2_security_group_ids_from_names(sec_group_list, ec2_connection, vpc_id
 
     if len(unmatched) > 0:
         # If we have unmatched names that look like an ID, assume they are
-        import re
         sec_group_id_list[:] = [sg for sg in unmatched if re.match('sg-[a-fA-F0-9]+$', sg)]
         still_unmatched = [sg for sg in unmatched if not re.match('sg-[a-fA-F0-9]+$', sg)]
         if len(still_unmatched) > 0:
@@ -805,3 +805,137 @@ def compare_aws_tags(current_tags_dict, new_tags_dict, purge_tags=True):
             tag_key_value_pairs_to_set[key] = new_tags_dict[key]
 
     return tag_key_value_pairs_to_set, tag_keys_to_unset
+
+
+@AWSRetry.jittered_backoff()
+def _describe_ec2_tags(client, **params):
+    paginator = client.get_paginator('describe_tags')
+    return paginator.paginate(**params).build_full_result()
+
+
+def add_ec2_tags(client, module, resource_id, tags_to_set, retry_codes=None):
+    """
+    Sets Tags on an EC2 resource.
+
+    :param client: an EC2 boto3 client
+    :param module: an AnsibleAWSModule object
+    :param resource_id: the identifier for the resource
+    :param tags_to_set: A dictionary of key/value pairs to set
+    :param retry_codes: additional boto3 error codes to trigger retries
+    """
+
+    if not tags_to_set:
+        return False
+    if module.check_mode:
+        return True
+
+    if not retry_codes:
+        retry_codes = []
+
+    try:
+        tags_to_add = ansible_dict_to_boto3_tag_list(tags_to_set)
+        AWSRetry.jittered_backoff(retries=10, catch_extra_error_codes=retry_codes)(
+            client.create_tags
+        )(
+            Resources=[resource_id], Tags=tags_to_add
+        )
+    except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
+        module.fail_json_aws(e, msg="Unable to add tags {0} to {1}".format(tags_to_set, resource_id))
+    return True
+
+
+def remove_ec2_tags(client, module, resource_id, tags_to_unset, retry_codes=None):
+    """
+    Removes Tags from an EC2 resource.
+
+    :param client: an EC2 boto3 client
+    :param module: an AnsibleAWSModule object
+    :param resource_id: the identifier for the resource
+    :param tags_to_unset: a list of tag keys to removes
+    :param retry_codes: additional boto3 error codes to trigger retries
+    """
+
+    if not tags_to_unset:
+        return False
+    if module.check_mode:
+        return True
+
+    if not retry_codes:
+        retry_codes = []
+
+    tags_to_remove = [dict(Key=tagkey) for tagkey in tags_to_unset]
+
+    try:
+        AWSRetry.jittered_backoff(retries=10, catch_extra_error_codes=retry_codes)(
+            client.delete_tags
+        )(
+            Resources=[resource_id], Tags=tags_to_remove
+        )
+    except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
+        module.fail_json_aws(e, msg="Unable to delete tags {0} from {1}".format(tags_to_unset, resource_id))
+    return True
+
+
+def describe_ec2_tags(client, module, resource_id, resource_type=None, retry_codes=None):
+    """
+    Performs a paginated search of EC2 resource tags.
+
+    :param client: an EC2 boto3 client
+    :param module: an AnsibleAWSModule object
+    :param resource_id: the identifier for the resource
+    :param resource_type: the type of the resource
+    :param retry_codes: additional boto3 error codes to trigger retries
+    """
+    filters = {'resource-id': resource_id}
+    if resource_type:
+        filters['resource-type'] = resource_type
+    filters = ansible_dict_to_boto3_filter_list(filters)
+
+    if not retry_codes:
+        retry_codes = []
+
+    try:
+        results = AWSRetry.jittered_backoff(retries=10, catch_extra_error_codes=retry_codes)(
+            _describe_ec2_tags
+        )(
+            client, Filters=filters
+        )
+        return boto3_tag_list_to_ansible_dict(results.get('Tags', None))
+    except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
+        module.fail_json_aws(e, msg="Failed to describe tags for EC2 Resource: {0}".format(resource_id))
+
+
+def ensure_ec2_tags(client, module, resource_id, resource_type=None, tags=None, purge_tags=True, retry_codes=None):
+    """
+    Updates the tags on an EC2 resource.
+
+    To remove all tags the tags parameter must be explicitly set to an empty dictionary.
+
+    :param client: an EC2 boto3 client
+    :param module: an AnsibleAWSModule object
+    :param resource_id: the identifier for the resource
+    :param resource_type: the type of the resource
+    :param tags: the Tags to apply to the resource
+    :param purge_tags: whether tags missing from the tag list should be removed
+    :param retry_codes: additional boto3 error codes to trigger retries
+    :return: changed: returns True if the tags are changed
+    """
+
+    if tags is None:
+        return False
+
+    if not retry_codes:
+        retry_codes = []
+
+    changed = False
+    current_tags = describe_ec2_tags(client, module, resource_id, resource_type, retry_codes)
+
+    tags_to_set, tags_to_unset = compare_aws_tags(current_tags, tags, purge_tags)
+
+    if purge_tags and not tags:
+        tags_to_unset = current_tags
+
+    changed |= remove_ec2_tags(client, module, resource_id, tags_to_unset, retry_codes)
+    changed |= add_ec2_tags(client, module, resource_id, tags_to_set, retry_codes)
+
+    return changed

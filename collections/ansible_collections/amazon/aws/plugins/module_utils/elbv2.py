@@ -12,8 +12,6 @@ try:
 except ImportError:
     pass
 
-from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
-
 from .ec2 import AWSRetry
 from .ec2 import ansible_dict_to_boto3_tag_list
 from .ec2 import boto3_tag_list_to_ansible_dict
@@ -21,6 +19,31 @@ from .ec2 import get_ec2_security_group_ids_from_names
 from .elb_utils import convert_tg_name_to_arn
 from .elb_utils import get_elb
 from .elb_utils import get_elb_listener
+
+
+# ForwardConfig may be optional if we've got a single TargetGroupArn entry
+def _prune_ForwardConfig(action):
+    if "ForwardConfig" in action and action['Type'] == 'forward':
+        if action["ForwardConfig"] == {
+                'TargetGroupStickinessConfig': {'Enabled': False},
+                'TargetGroups': [{"TargetGroupArn": action["TargetGroupArn"], "Weight": 1}]}:
+            newAction = action.copy()
+            del(newAction["ForwardConfig"])
+            return newAction
+    return action
+
+
+# the AWS api won't return the client secret, so we'll have to remove it
+# or the module will always see the new and current actions as different
+# and try to apply the same config
+def _prune_secret(action):
+    if action['Type'] == 'authenticate-oidc':
+        action['AuthenticateOidcConfig'].pop('ClientSecret')
+    return action
+
+
+def _sort_actions(actions):
+    return sorted(actions, key=lambda x: x.get('Order', 0))
 
 
 class ElasticLoadBalancerV2(object):
@@ -48,8 +71,10 @@ class ElasticLoadBalancerV2(object):
         if self.elb is not None:
             self.elb_attributes = self.get_elb_attributes()
             self.elb['tags'] = self.get_elb_tags()
+            self.elb_ip_addr_type = self.get_elb_ip_address_type()
         else:
             self.elb_attributes = None
+            self.elb_ip_addr_type = None
 
     def wait_for_status(self, elb_arn):
         """
@@ -83,6 +108,15 @@ class ElasticLoadBalancerV2(object):
 
         # Replace '.' with '_' in attribute key names to make it more Ansibley
         return dict((k.replace('.', '_'), v) for k, v in elb_attributes.items())
+
+    def get_elb_ip_address_type(self):
+        """
+        Retrieve load balancer ip address type using describe_load_balancers
+
+        :return:
+        """
+
+        return self.elb.get('IpAddressType', None)
 
     def update_elb_attributes(self):
         """
@@ -208,6 +242,21 @@ class ElasticLoadBalancerV2(object):
 
         self.elb = get_elb(self.connection, self.module, self.module.params.get("name"))
         self.elb['tags'] = self.get_elb_tags()
+
+    def modify_ip_address_type(self, ip_addr_type):
+        """
+        Modify ELB ip address type
+        :return:
+        """
+        if self.elb_ip_addr_type != ip_addr_type:
+            try:
+                AWSRetry.jittered_backoff()(
+                    self.connection.set_ip_address_type
+                )(LoadBalancerArn=self.elb['LoadBalancerArn'], IpAddressType=ip_addr_type)
+            except (BotoCoreError, ClientError) as e:
+                self.module.fail_json_aws(e)
+
+            self.changed = True
 
 
 class ApplicationLoadBalancer(ElasticLoadBalancerV2):
@@ -567,31 +616,13 @@ class ELBListeners(object):
         # If the lengths of the actions are the same, we'll have to verify that the
         # contents of those actions are the same
         if len(current_listener['DefaultActions']) == len(new_listener['DefaultActions']):
-            # if actions have just one element, compare the contents and then update if
-            # they're different
-            if len(current_listener['DefaultActions']) == 1 and len(new_listener['DefaultActions']) == 1:
-                if current_listener['DefaultActions'] != new_listener['DefaultActions']:
-                    modified_listener['DefaultActions'] = new_listener['DefaultActions']
-            # if actions have multiple elements, we'll have to order them first before comparing.
-            # multiple actions will have an 'Order' key for this purpose
-            else:
-                current_actions_sorted = sorted(current_listener['DefaultActions'], key=lambda x: x['Order'])
-                new_actions_sorted = sorted(new_listener['DefaultActions'], key=lambda x: x['Order'])
+            current_actions_sorted = _sort_actions(current_listener['DefaultActions'])
+            new_actions_sorted = _sort_actions(new_listener['DefaultActions'])
 
-                # the AWS api won't return the client secret, so we'll have to remove it
-                # or the module will always see the new and current actions as different
-                # and try to apply the same config
-                new_actions_sorted_no_secret = []
-                for action in new_actions_sorted:
-                    # the secret is currently only defined in the oidc config
-                    if action['Type'] == 'authenticate-oidc':
-                        action['AuthenticateOidcConfig'].pop('ClientSecret')
-                        new_actions_sorted_no_secret.append(action)
-                    else:
-                        new_actions_sorted_no_secret.append(action)
+            new_actions_sorted_no_secret = [_prune_secret(i) for i in new_actions_sorted]
 
-                if current_actions_sorted != new_actions_sorted_no_secret:
-                    modified_listener['DefaultActions'] = new_listener['DefaultActions']
+            if [_prune_ForwardConfig(i) for i in current_actions_sorted] != [_prune_ForwardConfig(i) for i in new_actions_sorted_no_secret]:
+                modified_listener['DefaultActions'] = new_listener['DefaultActions']
         # If the action lengths are different, then replace with the new actions
         else:
             modified_listener['DefaultActions'] = new_listener['DefaultActions']
@@ -719,11 +750,46 @@ class ELBListenerRules(object):
         condition_found = False
 
         for current_condition in current_conditions:
-            if current_condition.get('SourceIpConfig'):
+            # host-header: current_condition includes both HostHeaderConfig AND Values while
+            # condition can be defined with either HostHeaderConfig OR Values. Only use
+            # HostHeaderConfig['Values'] comparison if both conditions includes HostHeaderConfig.
+            if current_condition.get('HostHeaderConfig') and condition.get('HostHeaderConfig'):
                 if (current_condition['Field'] == condition['Field'] and
-                        current_condition['SourceIpConfig']['Values'][0] == condition['SourceIpConfig']['Values'][0]):
+                        sorted(current_condition['HostHeaderConfig']['Values']) == sorted(condition['HostHeaderConfig']['Values'])):
                     condition_found = True
                     break
+            elif current_condition.get('HttpHeaderConfig'):
+                if (current_condition['Field'] == condition['Field'] and
+                        sorted(current_condition['HttpHeaderConfig']['Values']) == sorted(condition['HttpHeaderConfig']['Values']) and
+                        current_condition['HttpHeaderConfig']['HttpHeaderName'] == condition['HttpHeaderConfig']['HttpHeaderName']):
+                    condition_found = True
+                    break
+            elif current_condition.get('HttpRequestMethodConfig'):
+                if (current_condition['Field'] == condition['Field'] and
+                        sorted(current_condition['HttpRequestMethodConfig']['Values']) == sorted(condition['HttpRequestMethodConfig']['Values'])):
+                    condition_found = True
+                    break
+            # path-pattern: current_condition includes both PathPatternConfig AND Values while
+            # condition can be defined with either PathPatternConfig OR Values. Only use
+            # PathPatternConfig['Values'] comparison if both conditions includes PathPatternConfig.
+            elif current_condition.get('PathPatternConfig') and condition.get('PathPatternConfig'):
+                if (current_condition['Field'] == condition['Field'] and
+                        sorted(current_condition['PathPatternConfig']['Values']) == sorted(condition['PathPatternConfig']['Values'])):
+                    condition_found = True
+                    break
+            elif current_condition.get('QueryStringConfig'):
+                # QueryString Values is not sorted as it is the only list of dicts (not strings).
+                if (current_condition['Field'] == condition['Field'] and
+                        current_condition['QueryStringConfig']['Values'] == condition['QueryStringConfig']['Values']):
+                    condition_found = True
+                    break
+            elif current_condition.get('SourceIpConfig'):
+                if (current_condition['Field'] == condition['Field'] and
+                        sorted(current_condition['SourceIpConfig']['Values']) == sorted(condition['SourceIpConfig']['Values'])):
+                    condition_found = True
+                    break
+            # Not all fields are required to have Values list nested within a *Config dict
+            # e.g. fields host-header/path-pattern can directly list Values
             elif current_condition['Field'] == condition['Field'] and sorted(current_condition['Values']) == sorted(condition['Values']):
                 condition_found = True
                 break
@@ -758,29 +824,13 @@ class ELBListenerRules(object):
         if len(current_rule['Actions']) == len(new_rule['Actions']):
             # if actions have just one element, compare the contents and then update if
             # they're different
-            if len(current_rule['Actions']) == 1 and len(new_rule['Actions']) == 1:
-                if current_rule['Actions'] != new_rule['Actions']:
-                    modified_rule['Actions'] = new_rule['Actions']
-            # if actions have multiple elements, we'll have to order them first before comparing.
-            # multiple actions will have an 'Order' key for this purpose
-            else:
-                current_actions_sorted = sorted(current_rule['Actions'], key=lambda x: x['Order'])
-                new_actions_sorted = sorted(new_rule['Actions'], key=lambda x: x['Order'])
+            current_actions_sorted = _sort_actions(current_rule['Actions'])
+            new_actions_sorted = _sort_actions(new_rule['Actions'])
 
-                # the AWS api won't return the client secret, so we'll have to remove it
-                # or the module will always see the new and current actions as different
-                # and try to apply the same config
-                new_actions_sorted_no_secret = []
-                for action in new_actions_sorted:
-                    # the secret is currently only defined in the oidc config
-                    if action['Type'] == 'authenticate-oidc':
-                        action['AuthenticateOidcConfig'].pop('ClientSecret')
-                        new_actions_sorted_no_secret.append(action)
-                    else:
-                        new_actions_sorted_no_secret.append(action)
+            new_actions_sorted_no_secret = [_prune_secret(i) for i in new_actions_sorted]
 
-                if current_actions_sorted != new_actions_sorted_no_secret:
-                    modified_rule['Actions'] = new_rule['Actions']
+            if [_prune_ForwardConfig(i) for i in current_actions_sorted] != [_prune_ForwardConfig(i) for i in new_actions_sorted_no_secret]:
+                modified_rule['Actions'] = new_rule['Actions']
         # If the action lengths are different, then replace with the new actions
         else:
             modified_rule['Actions'] = new_rule['Actions']

@@ -34,8 +34,6 @@ try:
 except ImportError:
     pass
 
-from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
-
 from .ec2 import AWSRetry
 from .ec2 import boto3_tag_list_to_ansible_dict
 
@@ -165,7 +163,7 @@ class CloudFrontFactsServiceManager(object):
                 temp_distribution = {}
                 for key_name in key_list:
                     temp_distribution[key_name] = dist[key_name]
-                temp_distribution['Aliases'] = [alias for alias in dist['Aliases'].get('Items', [])]
+                temp_distribution['Aliases'] = list(dist['Aliases'].get('Items', []))
                 temp_distribution['ETag'] = self.get_etag_from_distribution_id(dist['Id'], streaming)
                 if not streaming:
                     temp_distribution['WebACLId'] = dist['WebACLId']

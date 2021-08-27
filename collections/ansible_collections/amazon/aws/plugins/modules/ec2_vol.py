@@ -15,7 +15,6 @@ short_description: Create and attach a volume, return volume id and device map
 description:
     - Creates an EBS volume and optionally attaches it to an instance.
     - If both I(instance) and I(name) are given and the instance has a device at the device name, then no volume is created and no attachment is made.
-    - This module has a dependency on python-boto.
 options:
   instance:
     description:
@@ -35,10 +34,11 @@ options:
     type: int
   volume_type:
     description:
-      - Type of EBS volume; standard (magnetic), gp2 (SSD), io1 (Provisioned IOPS), st1 (Throughput Optimized HDD), sc1 (Cold HDD).
+      - Type of EBS volume; standard (magnetic), gp2 (SSD), gp3 (SSD), io1 (Provisioned IOPS), io2 (Provisioned IOPS),
+        st1 (Throughput Optimized HDD), sc1 (Cold HDD).
         "Standard" is the old EBS default and continues to remain the Ansible default for backwards compatibility.
     default: standard
-    choices: ['standard', 'gp2', 'io1', 'st1', 'sc1']
+    choices: ['standard', 'gp2', 'io1', 'st1', 'sc1', 'gp3', 'io2']
     type: str
   iops:
     description:
@@ -72,11 +72,6 @@ options:
     description:
       - Snapshot ID on which to base the volume.
     type: str
-  validate_certs:
-    description:
-      - When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
-    type: bool
-    default: true
   state:
     description:
       - Whether to ensure the volume is present or absent.
@@ -91,11 +86,30 @@ options:
       - tag:value pairs to add to the volume after creation.
     default: {}
     type: dict
+  purge_tags:
+    description: Whether to remove existing tags that aren't passed in the I(tags) parameter
+    default: false
+    type: bool
+    version_added: 1.5.0
+  modify_volume:
+    description:
+      - The volume won't be modify unless this key is C(true).
+    type: bool
+    default: false
+    version_added: 1.4.0
+  throughput:
+    description:
+      - Volume throughput in MB/s.
+      - This parameter is only valid for gp3 volumes.
+      - Valid range is from 125 to 1000.
+    type: int
+    version_added: 1.4.0
 author: "Lester Wade (@lwade)"
 extends_documentation_fragment:
 - amazon.aws.aws
 - amazon.aws.ec2
 
+requirements: [ boto3>=1.16.33 ]
 '''
 
 EXAMPLES = '''
@@ -236,9 +250,10 @@ from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
 from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
 from ..module_utils.ec2 import ansible_dict_to_boto3_tag_list
 from ..module_utils.ec2 import compare_aws_tags
+from ..module_utils.ec2 import describe_ec2_tags
+from ..module_utils.ec2 import ensure_ec2_tags
 from ..module_utils.ec2 import AWSRetry
 from ..module_utils.core import is_boto3_error_code
-
 
 try:
     import botocore
@@ -338,6 +353,59 @@ def delete_volume(module, ec2_conn, volume_id=None):
     return changed
 
 
+def update_volume(module, ec2_conn, volume):
+    changed = False
+    req_obj = {'VolumeId': volume['volume_id']}
+
+    if module.params.get('modify_volume'):
+        iops_changed = False
+        if volume['volume_type'] != 'standard':
+            target_iops = module.params.get('iops')
+            if target_iops:
+                original_iops = volume['iops']
+                if target_iops != original_iops:
+                    iops_changed = True
+                    req_obj['iops'] = target_iops
+
+        target_size = module.params.get('volume_size')
+        size_changed = False
+        if target_size:
+            original_size = volume['size']
+            if target_size != original_size:
+                size_changed = True
+                req_obj['size'] = target_size
+
+        target_type = module.params.get('volume_type')
+        original_type = None
+        type_changed = False
+        if target_type:
+            original_type = volume['volume_type']
+            if target_type != original_type:
+                type_changed = True
+                req_obj['VolumeType'] = target_type
+
+        target_throughput = module.params.get('throughput')
+        throughput_changed = False
+        if 'gp3' in [target_type, original_type]:
+            if target_throughput:
+                original_throughput = volume.get('throughput')
+                if target_throughput != original_throughput:
+                    throughput_changed = True
+                    req_obj['Throughput'] = target_throughput
+
+        changed = iops_changed or size_changed or type_changed or throughput_changed
+
+        if changed:
+            response = ec2_conn.modify_volume(**req_obj)
+
+            volume['size'] = response.get('VolumeModification').get('TargetSize')
+            volume['volume_type'] = response.get('VolumeModification').get('TargetVolumeType')
+            volume['iops'] = response.get('VolumeModification').get('TargetIops')
+            volume['throughput'] = response.get('VolumeModification').get('TargetThroughput')
+
+    return volume, changed
+
+
 def create_volume(module, ec2_conn, zone):
     changed = False
     iops = module.params.get('iops')
@@ -346,6 +414,7 @@ def create_volume(module, ec2_conn, zone):
     volume_size = module.params.get('volume_size')
     volume_type = module.params.get('volume_type')
     snapshot = module.params.get('snapshot')
+    throughput = module.params.get('throughput')
     # If custom iops is defined we use volume_type "io1" rather than the default of "standard"
     if iops:
         volume_type = 'io1'
@@ -369,6 +438,9 @@ def create_volume(module, ec2_conn, zone):
 
             if iops:
                 additional_params['Iops'] = int(iops)
+
+            if throughput:
+                additional_params['Throughput'] = int(throughput)
 
             create_vol_response = ec2_conn.create_volume(
                 aws_retry=True,
@@ -498,7 +570,9 @@ def detach_volume(module, ec2_conn, volume_dict):
     return volume_dict, changed
 
 
-def get_volume_info(volume):
+def get_volume_info(volume, tags=None):
+    if not tags:
+        tags = boto3_tag_list_to_ansible_dict(volume.get('tags'))
     attachment_data = get_attachment_data(volume)
     volume_info = {
         'create_time': volume.get('create_time'),
@@ -510,6 +584,7 @@ def get_volume_info(volume):
         'status': volume.get('state'),
         'type': volume.get('volume_type'),
         'zone': volume.get('availability_zone'),
+        'throughput': volume.get('throughput'),
         'attachment_set': {
             'attach_time': attachment_data.get('attach_time', None),
             'device': attachment_data.get('device', None),
@@ -517,7 +592,7 @@ def get_volume_info(volume):
             'status': attachment_data.get('state', None),
             'deleteOnTermination': attachment_data.get('delete_on_termination', None)
         },
-        'tags': boto3_tag_list_to_ansible_dict(volume.get('tags'))
+        'tags': tags
     }
 
     return volume_info
@@ -538,59 +613,9 @@ def get_mapped_block_device(instance_dict=None, device_name=None):
     return mapped_block_device
 
 
-def ensure_tags(module, connection, res_id, res_type, tags, add_only):
-    changed = False
-
-    filters = ansible_dict_to_boto3_filter_list({'resource-id': res_id, 'resource-type': res_type})
-    cur_tags = None
-    try:
-        cur_tags = connection.describe_tags(aws_retry=True, Filters=filters)
-    except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError) as e:
-        module.fail_json_aws(e, msg="Couldn't describe tags")
-
-    purge_tags = bool(not add_only)
-    to_update, to_delete = compare_aws_tags(boto3_tag_list_to_ansible_dict(cur_tags.get('Tags')), tags, purge_tags)
-    final_tags = boto3_tag_list_to_ansible_dict(cur_tags.get('Tags'))
-
-    if to_update:
-        try:
-            if module.check_mode:
-                # update tags
-                final_tags.update(to_update)
-            else:
-                connection.create_tags(
-                    aws_retry=True,
-                    Resources=[res_id],
-                    Tags=ansible_dict_to_boto3_tag_list(to_update)
-                )
-
-            changed = True
-        except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError) as e:
-            module.fail_json_aws(e, msg="Couldn't create tags")
-
-    if to_delete:
-        try:
-            if module.check_mode:
-                # update tags
-                for key in to_delete:
-                    del final_tags[key]
-            else:
-                tags_list = []
-                for key in to_delete:
-                    tags_list.append({'Key': key})
-
-                connection.delete_tags(aws_retry=True, Resources=[res_id], Tags=tags_list)
-
-            changed = True
-        except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError) as e:
-            module.fail_json_aws(e, msg="Couldn't delete tags")
-
-    if not module.check_mode and (to_update or to_delete):
-        try:
-            response = connection.describe_tags(aws_retry=True, Filters=filters)
-            final_tags = boto3_tag_list_to_ansible_dict(response.get('Tags'))
-        except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError) as e:
-            module.fail_json_aws(e, msg="Couldn't describe tags")
+def ensure_tags(module, connection, res_id, res_type, tags, purge_tags):
+    changed = ensure_ec2_tags(connection, module, res_id, res_type, tags, purge_tags, ['InvalidVolume.NotFound'])
+    final_tags = describe_ec2_tags(connection, module, res_id, res_type)
 
     return final_tags, changed
 
@@ -601,16 +626,19 @@ def main():
         id=dict(),
         name=dict(),
         volume_size=dict(type='int'),
-        volume_type=dict(choices=['standard', 'gp2', 'io1', 'st1', 'sc1'], default='standard'),
+        volume_type=dict(default='standard', choices=['standard', 'gp2', 'io1', 'st1', 'sc1', 'gp3', 'io2']),
         iops=dict(type='int'),
-        encrypted=dict(type='bool', default=False),
+        encrypted=dict(default=False, type='bool'),
         kms_key_id=dict(),
         device_name=dict(),
-        delete_on_termination=dict(type='bool', default=False),
+        delete_on_termination=dict(default=False, type='bool'),
         zone=dict(aliases=['availability_zone', 'aws_zone', 'ec2_zone']),
         snapshot=dict(),
-        state=dict(choices=['absent', 'present', 'list'], default='present'),
-        tags=dict(type='dict', default={})
+        state=dict(default='present', choices=['absent', 'present', 'list']),
+        tags=dict(default={}, type='dict'),
+        modify_volume=dict(default=False, type='bool'),
+        throughput=dict(type='int'),
+        purge_tags=dict(type='bool', default=False),
     )
 
     module = AnsibleAWSModule(argument_spec=argument_spec)
@@ -665,9 +693,6 @@ def main():
     if not volume_size and not (param_id or name or snapshot):
         module.fail_json(msg="You must specify volume_size or identify an existing volume by id, name, or snapshot")
 
-    if volume_size and param_id:
-        module.fail_json(msg="Cannot specify volume_size together with id")
-
     # Try getting volume
     volume = get_volume(module, ec2_conn, fail_on_not_found=False)
     if state == 'present':
@@ -675,9 +700,9 @@ def main():
             inst = get_instance(module, ec2_conn, instance_id=instance)
             zone = inst['placement']['availability_zone']
 
-            # Use password data attribute to tell whether the instance is Windows or Linux
+            # Use platform attribute to guess whether the instance is Windows or Linux
             if device_name is None:
-                if inst['platform'] == 'Windows':
+                if inst.get('platform', '') == 'Windows':
                     device_name = '/dev/xvdf'
                 else:
                     device_name = '/dev/sdf'
@@ -704,9 +729,15 @@ def main():
                     )
 
         attach_state_changed = False
-        volume, changed = create_volume(module, ec2_conn, zone=zone)
-        tags['Name'] = name
-        final_tags, tags_changed = ensure_tags(module, ec2_conn, volume['volume_id'], 'volume', tags, False)
+
+        if volume:
+            volume, changed = update_volume(module, ec2_conn, volume)
+        else:
+            volume, changed = create_volume(module, ec2_conn, zone=zone)
+
+        if name:
+            tags['Name'] = name
+        final_tags, tags_changed = ensure_tags(module, ec2_conn, volume['volume_id'], 'volume', tags, module.params.get('purge_tags'))
 
         if detach_vol_flag:
             volume, changed = detach_volume(module, ec2_conn, volume_dict=volume)
@@ -714,7 +745,10 @@ def main():
             volume, changed = attach_volume(module, ec2_conn, volume_dict=volume, instance_dict=inst, device_name=device_name)
 
         # Add device, volume_id and volume_type parameters separately to maintain backward compatibility
-        volume_info = get_volume_info(volume)
+        volume_info = get_volume_info(volume, tags=final_tags)
+
+        if tags_changed:
+            changed = True
 
         module.exit_json(changed=changed, volume=volume_info, device=volume_info['attachment_set']['device'],
                          volume_id=volume_info['id'], volume_type=volume_info['type'])
