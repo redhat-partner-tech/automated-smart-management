@@ -1,5 +1,6 @@
 # Openscap client configuration Role
 
+Sourced from https://github.com/morenod/ansible-role-scap-client
 ## About
 
 Role created to configure a client to execute openscap policies based on the information obtained from a Red Hat Satellite/Foreman Host.

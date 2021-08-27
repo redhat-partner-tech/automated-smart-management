@@ -1,0 +1,3 @@
+galaxy_info:
+  author: heatmiser/mikhailadvani
+  description: This role starts, stops, and snapshots/reverts ec2 instances.
