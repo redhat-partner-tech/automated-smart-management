@@ -3,3 +3,6 @@ collections:
   - name: redhat_cop.controller_configuration
     # If you need a specific version of the collection, you can specify like this:
     version: 2.0.0
+  - name: awx.awx
+    # If you need a specific version of the collection, you can specify like this:
+    version: 19.2.2
