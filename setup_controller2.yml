@@ -1,12 +1,13 @@
 ---
 - hosts: "{{ HOSTS | default('control[0]') }}"
   connection: local
+  collections: awx.awx
   vars:
     controller_infra_workloads:
-      - awx.awx.project
-      - awx.awx.inventory
-      - awx.awx.inventory_source
-      - awx.awx.job_template
+      - project
+      - inventory
+      - inventory_source
+      - job_template
     #controller_hostname: "{{ lookup('env', 'CONTROLLER_HOST') }}"
     controller_hostname: "{{ hostvars[inventory_hostname].ansible_fqdn }}"
     controller_validate_certs: false
