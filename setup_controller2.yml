@@ -4,10 +4,10 @@
   collections: awx.awx
   vars:
     controller_infra_workloads:
-      - project
-      - inventory
-      - inventory_source
-      - job_template
+      - awx.awx.project
+      - awx.awx.inventory
+      - awx.awx.inventory_source
+      - awx.awx.job_template
     #controller_hostname: "{{ lookup('env', 'CONTROLLER_HOST') }}"
     controller_hostname: "{{ hostvars[inventory_hostname].ansible_fqdn }}"
     controller_validate_certs: false
