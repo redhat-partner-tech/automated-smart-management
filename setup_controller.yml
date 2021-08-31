@@ -7,8 +7,8 @@
       - redhat_cop.tower_configuration.inventories
       - redhat_cop.tower_configuration.inventory_sources
       - redhat_cop.tower_configuration.job_templates
-    #tower_hostname: "{{ lookup('env', 'TOWER_HOST') }}"
-    tower_hostname: "{{ hostvars[inventory_hostname].ansible_fqdn }}"
+    tower_hostname: "{{ lookup('env', 'TOWER_HOST') }}"
+    #tower_hostname: "{{ hostvars[inventory_hostname].ansible_fqdn }}"
     tower_validate_certs: false
 
   tasks:
