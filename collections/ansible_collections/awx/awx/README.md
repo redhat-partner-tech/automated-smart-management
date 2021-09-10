@@ -71,7 +71,6 @@ Notable releases of the `awx.awx` collection:
 
 The following notes are changes that may require changes to playbooks:
 
- - The module tower_notification was renamed tower_notification_template. In ansible >= 2.10 there is a seemless redirect. Ansible 2.9 does not respect the redirect.
  - When a project is created, it will wait for the update/sync to finish by default; this can be turned off with the `wait` parameter, if desired.
  - Creating a "scan" type job template is no longer supported.
  - Specifying a custom certificate via the `TOWER_CERTIFICATE` environment variable no longer works.
