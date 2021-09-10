@@ -11,7 +11,7 @@ Currently:
 |:---:|:---:|:---:|:---:|:---:|
 |`tower_state`|"present"|no|The state all objects will take unless overriden by object default|'absent'|
 |`tower_hostname`|""|yes|URL to the Ansible Tower Server.|127.0.0.1|
-|`validate_certs`|`False`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
+|`tower_validate_certs`|`True`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
 |`tower_username`|""|yes|Admin User on the Ansible Tower Server.||
 |`tower_password`|""|yes|Tower Admin User's password on the Ansible Tower Server.  This should be stored in an Ansible Vault at vars/tower-secrets.yml or elsewhere and called from a parent playbook.||
 |`tower_oauthtoken`|""|yes|Tower Admin User's token on the Ansible Tower Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
@@ -27,6 +27,22 @@ tower_configuration_inventories_secure_logging defaults to the value of tower_co
 |:---:|:---:|:---:|:---:|
 |`tower_configuration_inventories_secure_logging`|`False`|no|Whether or not to include the sensitive Inventory role tasks in the log.  Set this value to `True` if you will be providing your sensitive values from elsewhere.|
 |`tower_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared accross multiple roles, see above.|
+
+### Formating Variables
+Variables can use a standard Jinja templating format to describe the resource.
+
+Example:
+```json
+{{ variable }}
+```
+
+Because of this it is difficult to provide tower with the required format for these fields.
+
+The workaround is to use the following format:
+```json
+{  { variable }}
+```
+The role will strip the double space between the curly bracket in order to provide tower with the correct format for the Variables.
 
 ## Data Structure
 ### Variables

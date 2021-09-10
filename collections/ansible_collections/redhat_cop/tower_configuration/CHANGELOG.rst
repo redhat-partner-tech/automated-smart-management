@@ -5,6 +5,87 @@ redhat_cop.tower_configuration Release Notes
 .. contents:: Topics
 
 
+v1.5.0
+======
+
+Major Changes
+-------------
+
+- Removed testing via playbook install that was removed in awx 18.0.0.
+- Updated testing via playbook to use minikube + operator install.
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- Examples can also be found in the playbooks/tower_configs_export_model/tower_workflows.yml
+- If you do not change the data model, change the variable 'workflow_nodes' to 'simplified_workflow_nodes'.
+- More information can be found either in the Workflow Job Template Readme or on the awx.awx.tower_workflow_job_template Documentation.
+- The Tower export model is now the default to use under workflow nodes. This is documented in the workflow job templates Readme.
+- Users using the tower export model previously, do not need to make any changes.
+- Workflow Schemas to describe Workflow nodes have changed.
+
+Bugfixes
+--------
+
+- Allow tower_hostname and tower_validate_certs to not be set in favour of environment variables being set as per module defaults.
+- Changes all boolean variables to have their default values omitted rather than using the value 'default(omit, true)' which prevents a falsy value being supplied.
+
+v1.4.1
+======
+
+Major Changes
+-------------
+
+- Added execution environments option for multiple roles.
+- Added execution environments role.
+
+Bugfixes
+--------
+
+- Fix tower_templates default
+
+v1.3.0
+======
+
+Bugfixes
+--------
+
+- Fixed an issue where certain roles were not taking in tower_validate_certs
+
+v1.2.0
+======
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- removed awx.awx implicit dependency, it will now be required to manually install awx.awx or ansible.tower collection
+
+v1.1.0
+======
+
+Major Changes
+-------------
+
+- Added the following roles - ad_hoc_command, ad_hoc_command_cancel, inventory_source_update, job_launch, job_cancel, project_update, workflow_launch
+- Updated collection to use and comply with ansible-lint v5
+
+Minor Changes
+-------------
+
+- Fixed default filters to use true when neccessary and changed a few defaults to omit rather then a value or empty string.
+- updated various Readmes to fix typos and missing information.
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- Removed kind from to credentials role. This will be depreciated in a few months. Kind arguments are replaced by the credential_type and inputs fields.
+- Updated to allow use of either awx.awx or ansible.tower
+
+Bugfixes
+--------
+
+- Corrected README for tower_validate_certs variable defaults on all roles
+
 v1.0.2
 ======
 

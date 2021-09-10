@@ -12,11 +12,11 @@ Currently:
 |:---:|:---:|:---:|:---:|:---:|
 |`tower_state`|"present"|no|The state all objects will take unless overridden by object default|'absent'|
 |`tower_hostname`|""|yes|URL to the Ansible Tower Server.|127.0.0.1|
-|`validate_certs`|`False`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
+|`tower_validate_certs`|`True`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
 |`tower_username`|""|yes|Admin User on the Ansible Tower Server.||
 |`tower_password`|""|yes|Tower Admin User's password on the Ansible Tower Server.  This should be stored in an Ansible Vault at vars/tower-secrets.yml or elsewhere and called from a parent playbook.||
 |`tower_oauthtoken`|""|yes|Tower Admin User's token on the Ansible Tower Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
-|`tower_organizations`|`see below`|yes|Data structure describing your organzation or organizations Described below.||
+|`tower_organizations`|`see below`|yes|Data structure describing your organization or organizations Described below.||
 
 ### Secure Logging Variables
 The following Variables compliment each other.
@@ -39,6 +39,8 @@ This role accepts two data models. A simple straightforward easy to maintain mod
 |`description`|`False`|no|Description of  of Organization.|
 |`custom_virtualenv`|""|no|Local absolute file path containing a custom Python virtualenv to use.|
 |`max_hosts`|""|no|The max hosts allowed in this organization.|
+|`galaxy_credentials`|""|no|The credentials to use with private automationhub.|
+|`default_environment`|""|no|Default Execution Environment to use for jobs owned by the Organization.|
 |`notification_templates_started`|""|no|The notifications on started to use for this organization in a list.|
 |`notification_templates_success`|""|no|The notifications on success to use for this organization in a list.|
 |`notification_templates_error`|""|no|The notifications on error to use for this organization in a list.|
@@ -60,6 +62,7 @@ This role accepts two data models. A simple straightforward easy to maintain mod
         "description": "This is the Automation Group",
         "custom_virtualenv": "/opt/cust/enviroment/",
         "max_hosts": 10,
+        "galaxy_credentials": "Automation Hub",
         "notification_templates_error": [
           "Slack_for_testing"
         ]
@@ -98,6 +101,8 @@ tower_organizations:
   description: Default
   max_hosts: 0
   custom_virtualenv:
+  galaxy_credentials:
+    - Automation Hub
   related:
     notification_templates_started: []
     notification_templates_success: []

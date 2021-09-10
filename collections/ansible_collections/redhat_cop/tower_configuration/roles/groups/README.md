@@ -14,12 +14,12 @@ ansible-galaxy collection install -r tests/collections/requirements.yml to be in
 |:---:|:---:|:---:|:---:|:---:|
 |`tower_state`|"present"|no|The state all objects will take unless overriden by object default|'absent'|
 |`tower_hostname`|""|yes|URL to the Ansible Tower Server.|127.0.0.1|
-|`tower_validate_certs`|`False`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
+|`tower_validate_certs`|`True`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
 |`tower_config_file`|""|no|Path to the Tower or AWX config file.||
 |`tower_username`|""|yes|Admin User on the Ansible Tower Server.||
 |`tower_password`|""|yes|Tower Admin User's password on the Ansible Tower Server.  This should be stored in an Ansible Vault at vars/tower-secrets.yml or elsewhere and called from a parent playbook.||
 |`tower_oauthtoken`|""|yes|Tower Admin User's token on the Ansible Tower Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
-|`tower_groups`|`see below`|yes|Data structure describing your orgainzation or orgainzations Described below.||
+|`tower_groups`|`see below`|yes|Data structure describing your group or groups Described below.||
 
 ### Secure Logging Variables
 The following Variables compliment each other.
@@ -31,6 +31,22 @@ tower_configuration_groups_secure_logging defaults to the value of tower_configu
 |:---:|:---:|:---:|:---:|
 |`tower_configuration_groups_secure_logging`|`False`|no|Whether or not to include the sensitive Group role tasks in the log.  Set this value to `True` if you will be providing your sensitive values from elsewhere.|
 |`tower_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared accross multiple roles, see above.|
+
+### Formating Variables
+Variables can use a standard Jinja templating format to describe the resource.
+
+Example:
+```json
+{{ variable }}
+```
+
+Because of this it is difficult to provide tower with the required format for these fields.
+
+The workaround is to use the following format:
+```json
+{  { variable }}
+```
+The role will strip the double space between the curly bracket in order to provide tower with the correct format for the Variables.
 
 ## Data Structure
 ### Variables

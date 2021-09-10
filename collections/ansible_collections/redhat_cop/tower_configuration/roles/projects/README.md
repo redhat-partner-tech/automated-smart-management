@@ -11,11 +11,11 @@ Currently:
 |:---:|:---:|:---:|:---:|:---:|
 |`tower_state`|"present"|no|The state all objects will take unless overriden by object default|'absent'|
 |`tower_hostname`|""|yes|URL to the Ansible Tower Server.|127.0.0.1|
-|`validate_certs`|`False`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
+|`tower_validate_certs`|`True`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
 |`tower_username`|""|yes|Admin User on the Ansible Tower Server.||
 |`tower_password`|""|yes|Tower Admin User's password on the Ansible Tower Server.  This should be stored in an Ansible Vault at vars/tower-secrets.yml or elsewhere and called from a parent playbook.||
 |`tower_oauthtoken`|""|yes|Tower Admin User's token on the Ansible Tower Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
-|`tower_projects`|`see below`|yes|Data structure describing your orgainzation or orgainzations Described below.||
+|`tower_projects`|`see below`|yes|Data structure describing your project or projects Described below.||
 
 ### Secure Logging Variables
 The following Variables compliment each other.
@@ -37,12 +37,14 @@ tower_configuration_projects_secure_logging defaults to the value of tower_confi
 |`organization`|`False`|yes|Name of organization for project.|
 |`scm_type`|""|no|Type of SCM resource.|
 |`scm_url`|""|no|URL of SCM resource.|
+|`default_environment`|""|no|Default Execution Environment to use for jobs relating to the project.|
 |`local_path`|""|no|The server playbook directory for manual projects.|
 |`scm_branch`|""|no|The branch to use for the SCM resource.|
 |`scm_refspec`|""|no|The refspec to use for the SCM resource.|
 |`scm_credential`|""|no|Name of the credential to use with this SCM resource.|
 |`scm_clean`|""|no|Remove local modifications before updating.|
 |`scm_delete_on_update`|""|no|Remove the repository completely before updating.|
+|`scm_track_submodules`|""|no|Track submodules latest commit on specified branch.|
 |`scm_update_on_launch`|""|no|Before an update to the local repository before launching a job with this project.|
 |`scm_update_cache_timeout`|""|no|Cache Timeout to cache prior project syncs for a certain number of seconds. Only valid if scm_update_on_launch is to True, otherwise ignored.|
 |`allow_override`|""|no|Allow changing the SCM branch or revision in a job template that uses this project.|
@@ -53,7 +55,8 @@ tower_configuration_projects_secure_logging defaults to the value of tower_confi
 |`notification_templates_error`|""|no|The notifications on error to use for this organization in a list.|
 |`state`|`present`|no|Desired state of the resource.|
 |`wait`|""|no|Provides option to wait for completed project sync before returning.|
-
+|`update_project`|""|no|Force project to update after changes.Used in conjunction with wait, interval, and timeout.|
+|`interval`|1|no|The interval to request an update from Tower. Requires wait.|
 ### Standard Project Data Structure
 #### Json Example
 ```json

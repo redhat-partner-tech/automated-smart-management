@@ -11,11 +11,11 @@ Currently:
 |:---:|:---:|:---:|:---:|:---:|
 |`tower_state`|"present"|no|The state all objects will take unless overriden by object default|'absent'|
 |`tower_hostname`|""|yes|URL to the Ansible Tower Server.|127.0.0.1|
-|`validate_certs`|`False`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
+|`tower_validate_certs`|`True`|no|Whether or not to validate the Ansible Tower Server's SSL certificate.||
 |`tower_username`|""|yes|Admin User on the Ansible Tower Server.||
 |`tower_password`|""|yes|Tower Admin User's password on the Ansible Tower Server.  This should be stored in an Ansible Vault at vars/tower-secrets.yml or elsewhere and called from a parent playbook.||
 |`tower_oauthtoken`|""|yes|Tower Admin User's token on the Ansible Tower Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
-|`tower_projects`|`see below`|yes|Data structure describing your orgainzation or orgainzations Described below.||
+|`tower_inventory_sources`|`see below`|yes|Data structure describing your inventory sources Described below.||
 
 ### Secure Logging Variables
 The following Variables compliment each other.
@@ -44,6 +44,7 @@ tower_configuration_inventory_sources_secure_logging defaults to the value of to
 |`enabled_value`|""|no|Value when the host is considered enabled, e.g., "powered_on".|
 |`host_filter`|""|no|If specified, Tower will only import hosts that match this regular expression.|
 |`credential`|""|no|Credential to use for the source.|
+|`execution_environment`|""|no|Execution Environment to use for the source.|
 |`source_regions`|""|no|Regions for cloud provider.|
 |`instance_filters`|""|no|Comma-separated list of filter expressions for matching hosts.|
 |`group_by`|""|no|Limit groups automatically created from inventory source.|

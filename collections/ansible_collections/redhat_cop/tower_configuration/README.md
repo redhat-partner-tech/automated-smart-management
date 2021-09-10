@@ -1,10 +1,24 @@
-# Redhat Communties of Practice Tower Configuration Collection
+# Red Hat Communties of Practice Tower Configuration Collection
 
 ![Ansible Lint](https://github.com/redhat-cop/tower_configuration/workflows/Ansible%20Lint/badge.svg)
 ![Galaxy Release](https://github.com/redhat-cop/tower_configuration/workflows/galaxy-release/badge.svg)
 <!-- Further CI badges go here as above -->
 
 This Ansible collection allows for easy interaction with an AWX or Ansible Tower server via Ansible roles using the AWX/Tower collection modules.
+
+# REQUIREMENTS
+The AWX.AWX OR ANSIBLE.TOWER collections MUST be installed in order for this collection to work. It is recomended they be invoked in the playbook in the following way.
+
+```yaml
+---
+- name: Playbook to configure ansible tower post installation
+  hosts: localhost
+  connection: local
+  vars:
+    tower_validate_certs: false
+  collections:
+    - ansible.tower
+```
 
 ## Included content
 
@@ -27,6 +41,20 @@ collections:
 ```
 
 ## Using this collection
+The awx.awx or ansible.tower collection must be invoked in the playbook in order for ansible to pick up the correct modules to use.
+
+Otherwise it will look for the modules only in your base installation. If there are errors complaining about "couldn't resolve module/action" this is the most likely cause.
+
+```yaml
+- name: Playbook to configure ansible tower post installation
+  hosts: localhost
+  connection: local
+  vars:
+    tower_validate_certs: false
+  collections:
+    - awx.awx
+```
+
 Define following vars here, or in `tower_configs/tower_auth.yml`
 `tower_hostname: ansible-tower-web-svc-test-project.example.com`
 
