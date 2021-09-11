@@ -2,7 +2,7 @@
 galaxy_info:
   role_name: "notifications"
   author: "Tom Page"
-  description: "An Ansible Role to create notifications in Ansible Tower."
+  description: "An Ansible Role to create notifications in Ansible Controller."
   company: "Red Hat"
 
   # If the issue tracker for your role is not on github, uncomment the
@@ -30,15 +30,15 @@ galaxy_info:
         - "all"
 
   galaxy_tags:
-    - "ansibletower"
-    - "tower"
+    - "controller"
+    - "aap"
     - "awx"
     - "notification"
     - "notifications"
 
 collections:
+  - ansible.controller
   - awx.awx
-  - ansible.tower
 
 dependencies: []
 # List your role dependencies here, one per line. Be sure to remove the '[]' above,

@@ -1,7 +1,8 @@
 ---
 galaxy_info:
+  role_name: "license"
   author: Red Hat CoP
-  description: A role to set the Ansible Tower License
+  description: A role to set the Ansible Controller License
   company: Red Hat
 
   # If the issue tracker for your role is not on github, uncomment the
@@ -34,15 +35,15 @@ galaxy_info:
         - "all"
 
   galaxy_tags:
-    - "ansibletower"
-    - "tower"
+    - "controller"
+    - "aap"
     - "awx"
     - "configuration"
     - "license"
 
 collections:
+  - ansible.controller
   - awx.awx
-  - ansible.tower
 
 dependencies: []
 # List your role dependencies here, one per line. Be sure to remove the '[]' above,
