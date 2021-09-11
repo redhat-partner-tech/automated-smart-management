@@ -1,5 +1,5 @@
 ---
-inventory:
+inventories:
   - name: Workshop Inventory
     organization: Default
 
@@ -51,7 +51,7 @@ inventory:
   - name: EXAMPLE dynamic project inventory
     organization: Default
 
-inventory_source:
+inventory_sources:
   - name: satellite_source
     inventory: Workshop Inventory
     credential: Inventory Credential
