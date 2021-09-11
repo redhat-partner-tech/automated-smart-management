@@ -67,10 +67,12 @@ Notable releases of the `awx.awx` collection:
 
  - 7.0.0 is intended to be identical to the content prior to the migration, aside from changes necessary to function as a collection.
  - 11.0.0 has no non-deprecated modules that depend on the deprecated `tower-cli` [PyPI](https://pypi.org/project/ansible-tower-cli/).
+ - 19.2.1 large renaming purged "tower" names (like options and module names), adding redirects for old names
  - 0.0.1-devel is the version you should see if installing from source, which is intended for development and expected to be unstable.
 
 The following notes are changes that may require changes to playbooks:
 
+ - The module tower_notification was renamed tower_notification_template. In ansible >= 2.10 there is a seamless redirect. Ansible 2.9 does not respect the redirect.
  - When a project is created, it will wait for the update/sync to finish by default; this can be turned off with the `wait` parameter, if desired.
  - Creating a "scan" type job template is no longer supported.
  - Specifying a custom certificate via the `TOWER_CERTIFICATE` environment variable no longer works.
@@ -116,7 +118,7 @@ py.test awx_collection/test/awx/
 
 ## Running Integration Tests
 
-The integration tests require a virtualenv with `ansible` >= 2.9 and `tower_cli`.
+The integration tests require a virtualenv with `ansible` >= 2.9 and `awxkit`.
 The collection must first be installed, which can be done using `make install_collection`.
 You also need a configuration file, as described in the running section.
 

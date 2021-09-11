@@ -1,10 +1,11 @@
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
 import pytest
 
 from awx.main.models import Organization
-from awx.main.models.oauth import OAuth2AccessToken, OAuth2Application
+from awx.main.models.oauth import OAuth2Application
 
 
 @pytest.mark.django_db
@@ -20,7 +21,7 @@ def test_create_application(run_module, admin_user):
         'organization': 'foo',
     }
 
-    result = run_module('tower_application', module_args, admin_user)
+    result = run_module('application', module_args, admin_user)
     assert result.get('changed'), result
 
     application = OAuth2Application.objects.get(name='foo_app')

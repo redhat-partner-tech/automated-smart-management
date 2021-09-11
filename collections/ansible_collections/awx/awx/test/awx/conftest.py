@@ -1,4 +1,5 @@
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
 import io
@@ -14,13 +15,16 @@ from requests.models import Response, PreparedRequest
 
 import pytest
 
+from ansible.module_utils.six import raise_from
+
 from awx.main.tests.functional.conftest import _request
-from awx.main.models import Organization, Project, Inventory, JobTemplate, Credential, CredentialType
+from awx.main.models import Organization, Project, Inventory, JobTemplate, Credential, CredentialType, ExecutionEnvironment, UnifiedJob
 
 from django.db import transaction
 
 try:
     import tower_cli  # noqa
+
     HAS_TOWER_CLI = True
 except ImportError:
     HAS_TOWER_CLI = False
@@ -29,7 +33,8 @@ try:
     # Because awxkit will be a directory at the root of this makefile and we are using python3, import awxkit will work even if its not installed.
     # However, awxkit will not contain api whih causes a stack failure down on line 170 when we try to mock it.
     # So here we are importing awxkit.api to prevent that. Then you only get an error on tests for awxkit functionality.
-    import awxkit.api
+    import awxkit.api  # noqa
+
     HAS_AWX_KIT = True
 except ImportError:
     HAS_AWX_KIT = False
@@ -38,9 +43,9 @@ logger = logging.getLogger('awx.main.tests')
 
 
 def sanitize_dict(din):
-    '''Sanitize Django response data to purge it of internal types
+    """Sanitize Django response data to purge it of internal types
     so it may be used to cast a requests response object
-    '''
+    """
     if isinstance(din, (int, str, type(None), bool)):
         return din  # native JSON types, no problem
     elif isinstance(din, datetime.datetime):
@@ -62,9 +67,7 @@ def collection_path_set(monkeypatch):
     """Monkey patch sys.path, insert the root of the collection folder
     so that content can be imported without being fully packaged
     """
-    base_folder = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
-    )
+    base_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
     monkeypatch.syspath_prepend(base_folder)
 
 
@@ -76,15 +79,16 @@ def collection_import():
     go through this fixture so that can be changed if needed.
     For instance, we could switch to fully-qualified import paths.
     """
+
     def rf(path):
         return importlib.import_module(path)
+
     return rf
 
 
 @pytest.fixture
 def run_module(request, collection_import):
     def rf(module_name, module_params, request_user):
-
         def new_request(self, method, url, **kwargs):
             kwargs_copy = kwargs.copy()
             if 'data' in kwargs:
@@ -95,8 +99,7 @@ def run_module(request, collection_import):
                 elif isinstance(kwargs['data'], str):
                     kwargs_copy['data'] = json.loads(kwargs['data'])
                 else:
-                    raise RuntimeError('Expected data to be dict or str, got {0}, data: {1}'.format(
-                        type(kwargs['data']), kwargs['data']))
+                    raise RuntimeError('Expected data to be dict or str, got {0}, data: {1}'.format(type(kwargs['data']), kwargs['data']))
             if 'params' in kwargs and method == 'GET':
                 # query params for GET are handled a bit differently by
                 # tower-cli and python requests as opposed to REST framework APIRequestFactory
@@ -123,11 +126,7 @@ def run_module(request, collection_import):
             resp.headers = {'X-API-Product-Name': 'AWX', 'X-API-Product-Version': '0.0.1-devel'}
 
             if request.config.getoption('verbose') > 0:
-                logger.info(
-                    '%s %s by %s, code:%s',
-                    method, '/api/' + url.split('/api/')[1],
-                    request_user.username, resp.status_code
-                )
+                logger.info('%s %s by %s, code:%s', method, '/api/' + url.split('/api/')[1], request_user.username, resp.status_code)
 
             resp.request = PreparedRequest()
             resp.request.prepare(method=method, url=url)
@@ -135,10 +134,7 @@ def run_module(request, collection_import):
 
         def new_open(self, method, url, **kwargs):
             r = new_request(self, method, url, **kwargs)
-            m = mock.MagicMock(read=mock.MagicMock(return_value=r._content),
-                               status=r.status_code,
-                               getheader=mock.MagicMock(side_effect=r.headers.get)
-                               )
+            m = mock.MagicMock(read=mock.MagicMock(return_value=r._content), status=r.status_code, getheader=mock.MagicMock(side_effect=r.headers.get))
             return m
 
         stdout_buffer = io.StringIO()
@@ -156,14 +152,14 @@ def run_module(request, collection_import):
         def mock_load_params(self):
             self.params = module_params
 
-        if getattr(resource_module, 'TowerAWXKitModule', None):
-            resource_class = resource_module.TowerAWXKitModule
-        elif getattr(resource_module, 'TowerAPIModule', None):
-            resource_class = resource_module.TowerAPIModule
+        if getattr(resource_module, 'ControllerAWXKitModule', None):
+            resource_class = resource_module.ControllerAWXKitModule
+        elif getattr(resource_module, 'ControllerAPIModule', None):
+            resource_class = resource_module.ControllerAPIModule
         elif getattr(resource_module, 'TowerLegacyModule', None):
             resource_class = resource_module.TowerLegacyModule
         else:
-            raise("The module has neither a TowerLegacyModule, TowerAWXKitModule or a TowerAPIModule")
+            raise ("The module has neither a TowerLegacyModule, ControllerAWXKitModule or a ControllerAPIModule")
 
         with mock.patch.object(resource_class, '_load_params', new=mock_load_params):
             # Call the test utility (like a mock server) instead of issuing HTTP requests
@@ -190,7 +186,7 @@ def run_module(request, collection_import):
         try:
             result = json.loads(module_stdout)
         except Exception as e:
-            raise Exception('Module did not write valid JSON, error: {0}, stdout:\n{1}'.format(str(e), module_stdout))
+            raise_from(Exception('Module did not write valid JSON, error: {0}, stdout:\n{1}'.format(str(e), module_stdout)), e)
         # A module exception should never be a test expectation
         if 'exception' in result:
             if "ModuleNotFoundError: No module named 'tower_cli'" in result['exception']:
@@ -204,18 +200,9 @@ def run_module(request, collection_import):
 @pytest.fixture
 def survey_spec():
     return {
-        "spec": [
-            {
-                "index": 0,
-                "question_name": "my question?",
-                "default": "mydef",
-                "variable": "myvar",
-                "type": "text",
-                "required": False
-            }
-        ],
+        "spec": [{"index": 0, "question_name": "my question?", "default": "mydef", "variable": "myvar", "type": "text", "required": False}],
         "description": "test",
-        "name": "test"
+        "name": "test",
     }
 
 
@@ -234,45 +221,40 @@ def project(organization):
         local_path='_92__test_proj',
         scm_revision='1234567890123456789012345678901234567890',
         scm_url='localhost',
-        scm_type='git'
+        scm_type='git',
     )
 
 
 @pytest.fixture
 def inventory(organization):
-    return Inventory.objects.create(
-        name='test-inv',
-        organization=organization
-    )
+    return Inventory.objects.create(name='test-inv', organization=organization)
 
 
 @pytest.fixture
 def job_template(project, inventory):
-    return JobTemplate.objects.create(
-        name='test-jt',
-        project=project,
-        inventory=inventory,
-        playbook='helloworld.yml'
-    )
+    return JobTemplate.objects.create(name='test-jt', project=project, inventory=inventory, playbook='helloworld.yml')
 
 
 @pytest.fixture
 def machine_credential(organization):
     ssh_type = CredentialType.defaults['ssh']()
     ssh_type.save()
-    return Credential.objects.create(
-        credential_type=ssh_type, name='machine-cred',
-        inputs={'username': 'test_user', 'password': 'pas4word'}
-    )
+    return Credential.objects.create(credential_type=ssh_type, name='machine-cred', inputs={'username': 'test_user', 'password': 'pas4word'})
 
 
 @pytest.fixture
 def vault_credential(organization):
     ct = CredentialType.defaults['vault']()
     ct.save()
+    return Credential.objects.create(credential_type=ct, name='vault-cred', inputs={'vault_id': 'foo', 'vault_password': 'pas4word'})
+
+
+@pytest.fixture
+def kube_credential():
+    ct = CredentialType.defaults['kubernetes_bearer_token']()
+    ct.save()
     return Credential.objects.create(
-        credential_type=ct, name='vault-cred',
-        inputs={'vault_id': 'foo', 'vault_password': 'pas4word'}
+        credential_type=ct, name='kube-cred', inputs={'host': 'my.cluster', 'bearer_token': 'my-token', 'verify_ssl': False}
     )
 
 
@@ -290,3 +272,19 @@ def silence_warning():
     """Warnings use global variable, same as deprecations."""
     with mock.patch('ansible.module_utils.basic.AnsibleModule.warn') as this_mock:
         yield this_mock
+
+
+@pytest.fixture
+def execution_environment():
+    return ExecutionEnvironment.objects.create(name="test-ee", description="test-ee", managed=False)
+
+
+@pytest.fixture(scope='session', autouse=True)
+def mock_has_unpartitioned_events():
+    # has_unpartitioned_events determines if there are any events still
+    # left in the old, unpartitioned job events table. In order to work,
+    # this method looks up when the partition migration occurred. When
+    # Django's unit tests run, however, there will be no record of the migration.
+    # We mock this out to circumvent the migration query.
+    with mock.patch.object(UnifiedJob, 'has_unpartitioned_events', new=False) as _fixture:
+        yield _fixture
