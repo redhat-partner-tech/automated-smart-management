@@ -1,5 +1,5 @@
 ---
-tower_projects:
+projects:
   - name: Fact Scan
     organization: Default
     scm_type: git

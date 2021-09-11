@@ -1,5 +1,5 @@
 ---
-tower_templates:
+job_template:
   - name: SERVER / RHEL7 - Register
     project: Automated Management
     playbook: server_register.yml
