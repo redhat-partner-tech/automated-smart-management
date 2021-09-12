@@ -4,7 +4,7 @@
   tasks:
     #### REMOVE STANDARD DEMO CREDENTIAL
     - name: remove standard demo SSH credential from Ansible Tower
-      awx.awx.tower_credential:
+      awx.awx.credential:
         username: ec2-user
         name: "Workshop Credential"
         ssh_key_data: "{{ lookup('file', playbook_dir +'/' + ec2_name_prefix + '/' + ec2_name_prefix + '-private.pem') }}"
@@ -14,14 +14,14 @@
 
     #### CREDENTIAL
     - name: add RHEL node SSH credential into Ansible Tower
-      awx.awx.tower_credential:
+      awx.awx.credential:
         username: ec2-user
         name: "RHEL SSH Credential"
         ssh_key_data: "{{ lookup('file', playbook_dir +'/' + ec2_name_prefix + '/' + ec2_name_prefix + '-private.pem') }}"
         kind: ssh
 
     - name: add CentOS node SSH credential into Ansible Tower
-      awx.awx.tower_credential:
+      awx.awx.credential:
         username: centos
         name: "CentOS SSH Credential"
         ssh_key_data: "{{ lookup('file', playbook_dir +'/' + ec2_name_prefix + '/' + ec2_name_prefix + '-private.pem') }}"
