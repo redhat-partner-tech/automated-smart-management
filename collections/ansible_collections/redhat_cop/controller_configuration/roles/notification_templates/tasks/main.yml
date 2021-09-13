@@ -1,0 +1,25 @@
+---
+- name: Add Controller notifications
+  notification_template:
+    name:                           "{{ __controller_notification_item.name | mandatory }}"
+    new_name:                       "{{ __controller_notification_item.new_name | default(omit, true) }}"
+    copy_from:                      "{{ __controller_notification_item.copy_from | default(omit, true) }}"
+    description:                    "{{ __controller_notification_item.description | default(omit, true) }}"
+    organization:                   "{{ __controller_notification_item.organization.name | default( __controller_notification_item.organization ) }}"
+    notification_type:              "{{ __controller_notification_item.notification_type }}"
+    notification_configuration:     "{{ __controller_notification_item.notification_configuration }}"
+    messages:                       "{{ __controller_notification_item.messages | default(omit, true) | regex_replace('[ ]{2,}','') }}"
+    state:                          "{{ __controller_notification_item.state | default(controller_state | default('present')) }}"
+
+    # Role Standard Options
+    controller_host:                "{{ controller_hostname | default(omit, true) }}"
+    controller_username:            "{{ controller_username | default(omit, true) }}"
+    controller_password:            "{{ controller_password | default(omit, true) }}"
+    controller_oauthtoken:          "{{ controller_oauthtoken | default(omit, true) }}"
+    controller_config_file:         "{{ controller_config_file | default(omit, true) }}"
+    validate_certs:                 "{{ controller_validate_certs | default(omit) }}"
+  loop: "{{ controller_notifications }}"
+  loop_control:
+    loop_var: __controller_notification_item
+  no_log: "{{ controller_configuration_notifications_secure_logging }}"
+...

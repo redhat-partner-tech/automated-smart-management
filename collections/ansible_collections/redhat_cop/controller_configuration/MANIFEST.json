@@ -1,0 +1,39 @@
+{
+ "collection_info": {
+  "namespace": "redhat_cop",
+  "name": "controller_configuration",
+  "version": "2.0.0",
+  "authors": [
+   "Andrew Huffman",
+   "Jonathan Lozada De La Matta @jlozadad",
+   "Kedar Kulkarni @kedark3",
+   "Tom Page @Tompage1994",
+   "Sean Sullivan @sean-m-sullivan"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "controller",
+   "collection",
+   "controller_configuration",
+   "automation_platform"
+  ],
+  "description": "A collection of roles to manage Ansible Controller",
+  "license": [
+   "GPL-3.0-or-later"
+  ],
+  "license_file": null,
+  "dependencies": {},
+  "repository": "https://github.com/redhat-cop/tower_configuration",
+  "documentation": null,
+  "homepage": null,
+  "issues": "https://github.com/redhat-cop/tower_configuration/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "6c1021d631f02a5e346c28676acd023dc844f6b72aca771ee80166e7eee1b946",
+  "format": 1
+ },
+ "format": 1
+}

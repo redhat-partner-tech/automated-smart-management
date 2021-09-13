@@ -1,0 +1,207 @@
+---
+action_groups:
+  controller:
+    - credential_input_source
+    - credential
+    - credential_type
+    - group
+    - host
+    - inventory
+    - inventory_source
+    - job_cancel
+    - job_launch
+    - job_list
+    - job_template
+    - job_wait
+    - label
+    - license
+    - notification
+    - organization
+    - project
+    - role
+    - schedule
+    - settings
+    - team
+    - token
+    - user
+    - workflow_job_template_node
+    - workflow_job_template
+    - workflow_launch
+plugin_routing:
+  inventory:
+    tower:
+      redirect: ansible.controller.controller
+    ansible.controller.tower:
+      redirect: ansible.controller.controller
+  lookup:
+    tower_api:
+      redirect: ansible.controller.controller_api
+    tower_schedule_rrule:
+      redirect: ansible.controller.schedule_rrule
+    ansible.controller.tower_api:
+      redirect: ansible.controller.controller_api
+    ansible.controller.tower_schedule_rrule:
+      redirect: ansible.controller.tower_schedule_rrule
+  modules:
+    # if playbook does not specify a FQCN
+    tower_ad_hoc_command_cancel:
+      redirect: ansible.controller.ad_hoc_command_cancel
+    tower_ad_hoc_command_wait:
+      redirect: ansible.controller.ad_hoc_command_wait
+    tower_ad_hoc_command:
+      redirect: ansible.controller.ad_hoc_command
+    tower_application:
+      redirect: ansible.controller.application
+    tower_meta:
+      redirect: ansible.controller.controller_meta
+    tower_credential_input_source:
+      redirect: ansible.controller.credential_input_source
+    tower_credential_type:
+      redirect: ansible.controller.credential_type
+    tower_credential:
+      redirect: ansible.controller.credential
+    tower_execution_environment:
+      redirect: ansible.controller.execution_environment
+    tower_export:
+      redirect: ansible.controller.export
+    tower_group:
+      redirect: ansible.controller.group
+    tower_host:
+      redirect: ansible.controller.host
+    tower_import:
+      redirect: ansible.controller.import
+    tower_instance_group:
+      redirect: ansible.controller.instance_group
+    tower_inventory_source_update:
+      redirect: ansible.controller.inventory_source_update
+    tower_inventory_source:
+      redirect: ansible.controller.inventory_source
+    tower_inventory:
+      redirect: ansible.controller.inventory
+    tower_job_cancel:
+      redirect: ansible.controller.job_cancel
+    tower_job_launch:
+      redirect: ansible.controller.job_launch
+    tower_job_list:
+      redirect: ansible.controller.job_list
+    tower_job_template:
+      redirect: ansible.controller.job_template
+    tower_job_wait:
+      redirect: ansible.controller.job_wait
+    tower_label:
+      redirect: ansible.controller.label
+    tower_license:
+      redirect: ansible.controller.license
+    tower_notification_template:
+      redirect: ansible.controller.notification_template
+    tower_notification:
+      redirect: ansible.controller.notification_template
+    tower_organization:
+      redirect: ansible.controller.organization
+    tower_project_update:
+      redirect: ansible.controller.project_update
+    tower_project:
+      redirect: ansible.controller.project
+    tower_role:
+      redirect: ansible.controller.role
+    tower_schedule:
+      redirect: ansible.controller.schedule
+    tower_settings:
+      redirect: ansible.controller.settings
+    tower_team:
+      redirect: ansible.controller.team
+    tower_token:
+      redirect: ansible.controller.token
+    tower_user:
+      redirect: ansible.controller.user
+    tower_workflow_approval:
+      redirect: ansible.controller.workflow_approval
+    tower_workflow_job_template_node:
+      redirect: ansible.controller.workflow_job_template_node
+    tower_workflow_job_template:
+      redirect: ansible.controller.workflow_job_template
+    tower_workflow_launch:
+      redirect: ansible.controller.workflow_launch
+    tower_workflow_node_wait:
+      redirect: ansible.controller.workflow_node_wait
+    # if playbook specifies a FQCN
+    ansible.controller.tower_ad_hoc_command_cancel:
+      redirect: ansible.controller.ad_hoc_command_cancel
+    ansible.controller.tower_ad_hoc_command_wait:
+      redirect: ansible.controller.ad_hoc_command_wait
+    ansible.controller.tower_ad_hoc_command:
+      redirect: ansible.controller.ad_hoc_command
+    ansible.controller.tower_application:
+      redirect: ansible.controller.application
+    ansible.controller.tower_meta:
+      redirect: ansible.controller.controller_meta
+    ansible.controller.tower_credential_input_source:
+      redirect: ansible.controller.credential_input_source
+    ansible.controller.tower_credential_type:
+      redirect: ansible.controller.credential_type
+    ansible.controller.tower_credential:
+      redirect: ansible.controller.credential
+    ansible.controller.tower_execution_environment:
+      redirect: ansible.controller.execution_environment
+    ansible.controller.tower_export:
+      redirect: ansible.controller.export
+    ansible.controller.tower_group:
+      redirect: ansible.controller.group
+    ansible.controller.tower_host:
+      redirect: ansible.controller.host
+    ansible.controller.tower_import:
+      redirect: ansible.controller.import
+    ansible.controller.tower_instance_group:
+      redirect: ansible.controller.instance_group
+    ansible.controller.tower_inventory_source_update:
+      redirect: ansible.controller.inventory_source_update
+    ansible.controller.tower_inventory_source:
+      redirect: ansible.controller.inventory_source
+    ansible.controller.tower_inventory:
+      redirect: ansible.controller.inventory
+    ansible.controller.tower_job_cancel:
+      redirect: ansible.controller.job_cancel
+    ansible.controller.tower_job_launch:
+      redirect: ansible.controller.job_launch
+    ansible.controller.tower_job_list:
+      redirect: ansible.controller.job_list
+    ansible.controller.tower_job_template:
+      redirect: ansible.controller.job_template
+    ansible.controller.tower_job_wait:
+      redirect: ansible.controller.job_wait
+    ansible.controller.tower_label:
+      redirect: ansible.controller.label
+    ansible.controller.tower_license:
+      redirect: ansible.controller.license
+    ansible.controller.tower_notification_template:
+      redirect: ansible.controller.notification_template
+    ansible.controller.tower_notification:
+      redirect: ansible.controller.notification_template
+    ansible.controller.tower_organization:
+      redirect: ansible.controller.organization
+    ansible.controller.tower_project_update:
+      redirect: ansible.controller.project_update
+    ansible.controller.tower_project:
+      redirect: ansible.controller.project
+    ansible.controller.tower_role:
+      redirect: ansible.controller.role
+    ansible.controller.tower_schedule:
+      redirect: ansible.controller.schedule
+    ansible.controller.tower_settings:
+      redirect: ansible.controller.settings
+    ansible.controller.tower_team:
+      redirect: ansible.controller.team
+    ansible.controller.tower_token:
+      redirect: ansible.controller.token
+    ansible.controller.tower_user:
+      redirect: ansible.controller.user
+    ansible.controller.tower_workflow_approval:
+      redirect: ansible.controller.workflow_approval
+    ansible.controller.tower_workflow_job_template_node:
+      redirect: ansible.controller.workflow_job_template_node
+    ansible.controller.tower_workflow_job_template:
+      redirect: ansible.controller.workflow_job_template
+    ansible.controller.tower_workflow_launch:
+      redirect: ansible.controller.workflow_launch
+    ansible.controller.tower_workflow_node_wait:
+      redirect: ansible.controller.workflow_node_wait
