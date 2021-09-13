@@ -4,8 +4,9 @@
   collections:
     - awx.awx
   vars:
-    tower_hostname: "{{ hostvars[inventory_hostname].ansible_host }}"
-    tower_validate_certs: false
+    #controller_hostname: "{{ hostvars[inventory_hostname].ansible_host }}"
+    controller_hostname: "{{ lookup('env', 'TOWER_HOST') }}"
+    controller_validate_certs: false
 
   tasks:
   - set_fact:
@@ -21,13 +22,13 @@
     when: env == "Prod"
 
   - name: Update "{{ content_view }} {{ environment_name_expanded }}" inventory via source ==> "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
-    tower_inventory_source_update:
+    inventory_source_update:
       name: "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
       inventory: "{{ content_view }} {{ environment_name_expanded }}"
       organization: Default
 
   - name: Update "ALL {{ environment_name_expanded }}" inventory via source ==> "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }} - ALL"
-    tower_inventory_source_update:
+    inventory_source_update:
       name: "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }} - ALL"
       inventory: "ALL {{ environment_name_expanded }}"
       organization: Default

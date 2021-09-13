@@ -1,5 +1,5 @@
 ---
-tower_templates:
+controller_templates:
   - name: SERVER / RHEL7 - Register
     project: Automated Management
     playbook: server_register.yml
@@ -437,19 +437,19 @@ tower_templates:
       student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
       workshop_dns_zone: "{{ lookup('env', 'AWX_HOST').split('.',2)[2] }}"
 
-  - name: TOWER / Update CentOS7 Dev inventories
+  - name: CONTROLLER / Update CentOS7 Dev inventories
     project: Automated Management
-    playbook: tower_inventory_source_update_centos7_dev.yml
+    playbook: controller_inventory_source_update_centos7_dev.yml
     inventory: Workshop Inventory
     credentials:
-      - Tower Credential
+      - Controller Credential
 
-  - name: TOWER / Update inventories via dynamic sources
+  - name: CONTROLLER / Update inventories via dynamic sources
     project: Automated Management
-    playbook: tower_inventory_source_update.yml
+    playbook: controller_inventory_source_update.yml
     inventory: Workshop Inventory
     credentials:
-      - Tower Credential
+      - Controller Credential
     survey_enabled: true
     survey:
       name: ''

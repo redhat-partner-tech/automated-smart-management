@@ -23,7 +23,7 @@
     import_role:
       name: ec2_node_tools
       tasks_from: get_instance_details
-  # If you comment out the below vars, you can pass them as Tower job template extra vars    
+  # If you comment out the below vars, you can pass them as Controller job template extra vars    
   # vars:
   #   instances:
   #     tags:

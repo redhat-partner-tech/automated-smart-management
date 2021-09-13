@@ -10,12 +10,12 @@
       name: ec2_node_tools
       tasks_from: get_instance_details
 
-  - name: route53 tower dns update
+  - name: route53 controller dns update
     become: no
     vars:
-      tower_dns_record_state: present
+      controller_dns_record_state: present
     route53:
-      state: "{{ tower_dns_record_state }}"
+      state: "{{ controller_dns_record_state }}"
       zone: "{{ workshop_dns_zone }}"
       record: "{{ student }}.{{ instances.tags.Workshop | lower }}.{{ workshop_dns_zone }}"
       type: A
