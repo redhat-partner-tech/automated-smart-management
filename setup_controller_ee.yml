@@ -1,0 +1,32 @@
+---
+- hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
+  vars:
+    controller_infra_workloads:
+      - redhat_cop.controller_configuration.execution_environments
+    controller_hostname: "{{ lookup('env', 'TOWER_HOST') }}"
+    #controller_hostname: "{{ hostvars[inventory_hostname].ansible_fqdn }}"
+    controller_validate_certs: false
+
+  tasks:
+    - name: Slurp dynamic_development_source_vars.yaml
+      slurp: src=files/dynamic_development_source_vars.yaml
+      register: dynamic_development_source_vars_slurped
+
+    - set_fact:
+        dynamic_development_source_vars: "{{ dynamic_development_source_vars_slurped['content'] | b64decode }}"
+
+    # Gather EC2 metadata facts
+    - amazon.aws.ec2_metadata_facts:
+  
+    - set_fact:
+        workshop_ec2_region: "{{ ansible_ec2_instance_identity_document_region }}"
+
+    - debug:
+        msg: "{{ dynamic_development_source_vars }}"   
+    - name: deploy controller_infra workloads
+      include_role:
+        name: "{{ controller_infra_vars }}"
+      loop: "{{ controller_infra_workloads }}"
+      loop_control:
+        loop_var: controller_infra_vars
