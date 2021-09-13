@@ -468,3 +468,10 @@ controller_templates:
             - QA
             - Prod
           required: true
+
+  - name: CONTROLLER / Execution Environments
+    project: Automated Management
+    playbook: setup_controller_ee.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Controller Credential
