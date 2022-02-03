@@ -1,5 +1,5 @@
 ---
-tower_projects:
+controller_projects:
   - name: Fact Scan
     organization: Default
     scm_type: git
@@ -13,3 +13,4 @@ tower_projects:
     scm_delete_on_update: true
     scm_update_on_launch: true
     scm_update_cache_timeout: 3600
+    default_environment: smart_mgmt workshop execution environment
