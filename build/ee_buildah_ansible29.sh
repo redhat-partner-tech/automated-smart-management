@@ -6,9 +6,9 @@ set -ex
 # Password: {REGISTRY-SERVICE-ACCOUNT-PASSWORD}
 BASEIMAGEOWNER=ansible-automation-platform-20-early-access
 BASEIMAGENAME=ee-29-rhel8
-BIVERSION=2.0.0-13
+BIVERSION=2.0.1-6
 IMAGE=ee-automated-smart-mgmt-29
-VERSION=1.0.4
+VERSION=1.0.5
 START_DIR=$(pwd)
 TMP_WRKDIR=$(mktemp -d /tmp/XXXXXXXX)
 ctr=$(buildah from registry.redhat.io/$BASEIMAGEOWNER/$BASEIMAGENAME:$BIVERSION)
