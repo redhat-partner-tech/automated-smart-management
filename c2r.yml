@@ -14,7 +14,7 @@
         - "ansible_distribution_major_version == '7'"
         - "ansible_distribution_minor_version >= '9'"
       fail_msg: "CentOS 7 minor release must be >= 9"
-      success_msg: "'CentOS 7 minor release minimum requirement met, continue..."
+      success_msg: "CentOS 7 minor release minimum requirement met, continue..."
 
   - name: Install convert2rhel rpm from Red Hat OS and App Modernization Group GitHub
     yum:
