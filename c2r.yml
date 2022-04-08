@@ -1,60 +1,24 @@
 ---
-- hosts: "env_{{ rhel_lifecycle_environment }}"
-  become: false
-  tasks:
-  - name: Interrogate one RHEL node to get requisite files for convert2rhel requirements
-    block:
-      - name: verify operating system
-        assert:
-          that: "ansible_distribution == 'RedHat'"
-
-      - find: paths="/etc/pki/entitlement" recurse=yes patterns="*.pem"
-        register: entitlement_certs
-
-      - set_fact:
-          entitlement_certs_files: "{{ entitlement_certs.files }}"
-        delegate_to: "{{ item }}"
-        delegate_facts: True
-        with_items: "{{ groups['all'] }}"
-
-      - debug:
-          msg: "entitlement_certs_files ==> {{ entitlement_certs_files | map(attribute='path') | list }}"
-
-      - name: Slurp "{{ item }}" from rhel node to control
-        slurp: src="{{ item }}"
-        register: slurped_files
-        with_items:
-        - "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
-        - "/etc/yum.repos.d/redhat.repo"
-        - "{{ entitlement_certs_files | map(attribute='path') | list }}"
-
-      - set_fact:
-          slurped_files_list: "{{ slurped_files }}"
-        delegate_to: "{{ item }}"
-        delegate_facts: True
-        with_items: "{{ groups['all'] }}"
-
-      - debug:
-          msg:
-            - "Source  ==> {{ item['source'] }}"
-            - "Content ==> {{ item['content'] | b64decode }}"
-        with_items: "{{ slurped_files['results'] }}"
-
-  run_once: yes
-
 - hosts: "env_{{ centos_lifecycle_environment }}"
   become: true
+  environment:
+    CONVERT2RHEL_UNSUPPORTED_INCOMPLETE_ROLLBACK: 1
   vars:
     convert2rhel_timeout: 14400
     convert2rhel_retry_interval: 15
   tasks:
   - name: verify operating system
     assert:
-      that: "ansible_distribution == 'CentOS'"
+      that:
+        - "ansible_distribution == 'CentOS'"
+        - "ansible_distribution_major_version | int  == 7"
+        - "ansible_distribution_version.split('.')[1] | int >= 9"
+      fail_msg: "CentOS 7 minor release must be >= 9"
+      success_msg: "CentOS 7 minor release minimum requirement met, continue..."
 
   - name: Install convert2rhel rpm from Red Hat OS and App Modernization Group GitHub
     yum:
-      name: https://github.com/oamg/convert2rhel/releases/download/v0.20/convert2rhel-0.20-1.el7.noarch.rpm
+      name: https://github.com/oamg/convert2rhel/releases/download/v0.25/convert2rhel-0.25-1.el7.noarch.rpm
       state: present
 
   - name: Pull katello-ca-consumer package from satellite server and place under /usr/share/convert2rhel/subscription-manager
@@ -70,30 +34,11 @@
       create: yes
     when: (ansible_distribution == 'CentOS' and ansible_distribution_major_version == '6') or (ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7')
 
-  - name: Unregister node during convert2rhel process
-    command: >-
-      subscription-manager unregister
-
-  - name: Unslurp via Copy content "{{ item['source'] }}" from control to centos node
-    copy:
-      content: "{{ item['content'] | b64decode }}"
-      dest: "{{ item['source'] }}"
-    with_items: "{{ slurped_files_list['results'] }}"
-
-  - name: Ensure RHEL certs and keys are immutable
-    file:
-      path: "{{ item }}"
-      attr: +i
-    with_items:
-    - "{{ entitlement_certs_files | map(attribute='path') | list }}"
-
   - name: Launch conversion asynchronously
     command: >-
-      convert2rhel --disable-submgr
-        --disablerepo "*" 
-        --enablerepo rhel-7-server-rpms
-        --enablerepo rhel-7-server-extras-rpms
-        --enablerepo rhel-7-server-satellite-tools-6.8-rpms
+      convert2rhel --keep-rhsm
+        --org {{ org_id }}
+        --activationkey {{ rhel_lifecycle_environment }}
         --no-rpm-va
         -y
     async: "{{ convert2rhel_timeout }}"
@@ -119,6 +64,14 @@
       delay: 5
       timeout: 300
 
+  - name: Unregister node as prep for re-register
+    command: >-
+      subscription-manager unregister
+
+  - name: Ensure removal of all local subscription data
+    command: >-
+      subscription-manager clean
+
   - name: Register system to Satellite as new RHEL node
     include_role:
       name: rhsm_register
@@ -126,3 +79,7 @@
       env: "{{ rhel_lifecycle_environment.split('_')[1] }}"
       activation_key: "{{ rhel_lifecycle_environment }}"
       sat_url: satellite.example.com
+
+  - name: Enable all repos for current content view
+    command: >-
+      subscription-manager repos --enable=*
