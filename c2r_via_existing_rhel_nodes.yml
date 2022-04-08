@@ -1,0 +1,128 @@
+---
+- hosts: "env_{{ rhel_lifecycle_environment }}"
+  become: false
+  tasks:
+  - name: Interrogate one RHEL node to get requisite files for convert2rhel requirements
+    block:
+      - name: verify operating system
+        assert:
+          that: "ansible_distribution == 'RedHat'"
+
+      - find: paths="/etc/pki/entitlement" recurse=yes patterns="*.pem"
+        register: entitlement_certs
+
+      - set_fact:
+          entitlement_certs_files: "{{ entitlement_certs.files }}"
+        delegate_to: "{{ item }}"
+        delegate_facts: True
+        with_items: "{{ groups['all'] }}"
+
+      - debug:
+          msg: "entitlement_certs_files ==> {{ entitlement_certs_files | map(attribute='path') | list }}"
+
+      - name: Slurp "{{ item }}" from rhel node to control
+        slurp: src="{{ item }}"
+        register: slurped_files
+        with_items:
+        - "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+        - "/etc/yum.repos.d/redhat.repo"
+        - "{{ entitlement_certs_files | map(attribute='path') | list }}"
+
+      - set_fact:
+          slurped_files_list: "{{ slurped_files }}"
+        delegate_to: "{{ item }}"
+        delegate_facts: True
+        with_items: "{{ groups['all'] }}"
+
+      - debug:
+          msg:
+            - "Source  ==> {{ item['source'] }}"
+            - "Content ==> {{ item['content'] | b64decode }}"
+        with_items: "{{ slurped_files['results'] }}"
+
+  run_once: yes
+
+- hosts: "env_{{ centos_lifecycle_environment }}"
+  become: true
+  vars:
+    convert2rhel_timeout: 14400
+    convert2rhel_retry_interval: 15
+  tasks:
+  - name: verify operating system
+    assert:
+      that: "ansible_distribution == 'CentOS'"
+
+  - name: Install convert2rhel rpm from Red Hat OS and App Modernization Group GitHub
+    yum:
+      name: https://github.com/oamg/convert2rhel/releases/download/v0.20/convert2rhel-0.20-1.el7.noarch.rpm
+      state: present
+
+  - name: Pull katello-ca-consumer package from satellite server and place under /usr/share/convert2rhel/subscription-manager
+    get_url:
+      url: https://satellite.example.com/pub/katello-ca-consumer-latest.noarch.rpm
+      dest: /usr/share/convert2rhel/subscription-manager/katello-ca-consumer-latest.noarch.rpm
+      mode: '0440'
+
+  - name: "Add {{ ansible_distribution_major_version }}Server to file /etc/yum/vars/releasever if it does not exist on this CentOS {{ ansible_distribution_major_version }} system"
+    lineinfile:
+      path: /etc/yum/vars/releasever
+      line: "{{ ansible_distribution_major_version }}Server"
+      create: yes
+    when: (ansible_distribution == 'CentOS' and ansible_distribution_major_version == '6') or (ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7')
+
+  - name: Unregister node during convert2rhel process
+    command: >-
+      subscription-manager unregister
+
+  - name: Unslurp via Copy content "{{ item['source'] }}" from control to centos node
+    copy:
+      content: "{{ item['content'] | b64decode }}"
+      dest: "{{ item['source'] }}"
+    with_items: "{{ slurped_files_list['results'] }}"
+
+  - name: Ensure RHEL certs and keys are immutable
+    file:
+      path: "{{ item }}"
+      attr: +i
+    with_items:
+    - "{{ entitlement_certs_files | map(attribute='path') | list }}"
+
+  - name: Launch conversion asynchronously
+    command: >-
+      convert2rhel --disable-submgr
+        --disablerepo "*" 
+        --enablerepo rhel-7-server-rpms
+        --enablerepo rhel-7-server-extras-rpms
+        --enablerepo rhel-7-server-satellite-tools-6.8-rpms
+        --no-rpm-va
+        -y
+    async: "{{ convert2rhel_timeout }}"
+    poll: 0
+    register: convert2rhel_async
+
+  - name: Check if conversion is finished
+    async_status:
+      jid: "{{ convert2rhel_async.ansible_job_id }}"
+    register: job_result
+    until: job_result.finished
+    retries: "{{ ( convert2rhel_timeout / convert2rhel_retry_interval ) | int }}"
+    delay: "{{ convert2rhel_retry_interval }}"
+
+  - name: Reboot server
+    reboot:
+    register: reboot_result
+
+  - name: Wait for connection...
+    wait_for_connection:
+      connect_timeout: 20
+      sleep: 5
+      delay: 5
+      timeout: 300
+
+  - name: Register system to Satellite as new RHEL node
+    include_role:
+      name: rhsm_register
+    vars:
+      env: "{{ rhel_lifecycle_environment.split('_')[1] }}"
+      activation_key: "{{ rhel_lifecycle_environment }}"
+      sat_url: satellite.example.com
