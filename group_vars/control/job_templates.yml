@@ -308,6 +308,8 @@ controller_templates:
     inventory: ALL Development
     credentials:
       - Workshop Credential
+    extra_vars:
+      org_id: "Default_Organization"
     survey_enabled: true
     survey:
       name: ''
