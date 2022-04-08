@@ -68,3 +68,8 @@
       loop: "{{ satellite_infra_workloads }}"
       loop_control:
         loop_var: satellite_infra_vars
+
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  become: true
+- name: satellite disconnected mode ==> on
+  import_playbook: satellite_disconnected_mode.yml
