@@ -1,0 +1,13 @@
+---
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  vars:
+    organization: "Default Organization"
+    validate_certs: false
+  tasks:
+  - name: "Get resource_info for resource {{ resource_name_via_template_var }} under org Default Organization"
+    theforeman.foreman.resource_info:
+      resource: "{{ resource_name_via_template_var }}"
+    register: resource_info_result
+  - debug:
+      var: resource_info_result
