@@ -311,6 +311,7 @@ controller_templates:
       - Workshop Credential
     extra_vars:
       org_id: "Default_Organization"
+      product_name_or_regex: "Red Hat Enterprise Linux Server"
     survey_enabled: true
     survey:
       name: ''
