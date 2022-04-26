@@ -81,6 +81,7 @@
       state: present
       activationkey: "{{ activation_key }}"
       org_id: "{{ org_id | default('Default_Organization')}}"
+      pool: "{{ product_name_or_regex }}"
     throttle: 1
 
   - name: Create backup repos dir
