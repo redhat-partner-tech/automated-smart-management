@@ -36,6 +36,7 @@ controller_templates:
     limit: centos7
     extra_vars:
       org_id: "Default_Organization"
+      product_name_or_regex: "Community Enterprise OS 7"
     survey_enabled: true
     survey:
       name: ''
@@ -310,6 +311,7 @@ controller_templates:
       - Workshop Credential
     extra_vars:
       org_id: "Default_Organization"
+      product_name_or_regex: "Red Hat Enterprise Linux Server"
     survey_enabled: true
     survey:
       name: ''
