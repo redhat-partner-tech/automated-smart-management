@@ -15,6 +15,11 @@
     disconnected_mode: "false"
   when: refresh_satellite_manifest
 
+- name: satellite set bulk_load_size
+  import_playbook: satellite_set_bulk_load_size.yml
+  vars:
+    bulk_load_size: 1000
+
 - hosts: "{{ HOSTS | default('satellite.example.com') }}"
   connection: local
   gather_facts: no
