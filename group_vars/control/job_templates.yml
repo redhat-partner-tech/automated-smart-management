@@ -468,3 +468,15 @@ controller_templates:
             - QA
             - Prod
           required: true
+
+  - name: SETUP / Satellite
+    project: Automated Management
+    playbook: setup_satellite.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Satellite Credential
+      - Workshop Credential
+    extra_vars:
+      refresh_satellite_manifest: false
+      bulk_load_size: 1000
+    ask_variables_on_launch: true
