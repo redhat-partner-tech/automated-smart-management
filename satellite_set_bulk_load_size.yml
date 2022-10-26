@@ -1,0 +1,15 @@
+---
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  become: true
+  vars:
+    bulk_load_size: 2000
+  tasks:
+    - name: set bulk_load_size ==> "{{ bulk_load_size }}"
+      command: >-
+        hammer settings set --name bulk_load_size --value {{ bulk_load_size }}
+      register: hammer_bulk_load_size
+      ignore_errors: true
+
+    - name: hammer set bulk_load_size output 
+      debug:
+        msg: "{{ hammer_bulk_load_size }}"

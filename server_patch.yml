@@ -15,6 +15,7 @@
       state: latest
       exclude: kernel*
     check_mode: "{{ check_only }}"
+    throttle: 1
     register: updates
 
   - name: output updates dictionary

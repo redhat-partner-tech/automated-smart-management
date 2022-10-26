@@ -473,9 +473,14 @@ controller_templates:
             - Prod
           required: true
 
-  - name: CONTROLLER / Execution Environments
+  - name: SETUP / Satellite
     project: Automated Management
-    playbook: setup_controller_ee.yml
+    playbook: setup_satellite.yml
     inventory: Workshop Inventory
     credentials:
-      - Controller Credential
+      - Satellite Credential
+      - Workshop Credential
+    extra_vars:
+      refresh_satellite_manifest: false
+      bulk_load_size: 1000
+    ask_variables_on_launch: true
