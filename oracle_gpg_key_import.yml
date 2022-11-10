@@ -43,7 +43,7 @@
   - name: hammer create RPM-GPG-KEY-oracle-ol7 key
     command: >-
       hammer content-credentials create --organization-id {{ sat_org_id[0] }}
-      --key "/etc/pki/rpm-gpg/import/RPM-GPG-KEY-oracle-ol7"
+      --path "/etc/pki/rpm-gpg/import/RPM-GPG-KEY-oracle-ol7"
       --name "RPM-GPG-KEY-oracle-ol7"
       --content-type gpg_key
     register: hammer_centos7_gpgkey_result
@@ -56,7 +56,7 @@
   - name: hammer create RPM-GPG-KEY-oracle-ol8 key
     command: >-
       hammer content-credentials create --organization-id {{ sat_org_id[0] }}
-      --key "/etc/pki/rpm-gpg/import/RPM-GPG-KEY-oracle-ol8"
+      --path "/etc/pki/rpm-gpg/import/RPM-GPG-KEY-oracle-ol8"
       --name "RPM-GPG-KEY-oracle-ol8"
       --content-type gpg_key
     register: hammer_centos8_gpgkey_result
