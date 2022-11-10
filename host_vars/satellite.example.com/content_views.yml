@@ -48,11 +48,8 @@ foreman_content_views:
     - name: Oracle-7 - Base RPMs
       basearch: x86_64
       product: 'Oracle Linux 7'
-    #- name: Oracle Linux 7 - Extras RPMs x86_64
+    #- name: Oracle Linux 7 - Addons RPMs x86_64
     #  basearch: x86_64
-    - name: Oracle-7 - Extras RPMs
-      basearch: x86_64
-      product: 'Oracle Linux 7'
     - name: Oracle-7 - Addons RPMs
       basearch: x86_64
       product: 'Oracle Linux 7'
