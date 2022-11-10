@@ -12,7 +12,7 @@
   - name: Pull down Oracle Linux 7 GPG key
     get_url:
       url: https://yum.oracle.com/RPM-GPG-KEY-oracle-ol7
-      dest: /etc/pki/rpm-gpg/import
+      dest: /etc/pki/rpm-gpg/import/RPM-GPG-KEY-oracle-ol7
       mode: '0440'
     register: getoracle7gpgkey
     until: getoracle7gpgkey is succeeded
@@ -20,7 +20,7 @@
   - name: Pull down Oracle Linux 8 GPG key
     get_url:
       url: https://yum.oracle.com/RPM-GPG-KEY-oracle-ol8
-      dest: /etc/pki/rpm-gpg/import
+      dest: /etc/pki/rpm-gpg/import/RPM-GPG-KEY-oracle-ol8
       mode: '0440'
     register: getoracle8gpgkey
     until: getoracle8gpgkey is succeeded
