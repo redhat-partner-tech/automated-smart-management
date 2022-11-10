@@ -28,3 +28,17 @@ lifecycle_environments:
     prior: "CentOS8_Dev"
   - name: "CentOS8_Prod"
     prior: "CentOS8_QA"
+  # Oracle Linux 7
+  - name: "Oracle7_Dev"
+    prior: "Library"
+  - name: "Oracle7_QA"
+    prior: "Oracle7_Dev"
+  - name: "Oracle7_Prod"
+    prior: "Oracle7_QA"
+  # Oracle Linux 8
+  - name: "Oracle8_Dev"
+    prior: "Library"
+  - name: "Oracle8_QA"
+    prior: "Oracle8_Dev"
+  - name: "Oracle8_Prod"
+    prior: "Oracle8_QA"

@@ -45,6 +45,17 @@ controller_inventories:
           guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
           Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
 
+  - name: Oracle7 Development
+    organization: Default
+    variables:
+      ansible_user: ec2-user
+      instances:
+        tags:
+          ContentView: Oracle7
+          Environment: Dev
+          guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+          Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+
   - name: ALL Development
     organization: Default
 
@@ -248,6 +259,36 @@ controller_inventory_sources:
     update_on_launch: false
     update_cache_timeout: 0
 
+  - name: EC2 Dynamic Source - Oracle7 Development
+    inventory: Oracle7 Development
+    source: ec2
+    source_vars:
+      regions:
+        - "{{ workshop_ec2_region }}"
+      filters:
+        tag:ContentView: Oracle7
+        tag:Environment: Dev
+        tag:Student: "{{ lookup('env', 'AWX_HOST').split('.')[0] | urlsplit('hostname') }}"
+        tag:guid: "{{ lookup('env', 'AWX_HOST' ).split('.')[1] }}"
+      hostnames:
+        - tag:NodeName
+      keyed_groups:
+        - prefix: cv
+          key: tags['ContentView']
+        - prefix: env
+          key: tags['ContentView'] ~ '_' ~ tags['Environment']
+        - prefix: os
+          key: tags['foreman_operatingsystem_name']
+        - prefix: AnsibleGroup
+          key: tags['AnsibleGroup']
+      compose:
+        # set the ansible_host variable to connect with the private IP address without changing the hostname
+        ansible_host: private_ip_address
+        ansible_user: "'ec2-user'"
+    overwrite: true
+    update_on_launch: false
+    update_cache_timeout: 0
+
   - name: inventory_centos7_dev.aws_ec2
     inventory: EXAMPLE dynamic project inventory
     source: scm
@@ -262,6 +303,15 @@ controller_inventory_sources:
     source: scm
     source_project: Automated Management
     source_path: inventory/inventory_rhel7_dev.aws_ec2.yml
+    overwrite: true
+    update_on_launch: false
+    update_cache_timeout: 0
+
+  - name: inventory_oracle7_dev.aws_ec2
+    inventory: EXAMPLE dynamic project inventory
+    source: scm
+    source_project: Automated Management
+    source_path: inventory/inventory_oracle7_dev.aws_ec2.yml
     overwrite: true
     update_on_launch: false
     update_cache_timeout: 0

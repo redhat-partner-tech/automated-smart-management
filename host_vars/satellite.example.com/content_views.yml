@@ -19,6 +19,7 @@ foreman_content_views:
     - name: Red Hat Satellite Tools 6.10 (for RHEL 7 Server) (RPMs)
       basearch: x86_64
       product: 'Red Hat Enterprise Linux Server'
+  # Red Hat Enterprise Linux 8
   - name: RHEL8
     content_view: RHEL8
     content_view_update: true
@@ -33,6 +34,43 @@ foreman_content_views:
     - name: Red Hat Enterprise Linux 8 for x86_64 - AppStream (RPMs)
       releasever: 8
       product: Red Hat Enterprise Linux for x86_64
+# Oracle Linux 7
+  - name: Oracle7
+    content_view: Oracle7
+    content_view_update: true
+    lifecycle_environments:
+      - "Oracle7_Dev"
+      - "Oracle7_QA"
+      - "Oracle7_Prod"
+    repos:
+    # name provided here is parsed by role and appends basearch to the name submitted to Satellite
+    # ...so for actual repo named 'Oracle-7 - Base RPMs x86_64' set name to 'Oracle-7 - Base RPMs' here
+    - name: Oracle-7 - Base RPMs
+      basearch: x86_64
+      product: 'Oracle Linux 7'
+    #- name: Oracle Linux 7 - Extras RPMs x86_64
+    #  basearch: x86_64
+    - name: Oracle-7 - Extras RPMs
+      basearch: x86_64
+      product: 'Oracle Linux 7'
+    - name: Oracle-7 - Addons RPMs
+      basearch: x86_64
+      product: 'Oracle Linux 7'
+  # Oracle Linux 8
+  - name: Oracle8
+    content_view: Oracle8
+    content_view_update: true
+    lifecycle_environments:
+      - "Oracle8_Dev"
+      - "Oracle8_QA"
+      - "Oracle8_Prod"
+    repos:
+    - name: Oracle-8 for x86_64 - BaseOS RPMs
+      #releasever: 8
+      product: Oracle Linux 8
+    - name: Oracle-8 for x86_64 - AppStream RPMs
+      #releasever: 8
+      product: Oracle Linux 8
   # Community Enterprise Linux 7
   - name: CentOS7
     content_view: CentOS7

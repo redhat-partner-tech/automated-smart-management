@@ -21,6 +21,24 @@ products:
       - name: CentOS-8 for x86_64 - AppStream RPMs
         content_type: yum
         url: http://mirror.centos.org/centos/8/AppStream/x86_64/os/
+  - name: Oracle Linux 7
+    repositories:
+      - name: Oracle-7 - Base RPMs x86_64
+        content_type: yum
+        url: http://yum.oracle.com/repo/OracleLinux/OL7/latest/x86_64
+        gpg_key: RPM-GPG-KEY-oracle-ol7
+      - name: Oracle-7 - Addons RPMs x86_64
+        content_type: yum
+        url: http://yum.oracle.com/repo/OracleLinux/OL7/addons/x86_64
+  - name: Oracle Linux 8
+    repositories:
+      - name: Oracle-8 for x86_64 - BaseOS RPMs
+        content_type: yum
+        url: http://yum.oracle.com/repo/OracleLinux/OL8/baseos/latest/x86_64
+        gpg_key: RPM-GPG-KEY-oracle-ol8
+      - name: Oracle-8 for x86_64 - AppStream RPMs
+        content_type: yum
+        url: http://yum.oracle.com/repo/OracleLinux/OL8/appstream/x86_64
   - name: Extra Packages for Enterprise Linux 7
     repositories:
       - name:  Extra Packages for Enterprise Linux 7 x86_64
