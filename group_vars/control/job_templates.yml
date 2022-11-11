@@ -55,6 +55,34 @@ controller_templates:
             - Prod
           required: true
 
+  - name: SERVER / Oracle - Register
+    project: Automated Management
+    playbook: server_register.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Workshop Credential
+    limit: oracle7
+    extra_vars:
+      org_id: "Default_Organization"
+      product_name_or_regex: "Oracle Linux 7"
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Server Name or Pattern
+          type: text
+          variable: PREFIX
+          required: false
+        - question_name: Choose Environment
+          type: multiplechoice
+          variable: env
+          choices:
+            - Dev
+            - QA
+            - Prod
+          required: true
+
   - name: SATELLITE / RHEL - Publish Content View
     project: Automated Management
     playbook: satellite_publish.yml
@@ -91,6 +119,25 @@ controller_templates:
           variable: content_view
           type: multiplechoice
           choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
+          required: true
+
+  - name: SATELLITE / Oracle - Publish Content View
+    project: Automated Management
+    playbook: satellite_publish.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Satellite Credential
+    extra_vars:
+      env: Dev
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Select Content View
+          variable: content_view
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^Oracle.*$') | map(attribute='name') | list}}"
           required: true
 
   - name: SATELLITE / RHEL - Promote Content View
@@ -145,7 +192,34 @@ controller_templates:
           variable: lifecycle_environment
           type: multiplechoice
           choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
-          required: true  
+          required: true
+
+  - name: SATELLITE / Oracle - Promote Content View
+    project: Automated Management
+    playbook: satellite_promote.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Satellite Credential
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Select Content View
+          variable: content_view
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^Oracle.*$') | map(attribute='name') | list}}"
+          required: true
+        - question_name: Current Lifecycle Environment
+          variable: current_lifecycle_environment
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^Oracle.*$') | map(attribute='name') | list}}"
+          required: true
+        - question_name: Next Lifecycle Environment
+          variable: lifecycle_environment
+          type: multiplechoice
+          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^Oracle.*$') | map(attribute='name') | list}}"
+          required: true
 
   - name: SATELLITE / Delete host(s) in "node_group"
     project: Automated Management
