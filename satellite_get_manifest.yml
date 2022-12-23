@@ -28,7 +28,7 @@
         url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
         method: GET
         headers:
-          Authorization: "Bearer {{ token }}"
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
           Content-Type: "application/json"
           accept: application/json
         status_code: 200
@@ -50,7 +50,7 @@
         url: "https://api.access.redhat.com/management/v1/allocations/{{ manifest_uuid[0] }}/export"
         method: GET
         headers:
-          Authorization: "Bearer {{ token }}"
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
           Content-Type: "application/zip"
           accept: application/json
         status_code: 200
@@ -64,7 +64,7 @@
         url: "{{ exported_manifest.json.body.href }}"
         status_code: 200
         headers:
-          Authorization: "Bearer {{ token }}"
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
       register: check_manifest_export_reg
       until: check_manifest_export_reg.status == 200
       retries: 10
@@ -80,5 +80,5 @@
         url: "{{ exported_manifest.json.body.href }}"
         dest: "{{ playbook_dir }}/manifest_insights.zip"
         headers:
-          Authorization: "Bearer {{ token }}"
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
 
