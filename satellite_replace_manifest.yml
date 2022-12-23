@@ -1,12 +1,6 @@
 ---
 - name: get satellite manifest from account
   hosts: localhost
-  vars:
-    manifest_name: smrtmgmt-wrksp
-    offline_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJhZDUyMjdhMy1iY2ZkLTRjZjAtYTdiNi0zOTk4MzVhMDg1NjYifQ.eyJpYXQiOjE2NzAxOTI0NTEsImp0aSI6IjNmZGU5ODQ4LTA1YjYtNDEwNy1iMmMzLWMwZDMyN2RlMzhhZSIsImlzcyI6Imh0dHBzOi8vc3NvLnJlZGhhdC5jb20vYXV0aC9yZWFsbXMvcmVkaGF0LWV4dGVybmFsIiwiYXVkIjoiaHR0cHM6Ly9zc28ucmVkaGF0LmNvbS9hdXRoL3JlYWxtcy9yZWRoYXQtZXh0ZXJuYWwiLCJzdWIiOiJmOjUyOGQ3NmZmLWY3MDgtNDNlZC04Y2Q1LWZlMTZmNGZlMGNlNjpiZHVtb250QHJlZGhhdC5jb20iLCJ0eXAiOiJPZmZsaW5lIiwiYXpwIjoicmhzbS1hcGkiLCJzZXNzaW9uX3N0YXRlIjoiNTIzNDhlY2ItN2UxZi00ODEyLWIwN2MtOWZlZDdlMDBhODgzIiwic2NvcGUiOiJvZmZsaW5lX2FjY2VzcyIsInNpZCI6IjUyMzQ4ZWNiLTdlMWYtNDgxMi1iMDdjLTlmZWQ3ZTAwYTg4MyJ9.Ul8NWbWq52y_AkNtk7duYqzDJ8Y8QvrrfYa6yXh4woo
-
-
-
   gather_facts: no
   tasks:
     - name: get access token
@@ -29,7 +23,7 @@
         url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
         method: GET
         headers:
-          Authorization: "Bearer {{ token }}"
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
           Content-Type: "application/json"
           accept: application/json
         status_code: 200
@@ -52,7 +46,7 @@
 
         method: GET
         headers:
-          Authorization: "Bearer {{ token }}"
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
           Content-Type: "application/zip"
           accept: application/json
         status_code: 200
@@ -66,7 +60,7 @@
         url: "{{ exported_manifest.json.body.href }}"
         status_code: 200
         headers:
-          Authorization: "Bearer {{ token }}"
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
       register: check_manifest_export_reg
       until: check_manifest_export_reg.status == 200
       retries: 10
@@ -82,7 +76,7 @@
         url: "{{ exported_manifest.json.body.href }}"
         dest: "{{ playbook_dir }}/manifest_insights.zip"
         headers:
-          Authorization: "Bearer {{ token }}"
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
 
 
 - name: remove manifest
