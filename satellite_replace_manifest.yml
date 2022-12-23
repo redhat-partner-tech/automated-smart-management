@@ -12,7 +12,46 @@
         mode: get
       register: manifest
 
-- name: refresh manifest
+
+- name: remove manifest
+  hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  gather_facts: no
+  vars:
+#    refresh_satellite_manifest: no
+    refresh_timeout: 14400
+    refresh_retry_interval: 15
+ 
+  tasks:
+    - name: delete existing  manifest
+      redhat.satellite.subscription_manifest:
+        organization: "Default Organization"
+        state: absent
+      async: "{{ refresh_timeout }}"
+      poll: 0
+      register: refresh_async
+#      when: refresh_satellite_manifest
+ 
+ 
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  become: true
+  vars:
+#    refresh_satellite_manifest: no
+    refresh_timeout: 14400
+    refresh_retry_interval: 15
+ 
+  tasks:
+    - name: >
+        Watch the Satellite production.log until ManifestRefresh result ==> success appears before continuing...
+      wait_for:
+        path: /var/log/foreman/production.log
+        search_regex: "^.*ManifestRefresh.*state\ changed.*\ stopped\ \ result.*\ success"
+        timeout: 1500
+        sleep: 20
+#      when: refresh_satellite_manifest
+
+
+- name: add new manifest
   hosts: "{{ HOSTS | default('satellite.example.com') }}"
   connection: local
   gather_facts: no
