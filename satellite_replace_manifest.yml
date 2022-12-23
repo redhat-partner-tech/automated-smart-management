@@ -25,8 +25,8 @@
     - name: refresh manifest
       redhat.satellite.subscription_manifest:
         organization: "Default Organization"
-        state: refresh
-        manifest_path: "{{ playbook_dir }}/{{ ec2_name_prefix|lower }}/manifest_insights.zip"
+        state: present
+        manifest_path: "{{ playbook_dir }}/manifest_insights.zip"
       async: "{{ refresh_timeout }}"
       poll: 0
       register: refresh_async
