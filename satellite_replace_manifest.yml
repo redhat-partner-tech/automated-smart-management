@@ -7,7 +7,7 @@
       amazon.aws.aws_s3:
         bucket: "{{ ec2_name_prefix|lower }}.{{ workshop_dns_zone }}.private"
         object: manifest_insights.zip
-        dest: "{{ playbook_dir }}/{{ ec2_name_prefix|lower }}/manifest_insights.zip"
+        dest: "{{ playbook_dir }}/manifest_insights.zip"
         region: "{{ ec2_region }}"
         mode: get
       register: manifest
