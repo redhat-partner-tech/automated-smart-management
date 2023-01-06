@@ -8,3 +8,8 @@
       include_role:
         name: redhat.insights.insights_client
 
+    - name: install insights compliance
+      import_role:
+        name: redhat.insights.compliance
+        tasks_from: install
+
