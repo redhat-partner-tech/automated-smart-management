@@ -1,0 +1,10 @@
+---
+- name: install and register insights 
+  hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
+  become: yes
+
+  tasks:
+    - name: install and register insights
+      include_role:
+        name: redhat.insights.insights_client
+
