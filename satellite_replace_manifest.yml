@@ -1,7 +1,21 @@
 ---
+# this will be replaced with the play that downloads the manifest directly from sub mgr
+#- name: retrieve manifest from s3 bucket
+#  hosts: localhost
+#  gather_facts: no
+#  tasks: 
+#    - name: Save manifest from s3 bucket
+#      amazon.aws.aws_s3:
+#        bucket: "{{ ec2_name_prefix|lower }}.{{ workshop_dns_zone }}.private"
+#        mode: get
+#        object: "{{ ec2_name_prefix }}-manifest.zip"
+#        dest: "{{ playbook_dir }}/{{ ec2_name_prefix|lower }}-manifest.zip"
+#        region: "{{ ec2_region }}"
 - name: get satellite manifest from account
   hosts: localhost
+  vars:
   gather_facts: no
+
   tasks:
     - name: get access token
       uri:
@@ -20,7 +34,8 @@
 
     - name: Get manifest list
       uri:
-        url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
+        url: "https://subscription.rhsm.redhat.com/subscription/owners/11821608/consumers?type=Satellite"
+#        url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
         method: GET
         headers:
           Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
@@ -34,49 +49,22 @@
 
 
     - name: get manifest uuid
-      set_fact: 
-        manifest_uuid: "{{ manifests.json | json_query(get_manifest_id) }}"
+      set_fact:
+        manifest_uuid: "{{ manifests | json_query(get_manifest_id) }}"
       vars:
-        get_manifest_id: "body[?name == '{{ manifest_name }}'].uuid"
+        get_manifest_id: "json[?name == '{{ manifest_name }}'].uuid"
 
-
-    - name: Export  manifest
-      uri:
-        url: "https://api.access.redhat.com/management/v1/allocations/{{ manifest_uuid[0] }}/export"
-
-        method: GET
+    - name: Download  manifest
+      get_url:
+        url: "https://subscription.rhsm.redhat.com/subscription/consumers/{{ manifest_uuid[0] }}/export"
+        dest: "{{ playbook_dir }}/manifest_insights.zip"
+        validate_certs: false
         headers:
           Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
           Content-Type: "application/zip"
-          accept: application/json
-        status_code: 200
-        return_content: yes
-        validate_certs: false
-        force_basic_auth: yes
-      register: exported_manifest
- 
-    - name: Check status of Manifest ExportJob
-      uri:
-        url: "{{ exported_manifest.json.body.href }}"
-        status_code: 200
-        headers:
-          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
-      register: check_manifest_export_reg
-      until: check_manifest_export_reg.status == 200
-      retries: 10
-      delay: 10
-      ignore_errors: true
- 
-    - name: get export_id
-      set_fact:
-        export_id: "{{ exported_manifest.json.body.exportJobID }}"
- 
-    - name: Download  manifest
-      get_url:
-        url: "{{ exported_manifest.json.body.href }}"
-        dest: "{{ playbook_dir }}/manifest_insights.zip"
-        headers:
-          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
+      delay: 60
+
+
 
 
 - name: remove manifest
