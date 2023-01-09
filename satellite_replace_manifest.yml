@@ -34,7 +34,7 @@
 
     - name: Get manifest list
       uri:
-        url: "https://subscription.rhsm.redhat.com/subscription/owners/11821608/consumers?type=Satellite"
+        url: "https://subscription.rhsm.redhat.com/subscription/owners/{{ org_id }}/consumers?type=Satellite"
 #        url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
         method: GET
         headers:
