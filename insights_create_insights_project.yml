@@ -1,6 +1,7 @@
 ---
 - name: create Insights Project
   hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
 
   tasks:
   - name: create insights project
