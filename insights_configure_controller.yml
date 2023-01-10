@@ -18,7 +18,6 @@
       - name: insights_credential
         credential_type: Insights
         state: present
-        scm_url: "https://cloud.redhat.com/"
         user: admin
 #        organization: Default
         inputs:
@@ -29,6 +28,7 @@
     controller_projects:
       - name: Insights project
         organization: Default
+        scm_url: "https://cloud.redhat.com/"
         scm_type: "insights"
         credential: "insights_credential"
 
