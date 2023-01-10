@@ -18,6 +18,7 @@
       - name: insights_credential
         credential_type: Insights
         state: present
+        scm_url: "https://cloud.redhat.com/"
         organization: Default
         inputs:
 #          host: "https://{{ ansible_host }}"
