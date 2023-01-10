@@ -1,18 +1,14 @@
 ---
-- name: Setup Insights Credential and project
-#  hosts: localhost
-   hosts: "{{ HOSTS | default('control[0]') }}"
-   connection: local
-    tasks:
+- hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
+  tasks:
     #### CREDENTIAL
-      - name:  Add Insights Credential to Ansible Controller
-        ansible.controller.credential:
-          name: "Insights Credential"
-#          controller_username: admin
-#          controller_password: "{{ aap_password }}"
-          inputs:
-            username: "{{ insights_user }}"
-            password: "{{ insights_password }}"
-          kind: Insights
+    - name:  Add Insights Credential to Ansible Controller
+      ansible.controller.credential:
+        name: "Insights Credential"
+        inputs:
+          username: "{{ insights_user }}"
+          password: "{{ insights_password }}"
+        kind: Insights
 
     #### END OF CREDENTIAL
