@@ -14,3 +14,4 @@
       credential: Insights-Credential
       scm_url: "https://cloud.redhat.com/"
       validate_certs: false
+      update_project: true
