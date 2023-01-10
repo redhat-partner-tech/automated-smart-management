@@ -28,7 +28,7 @@
       - name: Insights project
         organization: Default
         scm_type: "insights"
-        credential: "InsightsCredential"
+        credential: "insights_credential"
 
 
 
