@@ -8,8 +8,8 @@
       - name:  Add Insights Credential to Ansible Controller
         ansible.controller.credential:
           name: "Insights Credential"
-          controller_username: admin
-          controller_password: "{{ aap_password }}"
+#          controller_username: admin
+#          controller_password: "{{ aap_password }}"
           inputs:
             username: "{{ insights_user }}"
             password: "{{ insights_password }}"
