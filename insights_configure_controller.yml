@@ -31,6 +31,7 @@
         credential: "Insights Credential"
 
 
+
   tasks:
     - name: Deploy controller-infra workloads
       include_role:
