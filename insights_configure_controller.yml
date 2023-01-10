@@ -13,13 +13,14 @@
     controller_username: admin
     controller_password: 'Ansible=2021!!!'
     controller_validate_certs: false
+    controller_configuration_credentials_secure_logging: true
     controller_credentials:
       - name: Insights Credential
-        credential_type: insights
+        credential_type: Insights
         state: present
         organization: Default
         inputs:
-          host: "https://{{ ansible_host }}"
+#          host: "https://{{ ansible_host }}"
           username: "{{ insights_user }}"
           password: "{{ insights_password }}"
 
