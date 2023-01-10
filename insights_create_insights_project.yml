@@ -15,3 +15,4 @@
       scm_url: "https://cloud.redhat.com/"
       validate_certs: false
       update_project: true
+      scm_type: insights
