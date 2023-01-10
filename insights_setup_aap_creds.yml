@@ -5,7 +5,7 @@
     #### CREDENTIAL
   - name:  Add Insights Credential to Ansible Controller
     controller_credentials:
-      name: Insights Credential
+      name: Insights-Credential
       state: present
       organization: default
       inputs:
