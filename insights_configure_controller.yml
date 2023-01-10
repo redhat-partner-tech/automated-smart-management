@@ -27,7 +27,7 @@
     controller_projects:
       - name: Insights project
         organization: default
-        scm_type: "Red Hat Insights"
+        scm_type: "insights"
         credential: "Insights Credential"
 
 
