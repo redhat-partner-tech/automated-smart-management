@@ -7,7 +7,7 @@
     controller_infra_workloads:
 #      - redhat_cop.controller_configuration.credential_types
       - redhat_cop.controller_configuration.credentials
-#      - redhat_cop.controller_configuration.projects
+      - redhat_cop.controller_configuration.projects
 #      - redhat_cop.controller_configuration.job_templates
     controller_hostname: "https://{{ ansible_host }}"
     controller_username: admin
@@ -23,6 +23,12 @@
 #          host: "https://{{ ansible_host }}"
           username: "{{ insights_user }}"
           password: "{{ insights_password }}"
+
+    controller_projects:
+      - name: Insights project
+        organization: default
+        scm_type: "Red Hat Insights"
+        credential: "Insights Credential"
 
 
   tasks:
