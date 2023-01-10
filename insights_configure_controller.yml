@@ -1,6 +1,7 @@
 ---
-- name: configure controller for smart_mgmt
-  hosts: control
+#- name: configure controller for smart_mgmt
+- hosts: "{{ HOSTS | default('control[0]') }}"
+#  hosts: control
   gather_facts: false
   vars:
     controller_infra_workloads:
