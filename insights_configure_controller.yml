@@ -1,6 +1,6 @@
 ---
 - name: configure controller for smart_mgmt
-  hosts: control_nodes
+  hosts: control
   gather_facts: false
   vars:
     controller_infra_workloads:
