@@ -4,11 +4,13 @@
   tasks:
     #### CREDENTIAL
   - name:  Add Insights Credential to Ansible Controller
-    ansible.controller.credential:
-      name: "Insights Credential"
+    controller_credentials:
+      name: Insights Credential
+      state: present
+      organization: default
       inputs:
         username: "{{ insights_user }}"
         password: "{{ insights_password }}"
-      kind: Insights
+      credential_type: Insights
 
     #### END OF CREDENTIAL
