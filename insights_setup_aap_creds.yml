@@ -7,7 +7,7 @@
     ansible.controller.credential:
       name: Insights-Credential
       state: present
-      organization: default
+      organization: Default
       inputs:
         username: "{{ insights_user }}"
         password: "{{ insights_password }}"
