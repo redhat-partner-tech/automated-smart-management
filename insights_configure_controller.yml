@@ -15,7 +15,7 @@
     controller_validate_certs: false
     controller_configuration_credentials_secure_logging: true
     controller_credentials:
-      - name: Insights Credential
+      - name: insights_credential
         credential_type: Insights
         state: present
         organization: Default
