@@ -3,12 +3,12 @@
   connection: local
   tasks:
     #### CREDENTIAL
-    - name:  Add Insights Credential to Ansible Controller
-      ansible.controller.credential:
-        name: "Insights Credential"
-        inputs:
-          username: "{{ insights_user }}"
-          password: "{{ insights_password }}"
-        kind: Insights
+  - name:  Add Insights Credential to Ansible Controller
+    ansible.controller.credential:
+      name: "Insights Credential"
+      inputs:
+        username: "{{ insights_user }}"
+        password: "{{ insights_password }}"
+      kind: Insights
 
     #### END OF CREDENTIAL
