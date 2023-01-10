@@ -30,7 +30,7 @@
         organization: Default
         scm_url: "https://cloud.redhat.com/"
         scm_type: "insights"
-        credential: "insights_credential"
+        credential: "12"
 
 
 
