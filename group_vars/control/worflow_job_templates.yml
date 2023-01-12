@@ -10,9 +10,9 @@ controller_workflows:
       - identifier: Insights / Replace Satellite Manifest
         all_parents_must_converge: false
         unified_job_template: Insights / Replace Satellite Manifest
-        success_nodes: Insights / Replace Satellite Manifest
+        success_nodes: Insights / Install and Register
         organization: Default
-      - identifier: Insights / Replace Satellite Manifest
+      - identifier: Insights / Install and Register
         all_parents_must_converge: false
         unified_job_template: Insights / Install and Register
         success_nodes: Insights / Create Insights Credential
