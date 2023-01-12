@@ -488,6 +488,7 @@ controller_templates:
   - name: Insights / Replace Satellite Manifest
     project: Automated Management
     playbook: insights_replace_satellite_manifest.yml
+    execution_environment: Insights execution environment
     inventory: Workshop Inventory
     credentials:
       - Satellite Credential     
@@ -500,6 +501,7 @@ controller_templates:
   - name: Insights / Install and Register
     project: Automated Management
     playbook: insights_install.yml
+    execution_environment: Insights execution environment
     inventory: Workshop Inventory
     credentials:
       - Workshop Credential
@@ -507,6 +509,7 @@ controller_templates:
   - name: Insights / Create Insights Credential
     project: Automated Management
     playbook: insights_setup_aap_creds.yml
+    execution_environment: Insights execution environment
     inventory: Workshop Inventory
     credentials:
       - Controller Credential
@@ -518,6 +521,7 @@ controller_templates:
   - name: Insights / Create Insights Project
     project: Automated Management
     playbook: insights_create_insights_project.yml
+    execution_environment: Insights execution environment
     inventory: Workshop Inventory
     credentials:                 
       - Controller Credential    
