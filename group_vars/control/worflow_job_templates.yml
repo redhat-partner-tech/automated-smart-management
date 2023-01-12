@@ -5,6 +5,7 @@ controller_workflows:
     extra_vars: ''
     inventory: Workshop Inventory
     state: present
+    organization: Default
     simplified_workflow_nodes:
       - identifier: node101
         all_parents_must_converge: false
