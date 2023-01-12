@@ -3,11 +3,11 @@ controller_workflows:
   - name: SETUP / Insights
     description: this workflow configures insights for this workshop
     extra_vars:
-      - manifest_name: smrtmgmt-wrksp
-      - offline_token: value
-      - org_id: value
-      - insights_user: username
-      - insights_password: password
+      manifest_name: smrtmgmt-wrksp
+      offline_token: value
+      org_id: value
+      insights_user: username
+      insights_password: password
     inventory: Workshop Inventory
     state: present
     organization: Default
