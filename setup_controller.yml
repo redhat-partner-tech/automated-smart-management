@@ -7,6 +7,7 @@
       - redhat_cop.controller_configuration.inventories
       - redhat_cop.controller_configuration.inventory_sources
       - redhat_cop.controller_configuration.job_templates
+      - redhat_cop.controller_configuration.workflow_job_templates
     controller_hostname: "{{ lookup('env', 'TOWER_HOST') }}"
     #controller_hostname: "{{ hostvars[inventory_hostname].ansible_fqdn }}"
     controller_validate_certs: false
