@@ -10,17 +10,21 @@ controller_workflows:
         all_parents_must_converge: false
         unified_job_template: Insights / Replace Satellite Manifest
         success_nodes: node201
+        organization: Default
       - identifier: node201
         all_parents_must_converge: false
         unified_job_template: Insights / Install and Register
         success_nodes: node301
+        organization: Default        
       - identifier: node301
         all_parents_must_converge: false
         unified_job_template: Insights / Create Insights Credential
         success_nodes: node401
+        organization: Default        
       - identifier: node301
         all_parents_must_converge: false
         unified_job_template: Insights / Create Insights Project
+        organization: Default
 
 
 
