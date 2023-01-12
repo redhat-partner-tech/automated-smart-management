@@ -7,22 +7,22 @@ controller_workflows:
     state: present
     organization: Default
     simplified_workflow_nodes:
-      - identifier: node101
+      - identifier: Insights / Replace Satellite Manifest
         all_parents_must_converge: false
         unified_job_template: Insights / Replace Satellite Manifest
-        success_nodes: node201
+        success_nodes: Insights / Replace Satellite Manifest
         organization: Default
-      - identifier: node201
+      - identifier: Insights / Replace Satellite Manifest
         all_parents_must_converge: false
         unified_job_template: Insights / Install and Register
-        success_nodes: node301
+        success_nodes: Insights / Create Insights Credential
         organization: Default        
-      - identifier: node301
+      - identifier: Insights / Create Insights Credential
         all_parents_must_converge: false
         unified_job_template: Insights / Create Insights Credential
-        success_nodes: node401
+        success_nodes: Insights / Create Insights Project
         organization: Default        
-      - identifier: node301
+      - identifier: Insights / Create Insights Project
         all_parents_must_converge: false
         unified_job_template: Insights / Create Insights Project
         organization: Default
