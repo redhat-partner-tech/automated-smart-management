@@ -4,6 +4,7 @@ controller_workflows:
     description: this workflow configures insights for this workshop
     extra_vars: ''
     inventory: Workshop Inventory
+    state: present
     simplified_workflow_nodes:
       - identifier: node101
         all_parents_must_converge: false
