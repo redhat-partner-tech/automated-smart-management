@@ -1,0 +1,26 @@
+---
+controller_workflows:
+  - name: SETUP / Insights
+    description: this workflow configures insights for this workshop
+    extra_vars: ''
+    inventory: Workshop Inventory
+    simplified_workflow_nodes:
+      - identifier: node101
+        all_parents_must_converge: false
+        unified_job_template: Insights / Replace Satellite Manifest
+        success_nodes: node201
+      - identifier: node201
+        all_parents_must_converge: false
+        unified_job_template: Insights / Install and Register
+        success_nodes: node301
+      - identifier: node301
+        all_parents_must_converge: false
+        unified_job_template: Insights / Create Insights Credential
+        success_nodes: node401
+      - identifier: node301
+        all_parents_must_converge: false
+        unified_job_template: Insights / Create Insights Project
+
+
+
+
