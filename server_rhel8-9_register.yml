@@ -33,20 +33,20 @@
         rhsm_baseurl: "https://{{ sat_url }}lan/pulp/repos"
         server_hostname: "{{ sat_url }}"
         rhsm_repo_ca_cert: '%(ca_cert_dir)skatello-server-ca.pem'
-        force_register: no
+        force_register: yes
       #  auto_attach: no
       register: redhat_subscription
       ignore_errors: yes
       no_log: false
 
 
-    - name: set_fact
-      set_fact:
-        rhsm_info: "{{ redhat_subscription }}"
+#    - name: set_fact
+#      set_fact:
+#        rhsm_info: "{{ redhat_subscription }}"
 
     - name: print subscription info
       debug:
-        var: "{{ rhsm_info }}"
+        var: redhat_subscription
 
 
 #    - name: include repos
