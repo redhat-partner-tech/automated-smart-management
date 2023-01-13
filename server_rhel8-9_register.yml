@@ -41,7 +41,7 @@
 
     - name: print subscription info
       debug:
-        var: "{{ redhat_subscription }}""
+        var: "{{ redhat_subscription }}"
 
 
 #    - name: include repos
