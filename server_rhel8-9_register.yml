@@ -39,9 +39,14 @@
       ignore_errors: yes
       no_log: false
 
+
+    - name: set_fact
+      set_fact:
+        rhsm_info: "{{ redhat_subscription }}"
+
     - name: print subscription info
       debug:
-        var: "{{ redhat_subscription }}"
+        var: "{{ rhsm_info }}"
 
 
 #    - name: include repos
