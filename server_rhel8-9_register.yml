@@ -39,6 +39,11 @@
       ignore_errors: yes
       no_log: false
 
+    - name: print subscription info
+      debug:
+        var: "{{ redhat_subscription }""
+
+
 #    - name: include repos
 #      include_vars: "vars/{{ ansible_distribution + ansible_distribution_major_version }}.yml"
 
