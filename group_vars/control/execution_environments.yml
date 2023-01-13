@@ -1,0 +1,4 @@
+---
+controller_execution_environments:
+  - name: Insights execution environment
+    image: quay.io/bdumont/automated-sm-ee
