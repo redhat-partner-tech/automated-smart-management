@@ -3,6 +3,7 @@
   connection: local
   vars:
     controller_infra_workloads:
+      - redhat_cop.controller_configuration.execution_environments
       - redhat_cop.controller_configuration.projects
       - redhat_cop.controller_configuration.inventories
       - redhat_cop.controller_configuration.inventory_sources
