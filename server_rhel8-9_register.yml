@@ -31,6 +31,7 @@
       #  auto_attach: no
       register: redhat_subscription
       ignore_errors: yes
+      no_log: false
 
     - name: include repos
       include_vars: "vars/{{ ansible_distribution + ansible_distribution_major_version }}.yml"
