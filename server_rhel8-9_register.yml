@@ -36,7 +36,7 @@
       include_vars: "vars/{{ ansible_distribution + ansible_distribution_major_version }}.yml"
 
     - name: enable repos
-      rcommunity.general.rhsm_repository:
+      community.general.rhsm_repository:
         name: "{{ rhsm_enabled_repos }}"
         state: enabled
 
