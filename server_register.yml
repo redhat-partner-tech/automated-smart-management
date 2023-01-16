@@ -9,8 +9,4 @@
   roles:
     - rhsm_register
 
-  tasks:
-    - include_role:
-        name: redhat.insights.insights_client
-      when: insights
 
