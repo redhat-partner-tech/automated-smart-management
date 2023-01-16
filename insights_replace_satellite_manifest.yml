@@ -133,8 +133,7 @@
     refresh_retry_interval: 15
 
   tasks:
-    - name: >
-        Watch the Satellite production.log until ManifestRefresh result ==> success appears before continuing...
+    - name: Watch the Satellite production.log until ManifestRefresh result ==> success appears before continuing...
       wait_for:
         path: /var/log/foreman/production.log
         search_regex: "^.*ManifestImport.*state\ changed.*\ stopped\ \ result.*\ success"
