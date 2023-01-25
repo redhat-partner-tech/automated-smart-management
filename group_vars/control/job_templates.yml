@@ -495,7 +495,7 @@ controller_templates:
     extra_vars:
       manifest_name: smrtmgmt-wrksp
       offline_token: value
-      org_id: value
+      rhsm_org_id: value
 
   - name: Insights / Install and Register
     project: Automated Management
