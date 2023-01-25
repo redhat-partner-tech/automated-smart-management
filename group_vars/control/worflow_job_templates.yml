@@ -5,7 +5,7 @@ controller_workflows:
     extra_vars:
       manifest_name: smrtmgmt-wrksp
       offline_token: value
-      org_id: value
+      rhsm_org_id: value
       insights_user: username
       insights_password: password
     inventory: Workshop Inventory
