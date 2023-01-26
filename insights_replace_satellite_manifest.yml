@@ -31,10 +31,12 @@
           refresh_token: "{{ offline_token }}"
           validate_certs: False
       register: access_token_reponse
+      until: "results.status == 200"
+      retries: 12
+      delay: 15
 
     - name: Get manifest list
       uri:
-        url: "https://subscription.rhsm.redhat.com/subscription/owners/{{ rhsm_org_id }}/consumers?type=Satellite"
 #        url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
         method: GET
         headers:
@@ -46,6 +48,9 @@
         validate_certs: false
         force_basic_auth: yes
       register: manifests
+      until: "results.status == 200"
+      retries: 12
+      delay: 15
 
 
     - name: get manifest uuid
@@ -63,6 +68,8 @@
           Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
           Content-Type: "application/zip"
       delay: 60
+      until: "results.status == 200"
+      retries: 5
 
 
 
