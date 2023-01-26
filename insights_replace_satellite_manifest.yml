@@ -68,6 +68,7 @@
           Authorization: "Bearer {{ access_token_response.json.access_token }}"
           Content-Type: "application/zip"
       register: results
+      timeout: 60
       delay: 60
       until: "results.status_code == 200"
       retries: 5
