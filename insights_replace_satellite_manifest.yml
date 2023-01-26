@@ -30,7 +30,7 @@
           client_id: rhsm-api
           refresh_token: "{{ offline_token }}"
           validate_certs: False
-      register: access_token_reponse
+      register: access_token_response
       until: "access_token_response.status == 200"
       retries: 12
       delay: 15
