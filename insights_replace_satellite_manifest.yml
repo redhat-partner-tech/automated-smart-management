@@ -69,7 +69,7 @@
           Content-Type: "application/zip"
       register: results
       delay: 60
-#      until: "results.status == 200"
+      until: "results.status_code == 200"
       retries: 5
 
 
