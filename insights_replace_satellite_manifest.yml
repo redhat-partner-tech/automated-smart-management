@@ -57,7 +57,7 @@
       set_fact:
         manifest_uuid: "{{ manifests | json_query(get_manifest_id) }}"
       vars:
-        get_manifest_id: "json[?name == '{{ manifest_name }}'].uuid"
+        get_manifest_id: "json.body[?name == '{{ manifest_name }}'].uuid"
 
     - name: Download  manifest
       get_url:
