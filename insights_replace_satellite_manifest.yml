@@ -37,7 +37,7 @@
 
     - name: Get manifest list
       uri:
-#        url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
+        url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
         method: GET
         headers:
           Authorization: "Bearer {{ access_token_response.json.access_token }}"
