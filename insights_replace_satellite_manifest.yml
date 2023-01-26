@@ -40,7 +40,7 @@
 #        url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
         method: GET
         headers:
-          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
+          Authorization: "Bearer {{ access_token_response.json.access_token }}"
           Content-Type: "application/json"
           accept: application/json
         status_code: 200
