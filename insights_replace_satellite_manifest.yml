@@ -48,9 +48,9 @@
         validate_certs: false
         force_basic_auth: yes
       register: manifests
-      until: "manifests.status == 200"
-      retries: 12
-      delay: 15
+#      until: "manifests.status == 200"
+#      retries: 12
+#      delay: 15
 
 
     - name: get manifest uuid
