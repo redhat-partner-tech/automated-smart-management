@@ -31,7 +31,7 @@
           refresh_token: "{{ offline_token }}"
           validate_certs: False
       register: access_token_reponse
-      until: "results.status == 200"
+      until: "access_token_response.status == 200"
       retries: 12
       delay: 15
 
@@ -48,7 +48,7 @@
         validate_certs: false
         force_basic_auth: yes
       register: manifests
-      until: "results.status == 200"
+      until: "manifests.status == 200"
       retries: 12
       delay: 15
 
@@ -67,6 +67,7 @@
         headers:
           Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
           Content-Type: "application/zip"
+      register: results
       delay: 60
       until: "results.status == 200"
       retries: 5
