@@ -8,9 +8,8 @@
       include_role:
         name: redhat.insights.insights_client
 
-    - name: Randomized 1 to 5 second startup delay
-      command: |
-        /usr/bin/python3 --version
+    - name: Randomized startup delay...
+      pause: seconds="{{ 5 | random }}"
 
     - name: install insights compliance
       import_role:
