@@ -1,0 +1,61 @@
+- hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
+  become: yes
+  vars:
+    env: Dev
+    activation_key: undef
+    sat_url: satellite.example.com
+    org_name: Default_Organization
+    rhsm_enabled_repos:
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - satellite-tools-6.10-for-rhel-8-x86_64-rpms
+
+
+
+  tasks:
+    - name: set activation key for rhel
+      set_fact: 
+        subscribe_activation_key: "{{ 'RHEL' + ansible_distribution_major_version + '_' + env }}"
+
+
+    - name: install cert rpm
+      yum:
+        name: "https://{{ sat_url }}/pub/katello-ca-consumer-latest.noarch.rpm"
+        state: present
+        disable_gpg_check: yes
+        validate_certs: no
+      ignore_errors: yes
+
+    - name: subscribe to sat
+      community.general.redhat_subscription:
+        activationkey: "{{ subscribe_activation_key }}"
+        org_id: "{{ org_name }}"
+        rhsm_baseurl: "https://{{ sat_url }}lan/pulp/repos"
+        server_hostname: "{{ sat_url }}"
+        rhsm_repo_ca_cert: '%(ca_cert_dir)skatello-server-ca.pem'
+        force_register: yes
+      #  auto_attach: no
+      register: redhat_subscription
+      ignore_errors: yes
+      no_log: false
+
+
+#    - name: set_fact
+#      set_fact:
+#        rhsm_info: "{{ redhat_subscription }}"
+
+    - name: print subscription info
+      debug:
+        var: redhat_subscription
+
+
+#    - name: include repos
+#      include_vars: "vars/{{ ansible_distribution + ansible_distribution_major_version }}.yml"
+
+    - name: enable repos
+      community.general.rhsm_repository:
+        name: "{{ rhsm_enabled_repos }}"
+        state: enabled
+
+
+

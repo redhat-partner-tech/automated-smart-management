@@ -1,0 +1,46 @@
+---
+#- name: configure controller for smart_mgmt
+- hosts: "{{ HOSTS | default('control[0]') }}"
+#  hosts: control
+  gather_facts: false
+  vars:
+    controller_infra_workloads:
+#      - redhat_cop.controller_configuration.credential_types
+      - redhat_cop.controller_configuration.credentials
+      - redhat_cop.controller_configuration.projects
+#      - redhat_cop.controller_configuration.job_templates
+    controller_hostname: "https://{{ ansible_host }}"
+    controller_username: admin
+    controller_password: 'Ansible=2021!!!'
+    controller_validate_certs: false
+    controller_configuration_credentials_secure_logging: true
+    controller_credentials:
+      - name: insights_credential
+        credential_type: Insights
+        state: present
+        user: admin
+#        organization: Default
+        inputs:
+#          host: "https://{{ ansible_host }}"
+          username: "{{ insights_user }}"
+          password: "{{ insights_password }}"
+
+    controller_projects:
+      - name: Insights project
+        organization: Default
+        scm_url: "https://cloud.redhat.com/"
+        scm_type: "insights"
+        credential: 12
+
+
+
+  tasks:
+    - name: Deploy controller-infra workloads
+      include_role:
+        name: "{{ controller_infra_vars }}"
+      loop: "{{ controller_infra_workloads }}"
+      loop_control:
+        loop_var: controller_infra_vars
+  #    when:
+  #      - controller_infra_workloads | d("") | length >0
+

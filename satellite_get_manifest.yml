@@ -1,0 +1,84 @@
+---
+- name: get satellite manifest from account
+  hosts: localhost
+  vars:
+  gather_facts: no
+  vars:
+    manifest_name: smrtmgmt-wrksp
+    offline_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJhZDUyMjdhMy1iY2ZkLTRjZjAtYTdiNi0zOTk4MzVhMDg1NjYifQ.eyJpYXQiOjE2NzAxOTI0NTEsImp0aSI6IjNmZGU5ODQ4LTA1YjYtNDEwNy1iMmMzLWMwZDMyN2RlMzhhZSIsImlzcyI6Imh0dHBzOi8vc3NvLnJlZGhhdC5jb20vYXV0aC9yZWFsbXMvcmVkaGF0LWV4dGVybmFsIiwiYXVkIjoiaHR0cHM6Ly9zc28ucmVkaGF0LmNvbS9hdXRoL3JlYWxtcy9yZWRoYXQtZXh0ZXJuYWwiLCJzdWIiOiJmOjUyOGQ3NmZmLWY3MDgtNDNlZC04Y2Q1LWZlMTZmNGZlMGNlNjpiZHVtb250QHJlZGhhdC5jb20iLCJ0eXAiOiJPZmZsaW5lIiwiYXpwIjoicmhzbS1hcGkiLCJzZXNzaW9uX3N0YXRlIjoiNTIzNDhlY2ItN2UxZi00ODEyLWIwN2MtOWZlZDdlMDBhODgzIiwic2NvcGUiOiJvZmZsaW5lX2FjY2VzcyIsInNpZCI6IjUyMzQ4ZWNiLTdlMWYtNDgxMi1iMDdjLTlmZWQ3ZTAwYTg4MyJ9.Ul8NWbWq52y_AkNtk7duYqzDJ8Y8QvrrfYa6yXh4woo
+
+  tasks:
+    - name: get access token
+      uri:
+        url: "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
+        method: POST
+        return_content: True
+        body_format: form-urlencoded
+        headers:
+            accept: application/json
+        body:
+          grant_type: refresh_token
+          client_id: rhsm-api
+          refresh_token: "{{ offline_token }}"
+          validate_certs: False
+      register: access_token_reponse
+
+    - name: Get manifest list
+      uri:
+        url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
+          Content-Type: "application/json"
+          accept: application/json
+        status_code: 200
+        return_content: yes
+        validate_certs: false
+        force_basic_auth: yes
+      register: manifests
+
+
+    - name: get manifest uuid
+      set_fact: 
+        manifest_uuid: "{{ manifests.json | json_query(get_manifest_id) }}"
+      vars:
+        get_manifest_id: "body[?name == '{{ manifest_name }}'].uuid"
+
+
+    - name: Export  manifest
+      uri:
+        url: "https://api.access.redhat.com/management/v1/allocations/{{ manifest_uuid[0] }}/export"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
+          Content-Type: "application/zip"
+          accept: application/json
+        status_code: 200
+        return_content: yes
+        validate_certs: false
+        force_basic_auth: yes
+      register: exported_manifest
+
+    - name: Check status of Manifest ExportJob
+      uri:
+        url: "{{ exported_manifest.json.body.href }}"
+        status_code: 200
+        headers:
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
+      register: check_manifest_export_reg
+      until: check_manifest_export_reg.status == 200
+      retries: 10
+      delay: 10
+      ignore_errors: true
+
+    - name: get export_id
+      set_fact:
+        export_id: "{{ exported_manifest.json.body.exportJobID }}"
+
+    - name: Download  manifest
+      get_url:
+        url: "{{ exported_manifest.json.body.href }}"
+        dest: "{{ playbook_dir }}/manifest_insights.zip"
+        headers:
+          Authorization: "Bearer {{ access_token_reponse.json.access_token }}"
+
