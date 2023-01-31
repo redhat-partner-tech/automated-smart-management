@@ -8,6 +8,11 @@
       include_role:
         name: redhat.insights.insights_client
 
+    - name: Randomized startup delay...
+      pause: 
+        seconds: "{{ 5 | random }}"
+
+
     - name: install insights compliance
       import_role:
         name: redhat.insights.compliance
