@@ -16,7 +16,7 @@ foreman_content_views:
     - name: Red Hat Enterprise Linux 7 Server - Extras (RPMs)
       basearch: x86_64
       product: 'Red Hat Enterprise Linux Server'
-    - name: Red Hat Satellite Tools 6.11 (for RHEL 7 Server) (RPMs)
+    - name: Red Hat Satellite Utils 6.11 (for RHEL 7 Server) (RPMs)
       basearch: x86_64
       product: 'Red Hat Enterprise Linux Server'
   - name: RHEL8
