@@ -1,0 +1,20 @@
+---
+- hosts: all
+  vars:
+    keyfiles:
+      - /root/.ssh/authorized_keys
+      - /tmp/satpubkey
+  tasks:
+  - name: Download Satellite public key
+    ansible.builtin.get_url:
+      url: https://satellite.example.com:9090/ssh/pubkey
+      dest: /tmp/satpubkey
+      mode: '0440'
+  - name: read files
+    command: awk 1 {{ keyfiles | join(' ') }}
+    register: keyfile_contents
+  - name: Write out new combined authorized_keys
+    copy:
+      dest: /root/.ssh/authorized_keys
+      content: "{{ keyfile_contents.stdout_lines | unique |join('\n') }}"
+      mode: 0600
