@@ -1,0 +1,18 @@
+---
+- name: create Insights Project
+  hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
+
+  tasks:
+  - name: create insights project
+    ansible.controller.project:
+      name: "Insights project" 
+      organization: Default
+#      controller_host: "https://{{ ansible_host }}"
+#      controller_username: admin
+#      controller_password: 'Vvegv#4800'
+      credential: Insights-Credential
+      scm_url: "https://cloud.redhat.com/"
+      validate_certs: false
+      update_project: true
+      scm_type: insights

@@ -484,3 +484,44 @@ controller_templates:
       refresh_satellite_manifest: false
       bulk_load_size: 1000
     ask_variables_on_launch: true
+
+  - name: Insights / Replace Satellite Manifest
+    project: Automated Management
+    playbook: insights_replace_satellite_manifest.yml
+    inventory: Workshop Inventory
+    credentials:
+      - Satellite Credential     
+      - Workshop Credential      
+    extra_vars:
+      manifest_name: smrtmgmt-wrksp
+      offline_token: value
+      rhsm_org_id: value
+
+  - name: Insights / Install and Register
+    project: Automated Management
+    playbook: insights_install.yml
+    inventory: Workshop Inventory
+    limit: rhel
+    credentials:
+      - Workshop Credential
+
+  - name: Insights / Create Insights Credential
+    project: Automated Management
+    playbook: insights_setup_aap_creds.yml
+    execution_environment: Insights execution environment
+    inventory: Workshop Inventory
+    credentials:
+      - Controller Credential
+      - Workshop Credential
+    extra_vars:
+      insights_user: username
+      insights_password: password
+     
+  - name: Insights / Create Insights Project
+    project: Automated Management
+    playbook: insights_create_insights_project.yml
+    execution_environment: Insights execution environment
+    inventory: Workshop Inventory
+    credentials:                 
+      - Controller Credential    
+      - Workshop Credential      
