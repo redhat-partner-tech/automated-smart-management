@@ -128,7 +128,7 @@
         organization: "Default Organization"
         state: present
         manifest_path: "{{ playbook_dir }}/manifest_insights.zip"
-        uuid: "{{ manifest_uuid[0] }}"
+        uuid: cf76ef48-b98b-41c7-a67d-a65ce99f29b0
       async: "{{ refresh_timeout }}"
       poll: 0
       register: refresh_async
@@ -150,7 +150,6 @@
         timeout: 1500
         sleep: 20
 #      when: refresh_satellite_manifest
-
 
         
       
