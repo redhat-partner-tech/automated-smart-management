@@ -90,8 +90,8 @@
       redhat.satellite.redhat_manifest:
         organization: "Default Organization"
         state: absent
-      async: "{{ refresh_timeout }}"
-      poll: 0
+#      async: "{{ refresh_timeout }}"
+#      poll: 0
       register: refresh_async
 #      when: refresh_satellite_manifest
  
