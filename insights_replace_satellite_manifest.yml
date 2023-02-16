@@ -95,7 +95,8 @@
       register: refresh_async
 #      when: refresh_satellite_manifest
  
-    - set_fact:
+    - name: deleted manifest response
+      set_fact:
         deleted_manifest: refresh_async
       
  
