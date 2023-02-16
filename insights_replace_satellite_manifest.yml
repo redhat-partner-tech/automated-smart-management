@@ -80,18 +80,14 @@
   hosts: "{{ HOSTS | default('satellite.example.com') }}"
   connection: local
   gather_facts: no
-  vars:
-#    refresh_satellite_manifest: no
-    refresh_timeout: 14400
-    refresh_retry_interval: 15
  
   tasks:
     - name: delete existing  manifest
       redhat.satellite.subscription_manifest:
         organization: "Default Organization"
         state: absent
-      register: refresh_async
-#      when: refresh_satellite_manifest
+      register: deleted_manifest
+
  
     - name: replace with new manifest
       redhat.satellite.subscription_manifest:
