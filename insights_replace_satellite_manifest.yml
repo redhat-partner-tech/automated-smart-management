@@ -87,7 +87,7 @@
  
   tasks:
     - name: delete existing  manifest
-      redhat.satellite.subscription_manifest:
+      redhat.satellite.redhat_manifest:
         organization: "Default Organization"
         state: absent
       async: "{{ refresh_timeout }}"
