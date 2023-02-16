@@ -95,6 +95,9 @@
       register: refresh_async
 #      when: refresh_satellite_manifest
  
+    - set_fact:
+        deleted_manifest: refresh_async
+      
  
 - hosts: "{{ HOSTS | default('satellite.example.com') }}"
   become: true
@@ -132,7 +135,7 @@
       poll: 0
       register: refresh_async
 #      when: refresh_satellite_manifest
-      delegate_to: localhost
+#      delegate_to: localhost
 
 - hosts: "{{ HOSTS | default('satellite.example.com') }}"
   become: true
