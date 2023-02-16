@@ -8,13 +8,13 @@
       include_role:
         name: redhat.insights.insights_client
 
-    - name: Randomized startup delay...
+    - name: pause playbook before installing compliance packages
       pause: 
-        seconds: "{{ 5 | random }}"
+        seconds: 10
 
 
     - name: install insights compliance
-      import_role:
+      include_role:
         name: redhat.insights.compliance
         tasks_from: install
 
