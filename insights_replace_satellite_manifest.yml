@@ -87,7 +87,7 @@
  
   tasks:
     - name: delete existing  manifest
-      redhat.satellite.subscription_manifest:
+      redhat.satellite.redhat_manifest:
         organization: "Default Organization"
         state: absent
       async: "{{ refresh_timeout }}"
@@ -123,11 +123,12 @@
     refresh_retry_interval: 15
 
   tasks:
-    - name: refresh manifest
-      redhat.satellite.subscription_manifest:
+    - name: import manifest
+      redhat.satellite.redhat_manifest:
         organization: "Default Organization"
         state: present
         manifest_path: "{{ playbook_dir }}/manifest_insights.zip"
+        uuid: "{{ manifest_uuid[0] }}"
       async: "{{ refresh_timeout }}"
       poll: 0
       register: refresh_async
