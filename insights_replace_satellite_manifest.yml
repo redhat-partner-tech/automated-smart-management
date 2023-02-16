@@ -132,11 +132,17 @@
         organization: "Default Organization"
         state: present
         manifest_path: "{{ playbook_dir }}/manifest_insights.zip"
-      async: "{{ refresh_timeout }}"
-      poll: 0
-      register: refresh_async
+#      async: "{{ refresh_timeout }}"
+#      poll: 0
+      register: imported_manifest
 #      when: refresh_satellite_manifest
 #      delegate_to: localhost
+
+    - name: set fact for imported manifest
+      set_fact:
+        new_manifest: "{{ imported_manifest }}"
+      
+
 
 - hosts: "{{ HOSTS | default('satellite.example.com') }}"
   become: true
