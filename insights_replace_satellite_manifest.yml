@@ -97,7 +97,7 @@
  
     - name: deleted manifest response
       set_fact:
-        deleted_manifest: refresh_async
+        deleted_manifest: "{{ refresh_async }}"
       
  
 - hosts: "{{ HOSTS | default('satellite.example.com') }}"
