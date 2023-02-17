@@ -7,7 +7,7 @@
   - name: copy script to host
     copy:
       src: subman-cleanup.sh
-      dest: /root/subman-cleanup.sh
+      dest: subman-cleanup.sh
       mode: preserve
       
   - name: remove hosts from subscription manager
