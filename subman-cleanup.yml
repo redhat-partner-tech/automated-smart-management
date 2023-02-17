@@ -8,4 +8,5 @@
     ansible.builtin.shell: 
       "./subman-cleanup.sh"
     register: results
+    delegate_to: localhost
 
