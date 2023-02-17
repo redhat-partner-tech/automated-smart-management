@@ -5,6 +5,6 @@
 
   tasks:
   - name: remove hosts from subscription manager
-    ansible.builtin.shell: subman_cleanup.sh
+    ansible.builtin.shell: subman-cleanup.sh
     register: results
 
