@@ -2,18 +2,16 @@
 - name: install and register insights 
   hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
   become: yes
+  gather_facts: no
+  strategy: free
 
   tasks:
     - name: install and register insights
       include_role:
         name: redhat.insights.insights_client
-
-    - name: Randomized startup delay...
-      pause: 
-        seconds: "{{ 5 | random }}"
-
-
+        
     - name: install insights compliance
-      import_role:
+      include_role:
         name: redhat.insights.compliance
         tasks_from: install
+
