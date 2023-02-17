@@ -1,6 +1,6 @@
 ---
 - name: remove hosts from subscription management
-  hosts: aap-sc.dumont-lab.lan
+  hosts: all
   become: true
 
   tasks:
