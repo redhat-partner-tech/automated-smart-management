@@ -3,6 +3,7 @@
   hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
   become: yes
   gather_facts: no
+  strategy: free
 
   tasks:
     - name: install and register insights
@@ -10,14 +11,14 @@
         name: redhat.insights.insights_client
 
 
-- name: install compliance packages
-  hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
-  become: yes
-  gather_facts: no
+#- name: install compliance packages
+#  hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
+#  become: yes
+#  gather_facts: no
 # set to 1 to control connections to satellite for workshop satellite
-  serial: 1 
+#  serial: 1 
 
-  tasks:
+#  tasks:
     - name: install insights compliance
       include_role:
         name: redhat.insights.compliance
