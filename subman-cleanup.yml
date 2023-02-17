@@ -8,7 +8,9 @@
     copy:
       src: subman-cleanup.sh
       dest: subman-cleanup.sh
-      mode: preserve
+      mode: a+x
+      owner: ec2-user
+      group: ec2-user
       
   - name: remove hosts from subscription manager
     ansible.builtin.shell: 
