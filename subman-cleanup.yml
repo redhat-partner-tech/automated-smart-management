@@ -1,0 +1,10 @@
+---
+- name: remove hosts from subscription management
+  hosts: all
+  become: true
+
+  tasks:
+  - name: remove hosts from subscription manager
+    ansible.builtin.shell: subman_cleanup.sh
+    register: results
+
