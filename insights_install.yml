@@ -8,10 +8,14 @@
       include_role:
         name: redhat.insights.insights_client
 
-    - name: pause playbook before installing compliance packages
-      pause: 
-        seconds: 10
+#    - name: pause playbook before installing compliance packages
+#      pause: 
+#        seconds: 10
 
+- name: install compliance packages
+  hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
+  become: yes
+  serial: 1 #set to 1 to control connections to satellite for workshop satellite
 
     - name: install insights compliance
       include_role:
