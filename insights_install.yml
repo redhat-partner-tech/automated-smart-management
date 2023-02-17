@@ -19,7 +19,7 @@
   serial: 1 
 
     - name: install insights compliance
-      include_role:
+      import_role:
         name: redhat.insights.compliance
         tasks_from: install
 
