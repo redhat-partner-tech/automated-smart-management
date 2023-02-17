@@ -16,10 +16,11 @@
   hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
   become: yes
 # set to 1 to control connections to satellite for workshop satellite
-#  serial: 1 
+  serial: 1 
 
+  tasks:
     - name: install insights compliance
-      import_role:
+      include_role:
         name: redhat.insights.compliance
         tasks_from: install
 
