@@ -15,7 +15,8 @@
 - name: install compliance packages
   hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
   become: yes
-  serial: 1 #set to 1 to control connections to satellite for workshop satellite
+# set to 1 to control connections to satellite for workshop satellite
+  serial: 1 
 
     - name: install insights compliance
       include_role:
