@@ -1,0 +1,14 @@
+---
+- name: remove compliance packages
+  hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
+  become: yes
+  gather_facts: no
+ 
+  tasks:
+    - name: remove scap packages
+      yum: 
+        name:
+          - openscap
+          - scap-security-guide
+          - openscap-scanner
+        state: absent
