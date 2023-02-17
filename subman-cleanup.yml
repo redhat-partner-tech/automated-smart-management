@@ -1,12 +1,18 @@
 ---
 - name: remove hosts from subscription management
-  hosts: all
+  hosts: aap-sc.dumont-lab.lan
   become: true
 
   tasks:
+  - name: copy script to host
+    copy:
+      src: subman-cleanup.sh
+      dest: /root/subman-cleanup.sh
+      mode: preserve
+      
   - name: remove hosts from subscription manager
     ansible.builtin.shell: 
       "./subman-cleanup.sh"
     register: results
-    delegate_to: localhost
+#    delegate_to: localhost
 
