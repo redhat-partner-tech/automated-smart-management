@@ -1,17 +1,15 @@
 ---
-- name: install and register insights 
+- name: Install and register insights
   hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
-  become: yes
-  gather_facts: no
+  become: true
+  gather_facts: false
   strategy: free
 
   tasks:
-    - name: install and register insights
-      include_role:
+    - name: Install and register insights
+      ansible.builtin.include_role:
         name: redhat.insights.insights_client
-        
-    - name: install insights compliance
-      include_role:
+    - name: Install insights compliance
+      ansible.builtin.include_role:
         name: redhat.insights.compliance
         tasks_from: install
-
