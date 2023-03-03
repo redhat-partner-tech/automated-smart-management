@@ -8,9 +8,6 @@
     ansible.controller.project:
       name: "Insights project" 
       organization: Default
-#      controller_host: "https://{{ ansible_host }}"
-#      controller_username: admin
-#      controller_password: 'Vvegv#4800'
       credential: Insights-Credential
       scm_url: "https://cloud.redhat.com/"
       validate_certs: false

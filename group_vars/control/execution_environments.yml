@@ -1,4 +1,6 @@
 ---
 controller_execution_environments:
+  - name: "smart_mgmt workshop execution environment"
+    image: quay.io/s4v0/ee-automated-smart-mgmt-29dev:latest
   - name: Insights execution environment
     image: quay.io/bdumont/automated-sm-ee

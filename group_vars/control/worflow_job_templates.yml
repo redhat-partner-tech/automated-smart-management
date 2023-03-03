@@ -42,17 +42,13 @@ controller_workflows:
         all_parents_must_converge: false
         unified_job_template: Insights / Install and Register
         success_nodes: Insights / Create Insights Credential
-        organization: Default        
+        organization: Default
       - identifier: Insights / Create Insights Credential
         all_parents_must_converge: false
         unified_job_template: Insights / Create Insights Credential
         success_nodes: Insights / Create Insights Project
-        organization: Default        
+        organization: Default
       - identifier: Insights / Create Insights Project
         all_parents_must_converge: false
         unified_job_template: Insights / Create Insights Project
         organization: Default
-
-
-
-

@@ -145,7 +145,7 @@ controller_templates:
           variable: lifecycle_environment
           type: multiplechoice
           choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
-          required: true  
+          required: true
 
   - name: SATELLITE / Delete host(s) in "node_group"
     project: Automated Management
@@ -490,8 +490,8 @@ controller_templates:
     playbook: insights_replace_satellite_manifest.yml
     inventory: Workshop Inventory
     credentials:
-      - Satellite Credential     
-      - Workshop Credential      
+      - Satellite Credential
+      - Workshop Credential
     extra_vars:
       manifest_name: smrtmgmt-wrksp
       offline_token: value
@@ -516,14 +516,12 @@ controller_templates:
     extra_vars:
       insights_user: username
       insights_password: password
-     
+
   - name: Insights / Create Insights Project
     project: Automated Management
     playbook: insights_create_insights_project.yml
     execution_environment: Insights execution environment
     inventory: Workshop Inventory
-    credentials:                 
-      - Controller Credential    
-      - Workshop Credential      
-
-
+    credentials:
+      - Controller Credential
+      - Workshop Credential

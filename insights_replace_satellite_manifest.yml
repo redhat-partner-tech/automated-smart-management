@@ -1,23 +1,11 @@
 ---
-# this will be replaced with the play that downloads the manifest directly from sub mgr
-#- name: retrieve manifest from s3 bucket
-#  hosts: localhost
-#  gather_facts: no
-#  tasks: 
-#    - name: Save manifest from s3 bucket
-#      amazon.aws.aws_s3:
-#        bucket: "{{ ec2_name_prefix|lower }}.{{ workshop_dns_zone }}.private"
-#        mode: get
-#        object: "{{ ec2_name_prefix }}-manifest.zip"
-#        dest: "{{ playbook_dir }}/{{ ec2_name_prefix|lower }}-manifest.zip"
-#        region: "{{ ec2_region }}"
-- name: get satellite manifest from account
+- name: Get satellite manifest from account
   hosts: localhost
   vars:
   gather_facts: no
 
   tasks:
-    - name: get access token
+    - name: Get access token
       uri:
         url: "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
         method: POST
@@ -52,8 +40,7 @@
       retries: 12
       delay: 15
 
-
-    - name: get manifest uuid
+    - name: Get manifest uuid
       set_fact:
         manifest_uuid: "{{ manifests | json_query(get_manifest_id) }}"
       vars:
@@ -73,27 +60,21 @@
       until: "results.status_code == 200"
       retries: 5
 
-
-
-
-- name: replace manifest
+- name: Replace manifest
   hosts: "{{ HOSTS | default('satellite.example.com') }}"
   connection: local
   gather_facts: no
  
   tasks:
-    - name: delete existing  manifest
+    - name: Delete existing  manifest
       redhat.satellite.subscription_manifest:
         organization: "Default Organization"
         state: absent
       register: deleted_manifest
 
- 
     - name: replace with new manifest
       redhat.satellite.subscription_manifest:
         organization: "Default Organization"
         state: present
         manifest_path: "{{ playbook_dir }}/manifest_insights.zip"
       register: imported_manifest
-
-     
