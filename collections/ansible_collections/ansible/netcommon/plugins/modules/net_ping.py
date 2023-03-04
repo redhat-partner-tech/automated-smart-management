@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # (c) 2017, Ansible by Red Hat, inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import absolute_import, division, print_function
 
@@ -15,8 +16,6 @@ author: Jacob McGill (@jmcgill298)
 short_description: Tests reachability using ping from a network device
 description:
 - Tests reachability using ping from network device to a remote destination.
-- For Windows targets, use the M(win_ping) module instead.
-- For targets running Python, use the M(ping) module instead.
 version_added: 1.0.0
 extends_documentation_fragment:
 - ansible.netcommon.network_agnostic
@@ -44,8 +43,7 @@ options:
     - The VRF to use for forwarding.
     default: default
 notes:
-- For Windows targets, use the M(win_ping) module instead.
-- For targets running Python, use the M(ping) module instead.
+- For targets running Python, use the M(ansible.builtin.shell) module along with ping command instead.
 """
 
 
@@ -70,6 +68,12 @@ EXAMPLES = """
     source: loopback0
     vrf: prod
     count: 20
+
+- Note:
+    - For targets running Python, use the M(ansible.builtin.shell) module along with ping command instead.
+    - Example:
+        name: ping
+        shell: ping -c 1 <remote-ip>
 """
 
 RETURN = r"""

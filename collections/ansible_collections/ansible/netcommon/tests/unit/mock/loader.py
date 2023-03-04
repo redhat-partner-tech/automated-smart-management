@@ -1,19 +1,6 @@
 # (c) 2012-2014, Michael DeHaan <michael.dehaan@gmail.com>
-#
-# This file is part of Ansible
-#
-# Ansible is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Ansible is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Make coding more python3-ish
 from __future__ import absolute_import, division, print_function
@@ -23,8 +10,8 @@ __metaclass__ = type
 import os
 
 from ansible.errors import AnsibleParserError
-from ansible.parsing.dataloader import DataLoader
 from ansible.module_utils._text import to_bytes, to_text
+from ansible.parsing.dataloader import DataLoader
 
 
 class DictDataLoader(DataLoader):
@@ -46,12 +33,12 @@ class DictDataLoader(DataLoader):
 
     # TODO: the real _get_file_contents returns a bytestring, so we actually convert the
     #       unicode/text it's created with to utf-8
-    def _get_file_contents(self, path):
-        path = to_text(path)
-        if path in self._file_mapping:
-            return (to_bytes(self._file_mapping[path]), False)
+    def _get_file_contents(self, file_name):
+        file_name = to_text(file_name)
+        if file_name in self._file_mapping:
+            return (to_bytes(self._file_mapping[file_name]), False)
         else:
-            raise AnsibleParserError("file not found: %s" % path)
+            raise AnsibleParserError("file not found: %s" % file_name)
 
     def path_exists(self, path):
         path = to_text(path)

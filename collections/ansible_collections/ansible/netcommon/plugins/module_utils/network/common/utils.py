@@ -6,57 +6,43 @@
 #
 # (c) 2016 Red Hat Inc.
 #
-# Redistribution and use in source and binary forms, with or without modification,
-# are permitted provided that the following conditions are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#    * Redistributions in binary form must reproduce the above copyright notice,
-#      this list of conditions and the following disclaimer in the documentation
-#      and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-# USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+# Simplified BSD License (see LICENSES/BSD-2-Clause.txt or https://opensource.org/licenses/BSD-2-Clause)
+# SPDX-License-Identifier: BSD-2-Clause
+
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
 
 # Networking tools for network modules only
 
-import re
 import ast
-import operator
-import socket
 import json
-
+import operator
+import re
+import socket
 from copy import deepcopy
-from itertools import chain
 from functools import reduce  # forward compatibility for Python 3
+from itertools import chain
 
-from ansible.module_utils._text import to_text, to_bytes
-from ansible.module_utils.common._collections_compat import Mapping
-from ansible.module_utils.six import iteritems, string_types
 from ansible.module_utils import basic
-from ansible.module_utils.parsing.convert_bool import boolean
+from ansible.module_utils._text import to_bytes, to_text
+from ansible.module_utils.common._collections_compat import Mapping
 
 # Backwards compatibility for 3rd party modules
 # TODO(pabelanger): With move to ansible.netcommon, we should clean this code
 # up and have modules import directly themself.
 from ansible.module_utils.common.network import (  # noqa: F401
-    to_bits,
-    is_netmask,
-    is_masklen,
-    to_netmask,
-    to_masklen,
-    to_subnet,
-    to_ipv6_network,
     VALID_MASKS,
+    is_masklen,
+    is_netmask,
+    to_bits,
+    to_ipv6_network,
+    to_masklen,
+    to_netmask,
+    to_subnet,
 )
+from ansible.module_utils.parsing.convert_bool import boolean
+from ansible.module_utils.six import iteritems, string_types
 
 try:
     from jinja2 import Environment, StrictUndefined
@@ -129,7 +115,8 @@ def to_lines(stdout):
 
 
 def transform_commands(module):
-    transform = ComplexList(
+    transform = EntityCollection(
+        module,
         dict(
             command=dict(key=True),
             output=dict(),
@@ -139,7 +126,6 @@ def transform_commands(module):
             sendonly=dict(type="bool", default=False),
             check_all=dict(type="bool", default=False),
         ),
-        module,
     )
 
     return transform(module.params["commands"])
@@ -147,6 +133,15 @@ def transform_commands(module):
 
 def sort_list(val):
     if isinstance(val, list):
+        if isinstance(val[0], dict):
+            sorted_keys = [tuple(sorted(dict_.keys())) for dict_ in val]
+            # All keys should be identical
+            if len(set(sorted_keys)) != 1:
+                raise ValueError("dictionaries do not match")
+
+            return sorted(
+                val, key=lambda d: tuple(d[k] for k in sorted_keys[0])
+            )
         return sorted(val)
     return val
 
@@ -168,7 +163,7 @@ class Entity(object):
         transform = Entity(module, argument_spec)
         value = dict(command='foo')
         result = transform(value)
-        print result
+        print(result)
         {'command': 'foo', 'display': 'text', 'validate': None}
 
     Supported argument spec:
@@ -287,7 +282,7 @@ class Entity(object):
 
 
 class EntityCollection(Entity):
-    """Extends ```Entity``` to handle a list of dicts """
+    """Extends ```Entity``` to handle a list of dicts"""
 
     def __call__(self, iterable, strict=True):
         if iterable is None:
@@ -306,20 +301,15 @@ class EntityCollection(Entity):
         ]
 
 
-# these two are for backwards compatibility and can be removed once all of the
-# modules that use them are updated
-class ComplexDict(Entity):
-    def __init__(self, attrs, module, *args, **kwargs):
-        super(ComplexDict, self).__init__(module, attrs, *args, **kwargs)
-
-
 class ComplexList(EntityCollection):
+    """Alternate name for EntityCollection for backwards compatibility"""
+
     def __init__(self, attrs, module, *args, **kwargs):
         super(ComplexList, self).__init__(module, attrs, *args, **kwargs)
 
 
 def dict_diff(base, comparable):
-    """ Generate a dict object of differences
+    """Generate a dict object of differences
 
     This function will compare two dict objects and return the difference
     between them as a dict object.  For scalar values, the key will reflect
@@ -363,7 +353,7 @@ def dict_diff(base, comparable):
 
 
 def dict_merge(base, other):
-    """ Return a new dict object that combines base and other
+    """Return a new dict object that combines base and other
 
     This will create a new dict object that is a combination of the key/value
     pairs from base and other.  When both keys exist, the value will be
@@ -473,7 +463,7 @@ def conditional(expr, val, cast=None):
 
 
 def ternary(value, true_val, false_val):
-    """  value ? true_val : false_val """
+    """value ? true_val : false_val"""
     if value:
         return true_val
     else:
@@ -648,7 +638,7 @@ def remove_empties(cfg_dict):
         elif (
             isinstance(val, list)
             and val
-            and all([isinstance(x, dict) for x in val])
+            and all(isinstance(x, dict) for x in val)
         ):
             child_val = [remove_empties(x) for x in val]
             if child_val:
@@ -684,8 +674,7 @@ def search_obj_in_list(name, lst, key="name"):
 
 
 def get_from_dict(data_dict, keypath):
-    """ get from dictionary
-    """
+    """get from dictionary"""
     map_list = keypath.split(".")
     try:
         return reduce(operator.getitem, map_list, data_dict)
@@ -694,8 +683,7 @@ def get_from_dict(data_dict, keypath):
 
 
 def compare_partial_dict(want, have, compare_keys):
-    """ compare
-    """
+    """compare"""
     rmkeys = [ckey[1:] for ckey in compare_keys if ckey.startswith("!")]
     kkeys = [ckey for ckey in compare_keys if not ckey.startswith("!")]
 
@@ -721,7 +709,7 @@ class Template:
             )
 
         self.env = Environment(undefined=StrictUndefined)
-        self.env.filters.update({"ternary": ternary})
+        self.env.filters.update({"ternary": ternary, "all": all, "any": any})
 
     def __call__(self, value, variables=None, fail_on_undefined=True):
         variables = variables or {}

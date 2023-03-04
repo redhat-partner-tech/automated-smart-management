@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # (c) 2018, Ansible by Red Hat, inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import absolute_import, division, print_function
 
@@ -16,6 +17,9 @@ notes:
 - The commands will be returned only for platforms that do not support onbox diff.
   The C(--diff) option with the playbook will return the difference in configuration
   for devices that has support for onbox diff
+- To ensure idempotency and correct diff the configuration lines in the relevant module
+  options should be similar to how they appear if present in the running configuration on
+  device including the indentation.
 short_description: Push text based configuration to network devices over network_cli
 description:
 - This module provides platform agnostic way of pushing text based configuration to
@@ -27,8 +31,9 @@ options:
   config:
     description:
     - The config to be pushed to the network device. This argument is mutually exclusive
-      with C(rollback) and either one of the option should be given as input. The
-      config should have indentation that the device uses.
+      with C(rollback) and either one of the option should be given as input. To ensure
+      idempotency and correct diff the configuration lines should be similar to how they
+      appear if present in the running configuration on device including the indentation.
     type: str
   commit:
     description:
@@ -62,6 +67,7 @@ options:
       does not exist on the remote device, the module will fail. To rollback to the
       most recent commit, set the C(rollback) argument to 0. This option is mutually
       exclusive with C(config).
+    type: int
   commit_comment:
     description:
     - The C(commit_comment) argument specifies a text string to be used when committing
@@ -91,6 +97,7 @@ options:
       then the entire command block is pushed to the device in configuration mode
       if any line is not correct. Note that this parameter will be ignored if the
       platform has onbox diff support.
+    type: str
     choices:
     - line
     - block
@@ -105,6 +112,7 @@ options:
       module will not attempt to compare the source configuration with the running
       configuration on the remote device. Note that this parameter will be ignored
       if the platform has onbox diff support.
+    type: str
     choices:
     - line
     - strict
@@ -117,6 +125,8 @@ options:
       updated by the system. This argument takes a list of regular expressions or
       exact line matches. Note that this parameter will be ignored if the platform
       has onbox diff support.
+    type: list
+    elements: str
   backup_options:
     description:
     - This is a dict object containing configurable options related to backup file
@@ -128,6 +138,7 @@ options:
         - The filename to be used to store the backup configuration. If the filename
           is not given it will be generated based on the hostname, current time and
           date in format defined by <hostname>_config.<current-date>@<current-time>
+        type: str
       dir_path:
         description:
         - This option provides the path ending with directory name in which the backup
@@ -185,9 +196,24 @@ EXAMPLES = """
 """
 
 RETURN = """
+diff:
+  description: The diff generated on the device when the commands were applied
+  returned: When I(supports_onbox_diff=True) in the platform's cliconf plugin
+  type: str
+  sample: |-
+    --- system:/running-config
+    +++ session:/ansible_1599745461-session-config
+    @@ -4,7 +4,7 @@
+     !
+     transceiver qsfp default-mode 4x10G
+     !
+    -hostname veos
+    +hostname veos3
+     !
+     spanning-tree mode mstp
 commands:
   description: The set of commands that will be pushed to the remote device
-  returned: always
+  returned: When I(supports_generated_diff=True) and I(supports_onbox_diff=False) in the platform's cliconf plugin
   type: list
   sample: ['interface Loopback999', 'no shutdown']
 backup_path:
@@ -199,14 +225,13 @@ backup_path:
 
 import json
 
+from ansible.module_utils._text import to_text
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.connection import Connection
-from ansible.module_utils._text import to_text
 
 
 def validate_args(module, device_operations):
-    """validate param if it is supported on the platform
-    """
+    """validate param if it is supported on the platform"""
     feature_list = [
         "replace",
         "rollback",
@@ -223,7 +248,7 @@ def validate_args(module, device_operations):
             supports_feature = device_operations.get("supports_%s" % feature)
             if supports_feature is None:
                 module.fail_json(
-                    "This platform does not specify whether %s is supported or not. "
+                    msg="This platform does not specify whether %s is supported or not. "
                     "Please report an issue against this platform's cliconf plugin."
                     % feature
                 )
@@ -278,7 +303,7 @@ def run(
             )
         if diff_match:
             module.warn(
-                "diff_mattch is ignored as the device supports onbox diff"
+                "diff_match is ignored as the device supports onbox diff"
             )
         if diff_ignore_lines:
             module.warn(
@@ -298,6 +323,7 @@ def run(
 
         if "diff" in resp:
             result["changed"] = True
+            result["diff"] = resp["diff"]
 
     elif device_operations.get("supports_generate_diff"):
         kwargs = {"candidate": candidate, "running": running}
@@ -354,12 +380,21 @@ def run(
                 diff += json.dumps(banner_diff)
             result["diff"] = {"prepared": diff}
 
+    if result.get("changed"):
+        msg = (
+            "To ensure idempotency and correct diff the input configuration lines should be"
+            " similar to how they appear if present in"
+            " the running configuration on device including the indentation"
+        )
+        if "warnings" in result:
+            result["warnings"].append(msg)
+        else:
+            result["warnings"] = msg
     return result
 
 
 def main():
-    """main entry point for execution
-    """
+    """main entry point for execution"""
     backup_spec = dict(filename=dict(), dir_path=dict(type="path"))
     argument_spec = dict(
         backup=dict(default=False, type="bool"),
@@ -373,7 +408,7 @@ def main():
         multiline_delimiter=dict(type="str"),
         diff_replace=dict(choices=["line", "block", "config"]),
         diff_match=dict(choices=["line", "strict", "exact", "none"]),
-        diff_ignore_lines=dict(type="list"),
+        diff_ignore_lines=dict(type="list", elements="str"),
     )
 
     mutually_exclusive = [("config", "rollback")]
@@ -417,7 +452,7 @@ def main():
     if module.params["backup"]:
         result["__backup__"] = running
 
-    if candidate or rollback_id or module.params["replace"]:
+    if candidate or rollback_id is not None or module.params["replace"]:
         try:
             result.update(
                 run(

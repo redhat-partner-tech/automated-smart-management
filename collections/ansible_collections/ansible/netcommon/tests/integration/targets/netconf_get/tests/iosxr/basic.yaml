@@ -1,5 +1,6 @@
 ---
-- debug: msg="START netconf_get iosxr/basic.yaml on connection={{ ansible_connection
+- debug:
+    msg="START netconf_get iosxr/basic.yaml on connection={{ ansible_connection
     }}"
 
 - name: setup interface
@@ -52,18 +53,6 @@
       - "'<description>this is test interface Loopback999</description>' in result.stdout"
       - "'<usernames>' not in result.stdout"
 
-- name: Failure scenario, get-config information with lock
-  register: result
-  ignore_errors: true
-  connection: ansible.netcommon.netconf
-  ansible.netcommon.netconf_get:
-    source: running
-    lock: always
-
-- assert:
-    that:
-      - "'<bad-element>running</bad-element>' in result.msg"
-
 - name: Failure scenario, fetch config from startup
   register: result
   ignore_errors: true
@@ -96,17 +85,6 @@
 - assert:
     that:
       - "'<description>this is test interface Loopback999</description>' in result.stdout"
-
-- name: Failure scenario, get information from running with lock
-  register: result
-  ignore_errors: true
-  connection: ansible.netcommon.netconf
-  ansible.netcommon.netconf_get:
-    lock: always
-
-- assert:
-    that:
-      - "'<bad-element>running</bad-element>' in result.msg"
 
 - name: get configuration and state data in json format
   register: result
@@ -154,6 +132,68 @@
       - "'filter value \\'configuration/state\\' of type xpath is not supported'\
         \ in result.msg"
 
+- name: "get configuration with json filter and native output (using xmltodict)"
+  connection: ansible.netcommon.netconf
+  ansible.netcommon.netconf_get:
+    filter: |
+      {
+          "interface-configurations": {
+              "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg",
+              "interface-configuration": null
+          }
+      }
+    display: native
+  register: result
+
+- assert:
+    that:
+      - "{{ result['output']['data'] is defined}}"
+      - "{{ result['output']['data']['@xmlns'] == 'urn:ietf:params:xml:ns:netconf:base:1.0' }}"
+      - "{{ result['output']['data']['@xmlns:nc'] == 'urn:ietf:params:xml:ns:netconf:base:1.0' }}"
+      - "{{ result['output']['data']['interface-configurations']['interface-configuration'] is defined }}"
+
+- name: Define the interface filter
+  set_fact:
+    filter:
+      interface-configurations:
+        "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg"
+        interface-configuration: null
+
+- name: "get configuration with native filter type using set_facts"
+  connection: ansible.netcommon.netconf
+  ansible.netcommon.netconf_get:
+    filter: "{{ filter }}"
+    display: native
+  register: result
+
+- assert:
+    that:
+      - "{{ result['output']['data'] is defined}}"
+      - "{{ result['output']['data']['@xmlns'] == 'urn:ietf:params:xml:ns:netconf:base:1.0' }}"
+      - "{{ result['output']['data']['@xmlns:nc'] == 'urn:ietf:params:xml:ns:netconf:base:1.0' }}"
+      - "{{ result['output']['data']['interface-configurations']['interface-configuration'] is defined }}"
+
+- name: "get configuration with direct native filter type"
+  connection: ansible.netcommon.netconf
+  ansible.netcommon.netconf_get:
+    filter:
+      {
+        "interface-configurations":
+          {
+            "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg",
+            "interface-configuration": null,
+          },
+      }
+    display: native
+  register: result
+
+- assert:
+    that:
+      - "{{ result['output']['data'] is defined}}"
+      - "{{ result['output']['data']['@xmlns'] == 'urn:ietf:params:xml:ns:netconf:base:1.0' }}"
+      - "{{ result['output']['data']['@xmlns:nc'] == 'urn:ietf:params:xml:ns:netconf:base:1.0' }}"
+      - "{{ result['output']['data']['interface-configurations']['interface-configuration'] is defined }}"
+
 - name: setup - teardown
   connection: ansible.netcommon.network_cli
   cisco.iosxr.iosxr_config:
@@ -164,5 +204,6 @@
       - interface Loopback999
     match: none
 
-- debug: msg="END netconf_get iosxr/basic.yaml on connection={{ ansible_connection
+- debug:
+    msg="END netconf_get iosxr/basic.yaml on connection={{ ansible_connection
     }}"

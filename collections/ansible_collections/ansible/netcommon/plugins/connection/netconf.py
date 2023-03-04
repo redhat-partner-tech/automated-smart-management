@@ -1,14 +1,16 @@
 # (c) 2016 Red Hat Inc.
 # (c) 2017 Ansible Project
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
 DOCUMENTATION = """
-author: Ansible Networking Team
-connection: netconf
+author:
+ - Ansible Networking Team (@ansible-network)
+name: netconf
 short_description: Provides a persistent connection using the netconf protocol
 description:
 - This connection plugin provides a connection to remote devices over the SSH NETCONF
@@ -19,6 +21,8 @@ description:
 version_added: 1.0.0
 requirements:
 - ncclient
+extends_documentation_fragment:
+- ansible.netcommon.connection_persistent
 options:
   host:
     description:
@@ -26,6 +30,7 @@ options:
       to.
     default: inventory_hostname
     vars:
+    - name: inventory_hostname
     - name: ansible_host
   port:
     type: int
@@ -109,34 +114,18 @@ options:
     - name: ansible_host_key_checking
     - name: ansible_ssh_host_key_checking
     - name: ansible_netconf_host_key_checking
-  persistent_connect_timeout:
-    type: int
+  proxy_command:
+    default: ''
     description:
-    - Configures, in seconds, the amount of time to wait when trying to initially
-      establish a persistent connection.  If this value expires before the connection
-      to the remote device is completed, the connection will fail.
-    default: 30
-    ini:
-    - section: persistent_connection
-      key: connect_timeout
+      - Proxy information for running the connection via a jumphost.
+      - This requires ncclient >= 0.6.10 to be installed on the controller.
     env:
-    - name: ANSIBLE_PERSISTENT_CONNECT_TIMEOUT
-    vars:
-    - name: ansible_connect_timeout
-  persistent_command_timeout:
-    type: int
-    description:
-    - Configures, in seconds, the amount of time to wait for a command to return from
-      the remote device.  If this timer is exceeded before the command returns, the
-      connection plugin will raise an exception and close.
-    default: 30
+      - name: ANSIBLE_NETCONF_PROXY_COMMAND
     ini:
-    - section: persistent_connection
-      key: command_timeout
-    env:
-    - name: ANSIBLE_PERSISTENT_COMMAND_TIMEOUT
+      - {key: proxy_command, section: paramiko_connection}
     vars:
-    - name: ansible_command_timeout
+      - name: ansible_paramiko_proxy_command
+      - name: ansible_netconf_proxy_command
   netconf_ssh_config:
     description:
     - This variable is used to enable bastion/jump host with netconf connection. If
@@ -150,40 +139,33 @@ options:
     - name: ANSIBLE_NETCONF_SSH_CONFIG
     vars:
     - name: ansible_netconf_ssh_config
-  persistent_log_messages:
-    type: boolean
-    description:
-    - This flag will enable logging the command executed and response received from
-      target device in the ansible log file. For this option to work 'log_path' ansible
-      configuration option is required to be set to a file path with write access.
-    - Be sure to fully understand the security implications of enabling this option
-      as it could create a security vulnerability by logging sensitive information
-      in log file.
-    default: false
-    ini:
-    - section: persistent_connection
-      key: log_messages
-    env:
-    - name: ANSIBLE_PERSISTENT_LOG_MESSAGES
-    vars:
-    - name: ansible_persistent_log_messages
 """
 
-import os
-import logging
 import json
+import logging
+import os
 
 from ansible.errors import AnsibleConnectionFailure, AnsibleError
 from ansible.module_utils._text import to_bytes, to_native, to_text
 from ansible.module_utils.basic import missing_required_lib
 from ansible.module_utils.parsing.convert_bool import (
-    BOOLEANS_TRUE,
     BOOLEANS_FALSE,
+    BOOLEANS_TRUE,
 )
+from ansible.module_utils.six import PY3
+from ansible.module_utils.six.moves import cPickle
+from ansible.playbook.play_context import PlayContext
+from ansible.plugins.connection import ensure_connect
 from ansible.plugins.loader import netconf_loader
-from ansible.plugins.connection import NetworkConnectionBase, ensure_connect
+from ansible_collections.ansible.netcommon.plugins.plugin_utils.connection_base import (
+    NetworkConnectionBase,
+)
+from ansible_collections.ansible.netcommon.plugins.plugin_utils.version import (
+    Version,
+)
 
 try:
+    from ncclient import __version__ as NCCLIENT_VERSION
     from ncclient import manager
     from ncclient.operations import RPCError
     from ncclient.transport.errors import (
@@ -191,13 +173,14 @@ try:
         SSHUnknownHostError,
     )
     from ncclient.xml_ import to_ele, to_xml
+    from paramiko import ProxyCommand
 
     HAS_NCCLIENT = True
     NCCLIENT_IMP_ERR = None
-except (
-    ImportError,
-    AttributeError,
-) as err:  # paramiko and gssapi are incompatible and raise AttributeError not ImportError
+# paramiko and gssapi are incompatible and raise AttributeError not ImportError
+# When running in FIPS mode, cryptography raises InternalError
+# https://bugzilla.redhat.com/show_bug.cgi?id=1778939
+except Exception as err:
     HAS_NCCLIENT = False
     NCCLIENT_IMP_ERR = err
 
@@ -243,7 +226,7 @@ class Connection(NetworkConnectionBase):
                 "obj": self.netconf,
             }
             self.queue_message(
-                "display",
+                "vvvv",
                 "unable to load netconf plugin for network_os %s, falling back to default plugin"
                 % self._network_os,
             )
@@ -278,10 +261,49 @@ class Connection(NetworkConnectionBase):
         else:
             return super(Connection, self).exec_command(cmd, in_data, sudoable)
 
+    def update_play_context(self, pc_data):
+        """Updates the play context information for the connection"""
+        pc_data = to_bytes(pc_data)
+        if PY3:
+            pc_data = cPickle.loads(pc_data, encoding="bytes")
+        else:
+            pc_data = cPickle.loads(pc_data)
+        play_context = PlayContext()
+        play_context.deserialize(pc_data)
+        self._play_context = play_context
+
     @property
     @ensure_connect
     def manager(self):
         return self._manager
+
+    def _get_proxy_command(self, port=22):
+        proxy_command = None
+
+        # TO-DO: Add logic to scan ssh_* args to read ProxyCommand
+
+        proxy_command = self.get_option("proxy_command")
+
+        sock = None
+        if proxy_command:
+            if Version(NCCLIENT_VERSION) < "0.6.10":
+                raise AnsibleError(
+                    "Configuring jumphost settings through ProxyCommand is unsupported in ncclient version %s. "
+                    "Please upgrade to ncclient 0.6.10 or newer."
+                    % NCCLIENT_VERSION
+                )
+
+            replacers = {
+                "%h": self._play_context.remote_addr,
+                "%p": port,
+                "%r": self._play_context.remote_user,
+            }
+
+            for find, replace in replacers.items():
+                proxy_command = proxy_command.replace(find, str(replace))
+            sock = ProxyCommand(proxy_command)
+
+        return sock
 
     def _connect(self):
         if not HAS_NCCLIENT:
@@ -358,7 +380,8 @@ class Connection(NetworkConnectionBase):
                     self._ssh_config,
                 ),
             )
-            self._manager = manager.connect(
+
+            params = dict(
                 host=self._play_context.remote_addr,
                 port=port,
                 username=self._play_context.remote_user,
@@ -371,6 +394,16 @@ class Connection(NetworkConnectionBase):
                 timeout=self.get_option("persistent_connect_timeout"),
                 ssh_config=self._ssh_config,
             )
+            # sock is only supported by ncclient >= 0.6.10, and will error if
+            # included on older versions. We check the version in
+            # _get_proxy_command, so if this returns a value, the version is
+            # fine and we have something to send. Otherwise, don't even send
+            # the option to support older versions of ncclient
+            sock = self._get_proxy_command(port)
+            if sock:
+                params["sock"] = sock
+
+            self._manager = manager.connect(**params)
 
             self._manager._timeout = self.get_option(
                 "persistent_command_timeout"

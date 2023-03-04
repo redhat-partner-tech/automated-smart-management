@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # Copyright: Ansible Project
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import absolute_import, division, print_function
 
@@ -23,6 +24,7 @@ options:
     description:
     - URI being used to execute API calls.
     required: true
+    type: str
   content:
     description:
     - The C(content) is a query parameter that controls how descendant nodes of the
@@ -31,6 +33,7 @@ options:
       If value is I(nonconfig) return only non-configuration descendant data nodes
       of value in C(path). If value is I(all) return all descendant data nodes of
       value in C(path)
+    type: str
     required: false
     choices:
     - config
@@ -40,10 +43,17 @@ options:
     description:
     - The output of response received.
     required: false
+    type: str
     default: json
     choices:
     - json
     - xml
+notes:
+- This module requires the RESTCONF system service be enabled on the remote device
+  being managed.
+- This module is supported with I(ansible_connection) value of I(ansible.netcommon.httpapi) and
+  I(ansible_network_os) value of I(ansible.netcommon.restconf).
+- This module is tested against Cisco IOSXE 16.12.02 version.
 """
 
 EXAMPLES = """
@@ -78,11 +88,13 @@ from ansible.module_utils.connection import ConnectionError
 from ansible_collections.ansible.netcommon.plugins.module_utils.network.restconf import (
     restconf,
 )
+from ansible_collections.ansible.netcommon.plugins.module_utils.utils.data import (
+    xml_to_dict,
+)
 
 
 def main():
-    """entry point for module execution
-    """
+    """entry point for module execution"""
     argument_spec = dict(
         path=dict(required=True),
         content=dict(choices=["config", "nonconfig", "all"]),
@@ -99,6 +111,12 @@ def main():
         response = restconf.get(module, **module.params)
     except ConnectionError as exc:
         module.fail_json(msg=to_text(exc), code=exc.code)
+
+    if module.params["output"] == "xml":
+        try:
+            response = xml_to_dict(response)
+        except Exception as exc:
+            module.fail_json(msg=to_text(exc))
 
     result.update({"response": response})
 

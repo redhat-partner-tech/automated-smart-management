@@ -1,37 +1,25 @@
 #
 # (c) 2018 Red Hat, Inc.
-#
-# This file is part of Ansible
-#
-# Ansible is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Ansible is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
-#
-import json
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-from copy import deepcopy
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+import json
 from contextlib import contextmanager
+from copy import deepcopy
 
 try:
     from lxml.etree import fromstring, tostring
 except ImportError:
     from xml.etree.ElementTree import fromstring, tostring
 
-from ansible.module_utils._text import to_text, to_bytes
+from ansible.module_utils._text import to_bytes, to_text
 from ansible.module_utils.connection import Connection, ConnectionError
 from ansible_collections.ansible.netcommon.plugins.module_utils.network.common.netconf import (
     NetconfConnection,
 )
-
 
 IGNORE_XML_ATTRIBUTE = ()
 
@@ -80,8 +68,9 @@ def locked_config(module, target=None):
 
 def get_config(module, source, filter=None, lock=False):
     conn = get_connection(module)
+    locked = False
+
     try:
-        locked = False
         if lock:
             conn.lock(target=source)
             locked = True
@@ -101,8 +90,9 @@ def get_config(module, source, filter=None, lock=False):
 
 def get(module, filter, lock=False):
     conn = get_connection(module)
+    locked = False
+
     try:
-        locked = False
         if lock:
             conn.lock(target="running")
             locked = True
@@ -137,7 +127,7 @@ def sanitize_xml(data):
     tree = fromstring(
         to_bytes(deepcopy(data), errors="surrogate_then_replace")
     )
-    for element in tree.getiterator():
+    for element in tree.iter():
         # remove attributes
         attribute = element.attrib
         if attribute:

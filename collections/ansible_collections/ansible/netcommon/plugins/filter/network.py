@@ -1,42 +1,28 @@
 #
 # {c) 2017 Red Hat, Inc.
-#
-# This file is part of Ansible
-#
-# Ansible is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Ansible is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Make coding more python3-ish
 from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-import re
 import os
-import traceback
+import re
 import string
-
+import traceback
 from xml.etree.ElementTree import fromstring
 
+from ansible.errors import AnsibleError, AnsibleFilterError
 from ansible.module_utils._text import to_native, to_text
+from ansible.module_utils.common._collections_compat import Mapping
+from ansible.module_utils.six import iteritems, string_types
+from ansible.utils.display import Display
+from ansible.utils.encrypt import passlib_or_crypt, random_password
 from ansible_collections.ansible.netcommon.plugins.module_utils.network.common.utils import (
     Template,
 )
-from ansible.module_utils.six import iteritems, string_types
-from ansible.module_utils.common._collections_compat import Mapping
-from ansible.errors import AnsibleError, AnsibleFilterError
-from ansible.utils.display import Display
-from ansible.utils.encrypt import passlib_or_crypt, random_password
 
 try:
     import yaml
@@ -131,6 +117,7 @@ def parse_cli(output, tmpl):
                     if lines:
                         lines.append(line)
                         blocks.append("\n".join(lines))
+                        lines = None
                     block_started = False
 
                 elif block_started:
@@ -392,8 +379,8 @@ def type5_pw(password, salt=None):
             % (type(password).__name__)
         )
 
-    salt_chars = u"".join(
-        (to_text(string.ascii_letters), to_text(string.digits), u"./")
+    salt_chars = "".join(
+        (to_text(string.ascii_letters), to_text(string.digits), "./")
     )
     if salt is not None and not isinstance(salt, string_types):
         raise AnsibleFilterError(
@@ -439,16 +426,27 @@ def comp_type5(
     return False
 
 
+def vlan_expander(raw_vlan):
+    expanded_list = []
+    for each in raw_vlan.split(","):
+        if "-" in each:
+            f, t = map(int, each.split("-"))
+            expanded_list.extend(range(f, t + 1))
+        else:
+            expanded_list.append(int(each))
+    return sorted(expanded_list)
+
+
 def vlan_parser(vlan_list, first_line_len=48, other_line_len=44):
 
     """
-        Input: Unsorted list of vlan integers
-        Output: Sorted string list of integers according to IOS-like vlan list rules
+    Input: Unsorted list of vlan integers
+    Output: Sorted string list of integers according to IOS-like vlan list rules
 
-        1. Vlans are listed in ascending order
-        2. Runs of 3 or more consecutive vlans are listed with a dash
-        3. The first line of the list can be first_line_len characters long
-        4. Subsequent list lines can be other_line_len characters
+    1. Vlans are listed in ascending order
+    2. Runs of 3 or more consecutive vlans are listed with a dash
+    3. The first line of the list can be first_line_len characters long
+    4. Subsequent list lines can be other_line_len characters
     """
 
     # Sort and remove duplicates
@@ -525,6 +523,7 @@ class FilterModule(object):
         "hash_salt": hash_salt,
         "comp_type5": comp_type5,
         "vlan_parser": vlan_parser,
+        "vlan_expander": vlan_expander,
     }
 
     def filters(self):

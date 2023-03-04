@@ -32,78 +32,85 @@ Parameters
         <tr>
             <th colspan="1">Parameter</th>
             <th>Choices/<font color="blue">Defaults</font></th>
-                        <th width="100%">Comments</th>
+            <th width="100%">Comments</th>
         </tr>
-                    <tr>
-                                                                <td colspan="1">
+            <tr>
+                <td colspan="1">
                     <div class="ansibleOptionAnchor" id="parameter-"></div>
                     <b>content</b>
                     <a class="ansibleOptionLink" href="#parameter-" title="Permalink to this option"></a>
                     <div style="font-size: small">
-                        <span style="color: purple">-</span>
-                                                                    </div>
-                                    </td>
-                                <td>
-                                                                                                                            <ul style="margin: 0; padding: 0"><b>Choices:</b>
-                                                                                                                                                                <li>config</li>
-                                                                                                                                                                                                <li>nonconfig</li>
-                                                                                                                                                                                                <li>all</li>
-                                                                                    </ul>
-                                                                            </td>
-                                                                <td>
-                                            <div>The <code>content</code> is a query parameter that controls how descendant nodes of the requested data nodes in <code>path</code> will be processed in the reply. If value is <em>config</em> return only configuration descendant data nodes of value in <code>path</code>. If value is <em>nonconfig</em> return only non-configuration descendant data nodes of value in <code>path</code>. If value is <em>all</em> return all descendant data nodes of value in <code>path</code></div>
-                                                        </td>
+                        <span style="color: purple">string</span>
+                    </div>
+                </td>
+                <td>
+                        <ul style="margin: 0; padding: 0"><b>Choices:</b>
+                                    <li>config</li>
+                                    <li>nonconfig</li>
+                                    <li>all</li>
+                        </ul>
+                </td>
+                <td>
+                        <div>The <code>content</code> is a query parameter that controls how descendant nodes of the requested data nodes in <code>path</code> will be processed in the reply. If value is <em>config</em> return only configuration descendant data nodes of value in <code>path</code>. If value is <em>nonconfig</em> return only non-configuration descendant data nodes of value in <code>path</code>. If value is <em>all</em> return all descendant data nodes of value in <code>path</code></div>
+                </td>
             </tr>
-                                <tr>
-                                                                <td colspan="1">
+            <tr>
+                <td colspan="1">
                     <div class="ansibleOptionAnchor" id="parameter-"></div>
                     <b>output</b>
                     <a class="ansibleOptionLink" href="#parameter-" title="Permalink to this option"></a>
                     <div style="font-size: small">
-                        <span style="color: purple">-</span>
-                                                                    </div>
-                                    </td>
-                                <td>
-                                                                                                                            <ul style="margin: 0; padding: 0"><b>Choices:</b>
-                                                                                                                                                                <li><div style="color: blue"><b>json</b>&nbsp;&larr;</div></li>
-                                                                                                                                                                                                <li>xml</li>
-                                                                                    </ul>
-                                                                            </td>
-                                                                <td>
-                                            <div>The output of response received.</div>
-                                                        </td>
+                        <span style="color: purple">string</span>
+                    </div>
+                </td>
+                <td>
+                        <ul style="margin: 0; padding: 0"><b>Choices:</b>
+                                    <li><div style="color: blue"><b>json</b>&nbsp;&larr;</div></li>
+                                    <li>xml</li>
+                        </ul>
+                </td>
+                <td>
+                        <div>The output of response received.</div>
+                </td>
             </tr>
-                                <tr>
-                                                                <td colspan="1">
+            <tr>
+                <td colspan="1">
                     <div class="ansibleOptionAnchor" id="parameter-"></div>
                     <b>path</b>
                     <a class="ansibleOptionLink" href="#parameter-" title="Permalink to this option"></a>
                     <div style="font-size: small">
-                        <span style="color: purple">-</span>
-                                                 / <span style="color: red">required</span>                    </div>
-                                    </td>
-                                <td>
-                                                                                                                                                            </td>
-                                                                <td>
-                                            <div>URI being used to execute API calls.</div>
-                                                        </td>
+                        <span style="color: purple">string</span>
+                         / <span style="color: red">required</span>
+                    </div>
+                </td>
+                <td>
+                </td>
+                <td>
+                        <div>URI being used to execute API calls.</div>
+                </td>
             </tr>
-                        </table>
+    </table>
     <br/>
 
+
+Notes
+-----
+
+.. note::
+   - This module requires the RESTCONF system service be enabled on the remote device being managed.
+   - This module is supported with *ansible_connection* value of *ansible.netcommon.httpapi* and *ansible_network_os* value of *ansible.netcommon.restconf*.
+   - This module is tested against Cisco IOSXE 16.12.02 version.
 
 
 
 Examples
 --------
 
-.. code-block:: yaml+jinja
-
+.. code-block:: yaml
 
     - name: get l3vpn services
       ansible.netcommon.restconf_get:
         path: /config/ietf-l3vpn-svc:l3vpn-svc/vpn-services
-
 
 
 
@@ -119,21 +126,21 @@ Common return values are documented `here <https://docs.ansible.com/ansible/late
             <th>Returned</th>
             <th width="100%">Description</th>
         </tr>
-                    <tr>
-                                <td colspan="1">
+            <tr>
+                <td colspan="1">
                     <div class="ansibleOptionAnchor" id="return-"></div>
                     <b>response</b>
                     <a class="ansibleOptionLink" href="#return-" title="Permalink to this return value"></a>
                     <div style="font-size: small">
                       <span style="color: purple">dictionary</span>
-                                          </div>
-                                    </td>
+                    </div>
+                </td>
                 <td>when the device response is valid JSON</td>
                 <td>
-                                                                        <div>A dictionary representing a JSON-formatted response</div>
-                                                                <br/>
-                                            <div style="font-size: smaller"><b>Sample:</b></div>
-                                                <div style="font-size: smaller; color: blue; word-wrap: break-word; word-break: break-all;">{
+                            <div>A dictionary representing a JSON-formatted response</div>
+                    <br/>
+                        <div style="font-size: smaller"><b>Sample:</b></div>
+                        <div style="font-size: smaller; color: blue; word-wrap: break-word; word-break: break-all;">{
         &quot;vpn-services&quot;: {
             &quot;vpn-service&quot;: [
                 {
@@ -144,9 +151,9 @@ Common return values are documented `here <https://docs.ansible.com/ansible/late
             ]
         }
     }</div>
-                                    </td>
+                </td>
             </tr>
-                        </table>
+    </table>
     <br/><br/>
 
 

@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # (c) 2018, Ansible by Red Hat, inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import absolute_import, division, print_function
 
@@ -30,18 +31,22 @@ options:
       fetched. Valid values are I(running), I(candidate) and I(startup). If the C(source)
       value is not set both configuration and state information are returned in response
       from running datastore.
+    type: str
     choices:
     - running
     - candidate
     - startup
   filter:
     description:
-    - This argument specifies the XML string which acts as a filter to restrict the
+    - This argument specifies the string which acts as a filter to restrict the
       portions of the data to be are retrieved from the remote device. If this option
       is not specified entire configuration or state data is returned in result depending
       on the value of C(source) option. The C(filter) value can be either XML string
-      or XPath, if the filter is in XPath format the NETCONF server running on remote
-      host should support xpath capability else it will result in an error.
+      or XPath or JSON string or native python dictionary, if the filter is in XPath
+      format the NETCONF server running on remote host should support xpath capability
+      else it will result in an error. If the filter is in JSON format the xmltodict library
+      should be installed on the control node for JSON to XML conversion.
+    type: raw
   display:
     description:
     - Encoding scheme to use when serializing output from the device. The option I(json)
@@ -50,10 +55,12 @@ options:
       received XML response but is using human readable format (spaces, new lines).
       The option value I(xml) is similar to received XML response but removes all
       XML namespaces.
+    type: str
     choices:
     - json
     - pretty
     - xml
+    - native
   lock:
     description:
     - Instructs the module to explicitly lock the datastore specified as C(source).
@@ -63,6 +70,7 @@ options:
       C(source) datastore. The value I(if-supported) allows better interworking with
       NETCONF servers, which do not support the (un)lock operation for all supported
       datastores.
+    type: str
     default: never
     choices:
     - never
@@ -70,7 +78,8 @@ options:
     - if-supported
 requirements:
 - ncclient (>=v0.5.2)
-- jxmlease
+- jxmlease (for display=json)
+- xmltodict (for display=native)
 notes:
 - This module requires the NETCONF system service be enabled on the remote device
   being managed.
@@ -125,6 +134,104 @@ EXAMPLES = """
 - name: Get complete state data (SROS)
   ansible.netcommon.netconf_get:
     filter: <state xmlns="urn:nokia.com:sros:ns:yang:sr:state"/>
+
+- name: "get configuration with json filter string and native output (using xmltodict)"
+  netconf_get:
+    filter: |
+              {
+                  "interface-configurations": {
+                      "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg",
+                      "interface-configuration": null
+                  }
+              }
+    display: native
+
+- name: Define the Cisco IOSXR interface filter
+  set_fact:
+    filter:
+      interface-configurations:
+        "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg"
+        interface-configuration: null
+
+- name: "get configuration with native filter type using set_facts"
+  ansible.netcommon.netconf_get:
+    filter: "{{ filter }}"
+    display: native
+  register: result
+
+- name: "get configuration with direct native filter type"
+  ansible.netcommon.netconf_get:
+    filter: {
+            "interface-configurations": {
+            "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg",
+            "interface-configuration": null
+      }
+    }
+    display: native
+  register: result
+
+
+# Make a round-trip interface description change, diff the before and after
+# this demonstrates the use of the native display format and several utilities
+# from the ansible.utils collection
+
+- name: Define the openconfig interface filter
+  set_fact:
+    filter:
+      interfaces:
+        "@xmlns": "http://openconfig.net/yang/interfaces"
+        interface:
+          name: Ethernet2
+
+- name: Get the pre-change config using the filter
+  ansible.netcommon.netconf_get:
+    source: running
+    filter: "{{ filter }}"
+    display: native
+  register: pre
+
+- name: Update the description
+  ansible.utils.update_fact:
+    updates:
+    - path: pre.output.data.interfaces.interface.config.description
+      value: "Configured by ansible {{ 100 | random }}"
+  register: updated
+
+- name: Apply the new configuration
+  ansible.netcommon.netconf_config:
+    content:
+      config:
+        interfaces: "{{ updated.pre.output.data.interfaces }}"
+
+- name: Get the post-change config using the filter
+  ansible.netcommon.netconf_get:
+    source: running
+    filter: "{{ filter }}"
+    display: native
+  register: post
+
+- name: Show the differences between the pre and post configurations
+  ansible.utils.fact_diff:
+    before: "{{ pre.output.data|ansible.utils.to_paths }}"
+    after: "{{ post.output.data|ansible.utils.to_paths }}"
+
+# TASK [Show the differences between the pre and post configurations] ********
+# --- before
+# +++ after
+# @@ -1,11 +1,11 @@
+#  {
+# -    "@time-modified": "2020-10-23T12:27:17.462332477Z",
+# +    "@time-modified": "2020-10-23T12:27:21.744541708Z",
+#      "@xmlns": "urn:ietf:params:xml:ns:netconf:base:1.0",
+#      "interfaces.interface.aggregation.config['fallback-timeout']['#text']": "90",
+#      "interfaces.interface.aggregation.config['fallback-timeout']['@xmlns']": "http://arista.com/yang/openconfig/interfaces/augments",
+#      "interfaces.interface.aggregation.config['min-links']": "0",
+#      "interfaces.interface.aggregation['@xmlns']": "http://openconfig.net/yang/interfaces/aggregate",
+# -    "interfaces.interface.config.description": "Configured by ansible 56",
+# +    "interfaces.interface.config.description": "Configured by ansible 67",
+#      "interfaces.interface.config.enabled": "true",
+#      "interfaces.interface.config.mtu": "0",
+#      "interfaces.interface.config.name": "Ethernet2",
 """
 
 RETURN = """
@@ -144,37 +251,38 @@ output:
                transformed XML to JSON format from the RPC response with type dict
                or pretty XML string response (human-readable) or response with
                namespace removed from XML string.
-  returned: when the display format is selected as JSON it is returned as dict type, if the
-            display format is xml or pretty pretty it is returned as a string apart from low-level
-            errors (such as action plugin).
+  returned: If the display format is selected as I(json) it is returned as dict type
+            and the conversion is done using jxmlease python library. If the display
+            format is selected as I(native) it is returned as dict type and the conversion
+            is done using xmltodict python library. If the display format is xml or pretty
+            it is returned as a string apart from low-level errors (such as action plugin).
   type: complex
   contains:
     formatted_output:
       description:
         - Contains formatted response received from remote host as per the value in display format.
+      type: str
 """
-import sys
-
 try:
-    from lxml.etree import tostring, fromstring, XMLSyntaxError
+    from lxml.etree import tostring
 except ImportError:
-    from xml.etree.ElementTree import tostring, fromstring
+    from xml.etree.ElementTree import tostring
 
-    if sys.version_info < (2, 7):
-        from xml.parsers.expat import ExpatError as XMLSyntaxError
-    else:
-        from xml.etree.ElementTree import ParseError as XMLSyntaxError
-
+from ansible.module_utils._text import to_text
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.ansible.netcommon.plugins.module_utils.network.netconf.netconf import (
-    get_capabilities,
-    get_config,
-    get,
-)
 from ansible_collections.ansible.netcommon.plugins.module_utils.network.common.netconf import (
     remove_namespaces,
 )
-from ansible.module_utils._text import to_text
+from ansible_collections.ansible.netcommon.plugins.module_utils.network.netconf.netconf import (
+    get,
+    get_capabilities,
+    get_config,
+)
+from ansible_collections.ansible.netcommon.plugins.module_utils.utils.data import (
+    dict_to_xml,
+    validate_and_normalize_data,
+    xml_to_dict,
+)
 
 try:
     import jxmlease
@@ -184,24 +292,12 @@ except ImportError:
     HAS_JXMLEASE = False
 
 
-def get_filter_type(filter):
-    if not filter:
-        return None
-    else:
-        try:
-            fromstring(filter)
-            return "subtree"
-        except XMLSyntaxError:
-            return "xpath"
-
-
 def main():
-    """entry point for module execution
-    """
+    """entry point for module execution"""
     argument_spec = dict(
         source=dict(choices=["running", "candidate", "startup"]),
-        filter=dict(),
-        display=dict(choices=["json", "pretty", "xml"]),
+        filter=dict(type="raw"),
+        display=dict(choices=["json", "pretty", "xml", "native"]),
         lock=dict(
             default="never", choices=["never", "always", "if-supported"]
         ),
@@ -216,7 +312,38 @@ def main():
 
     source = module.params["source"]
     filter = module.params["filter"]
-    filter_type = get_filter_type(filter)
+
+    try:
+        filter_data, filter_type = validate_and_normalize_data(filter)
+    except Exception as exc:
+        module.fail_json(msg=to_text(exc))
+
+    if filter_type == "xml":
+        filter_type = "subtree"
+    elif filter_type == "json":
+        try:
+            filter = dict_to_xml(filter_data)
+        except Exception as exc:
+            module.fail_json(msg=to_text(exc))
+        filter_type = "subtree"
+    elif filter_type == "xpath":
+        pass
+    elif filter_type is None:
+        if filter_data is not None:
+            # to maintain backward compatibility for ansible 2.9 which
+            # defaults to "subtree" filter type
+            filter_type = "subtree"
+            module.warn(
+                "The data format of filter option value couldn't be identified, hence set to 'subtree'"
+            )
+        else:
+            pass
+    elif filter_type:
+        module.fail_json(
+            msg="Invalid filter type detected %s for filter value %s"
+            % (filter_type, filter)
+        )
+
     lock = module.params["lock"]
     display = module.params["display"]
 
@@ -277,6 +404,11 @@ def main():
             raise ValueError(xml_resp)
     elif display == "pretty":
         output = to_text(tostring(response, pretty_print=True))
+    elif display == "native":
+        try:
+            output = xml_to_dict(xml_resp)
+        except Exception as exc:
+            module.fail_json(msg=to_text(exc))
 
     result = {"stdout": xml_resp, "output": output}
 

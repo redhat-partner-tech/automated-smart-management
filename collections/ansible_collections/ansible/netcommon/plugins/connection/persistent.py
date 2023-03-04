@@ -1,45 +1,34 @@
 # 2017 Red Hat Inc.
 # (c) 2017 Ansible Project
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
 DOCUMENTATION = """
-author: Ansible Networking Team
-connection: persistent
+author:
+ - Ansible Networking Team (@ansible-network)
+name: persistent
 short_description: Use a persistent unix socket for connection
 description:
 - This is a helper plugin to allow making other connections persistent.
 version_added: 1.0.0
-options:
-  persistent_command_timeout:
-    type: int
-    description:
-    - Configures, in seconds, the amount of time to wait for a command to return from
-      the remote device.  If this timer is exceeded before the command returns, the
-      connection plugin will raise an exception and close
-    default: 10
-    ini:
-    - section: persistent_connection
-      key: command_timeout
-    env:
-    - name: ANSIBLE_PERSISTENT_COMMAND_TIMEOUT
-    vars:
-    - name: ansible_command_timeout
+extends_documentation_fragment:
+- ansible.netcommon.connection_persistent
 """
 from ansible.executor.task_executor import start_connection
-from ansible.plugins.connection import ConnectionBase
 from ansible.module_utils._text import to_text
 from ansible.module_utils.connection import Connection as SocketConnection
+from ansible.plugins.connection import ConnectionBase
 from ansible.utils.display import Display
 
 display = Display()
 
 
 class Connection(ConnectionBase):
-    """ Local based connections """
+    """Local based connections"""
 
     transport = "ansible.netcommon.persistent"
     has_pipelining = False

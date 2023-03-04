@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 # (c) 2016, Leandro Lisboa Penz <lpenz at lpenz.org>
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import absolute_import, division, print_function
 
@@ -21,14 +22,18 @@ description:
   and detects if there was a configuration change.
 version_added: 1.0.0
 extends_documentation_fragment:
-- ansible.netcommon.netconf
 - ansible.netcommon.network_agnostic
 options:
   content:
     description:
     - The configuration data as defined by the device's data models, the value can
-      be either in xml string format or text format. The format of the configuration
-      should be supported by remote Netconf server
+      be either in xml string format or text format or python dictionary representation of JSON format.
+    - In case of json string format it will be converted to the corresponding xml string using
+      xmltodict library before pushing onto the remote host.
+    - In case the value of this option isn I(text) format the format should be supported by remote Netconf server.
+    - If the value of C(content) option is in I(xml) format in that case the xml value should
+      have I(config) as root tag.
+    type: raw
     aliases:
     - xml
   target:
@@ -36,6 +41,11 @@ options:
       and fallback to running - candidate, edit <candidate/> datastore and then commit
       - running, edit <running/> datastore directly
     default: auto
+    type: str
+    choices:
+    - auto
+    - candidate
+    - running
     aliases:
     - datastore
   source_datastore:
@@ -43,17 +53,23 @@ options:
     - Name of the configuration datastore to use as the source to copy the configuration
       to the datastore mentioned by C(target) option. The values can be either I(running),
       I(candidate), I(startup) or a remote URL
+    type: str
     aliases:
     - source
   format:
     description:
-    - The format of the configuration provided as value of C(content). Accepted values
-      are I(xml) and I(text) and the given configuration format should be supported
-      by remote Netconf server.
-    default: xml
+    - The format of the configuration provided as value of C(content).
+    - In case of json string format it will be converted to the corresponding xml string using
+      xmltodict library before pushing onto the remote host.
+    - In case of I(text) format of the configuration should be supported by remote Netconf server.
+    - If the value of C(format) options is not given it tries to guess the data format of
+      C(content) option as one of I(xml) or I(json) or I(text).
+    - If the data format is not identified it is set to I(xml) by default.
+    type: str
     choices:
     - xml
     - text
+    - json
   lock:
     description:
     - Instructs the module to explicitly lock the datastore specified as C(target).
@@ -61,6 +77,7 @@ options:
       mentioned in C(target) option. It the value is I(never) it will not lock the
       C(target) datastore. The value I(if-supported) lock the C(target) datastore
       only if it is supported by the remote Netconf server.
+    type: str
     default: always
     choices:
     - never
@@ -75,6 +92,7 @@ options:
       in the C(target) datastore. If the value is none the C(target) datastore is
       unaffected by the configuration in the config option, unless and until the incoming
       configuration data uses the C(operation) operation to request a different operation.
+    type: str
     choices:
     - merge
     - replace
@@ -86,6 +104,7 @@ options:
       set to False, this argument is silently ignored. If the value of this argument
       is set to 0, the commit is confirmed immediately. The remote host MUST support
       :candidate and :confirmed-commit capability for this option to .
+    type: int
     default: 0
   confirm_commit:
     description:
@@ -105,6 +124,7 @@ options:
       if any error occurs. This requires the remote Netconf server to support the
       I(error_option=rollback-on-error) capability.
     default: stop-on-error
+    type: str
     choices:
     - stop-on-error
     - continue-on-error
@@ -147,12 +167,6 @@ options:
       capability.
     type: bool
     default: false
-  src:
-    description:
-    - Specifies the source path to the xml file that contains the configuration or
-      configuration template to load. The path to the source file can either be the
-      full path on the Ansible control host or a relative path from the playbook or
-      role root directory. This argument is mutually exclusive with I(xml).
   backup_options:
     description:
     - This is a dict object containing configurable options related to backup file
@@ -164,6 +178,7 @@ options:
         - The filename to be used to store the backup configuration. If the filename
           is not given it will be generated based on the hostname, current time and
           date in format defined by <hostname>_config.<current-date>@<current-time>
+        type: str
       dir_path:
         description:
         - This option provides the path ending with directory name in which the backup
@@ -182,8 +197,10 @@ options:
       and after state of the device following calls to edit_config. When not specified,
       the entire configuration or state data is returned for comparison depending
       on the value of C(source) option. The C(get_filter) value can be either XML
-      string or XPath, if the filter is in XPath format the NETCONF server running
-      on remote host should support xpath capability else it will result in an error.
+      string or XPath or JSON string or native python dictionary, if the filter is
+      in XPath format the NETCONF server running on remote host should support xpath
+      capability else it will result in an error.
+    type: raw
 requirements:
 - ncclient
 notes:
@@ -241,6 +258,116 @@ EXAMPLES = """
     backup_options:
       filename: backup.cfg
       dir_path: /home/user
+
+- name: "configure using direct native format configuration (cisco iosxr)"
+  ansible.netcommon.netconf_config:
+    format: json
+    content: {
+                "config": {
+                    "interface-configurations": {
+                        "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg",
+                        "interface-configuration": {
+                            "active": "act",
+                            "description": "test for ansible Loopback999",
+                            "interface-name": "Loopback999"
+                        }
+                    }
+                }
+            }
+    get_filter: {
+                  "interface-configurations": {
+                      "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg",
+                      "interface-configuration": null
+                  }
+              }
+
+- name: "configure using json string format configuration (cisco iosxr)"
+  ansible.netcommon.netconf_config:
+    format: json
+    content: |
+            {
+                "config": {
+                    "interface-configurations": {
+                        "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg",
+                        "interface-configuration": {
+                            "active": "act",
+                            "description": "test for ansible Loopback999",
+                            "interface-name": "Loopback999"
+                        }
+                    }
+                }
+            }
+    get_filter: |
+            {
+                  "interface-configurations": {
+                      "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg",
+                      "interface-configuration": null
+                  }
+              }
+
+
+# Make a round-trip interface description change, diff the before and after
+# this demonstrates the use of the native display format and several utilities
+# from the ansible.utils collection
+
+- name: Define the openconfig interface filter
+  set_fact:
+    filter:
+      interfaces:
+        "@xmlns": "http://openconfig.net/yang/interfaces"
+        interface:
+          name: Ethernet2
+
+- name: Get the pre-change config using the filter
+  ansible.netcommon.netconf_get:
+    source: running
+    filter: "{{ filter }}"
+    display: native
+  register: pre
+
+- name: Update the description
+  ansible.utils.update_fact:
+    updates:
+    - path: pre.output.data.interfaces.interface.config.description
+      value: "Configured by ansible {{ 100 | random }}"
+  register: updated
+
+- name: Apply the new configuration
+  ansible.netcommon.netconf_config:
+    content:
+      config:
+        interfaces: "{{ updated.pre.output.data.interfaces }}"
+
+- name: Get the post-change config using the filter
+  ansible.netcommon.netconf_get:
+    source: running
+    filter: "{{ filter }}"
+    display: native
+  register: post
+
+- name: Show the differences between the pre and post configurations
+  ansible.utils.fact_diff:
+    before: "{{ pre.output.data|ansible.utils.to_paths }}"
+    after: "{{ post.output.data|ansible.utils.to_paths }}"
+
+# TASK [Show the differences between the pre and post configurations] ********
+# --- before
+# +++ after
+# @@ -1,11 +1,11 @@
+#  {
+# -    "@time-modified": "2020-10-23T12:27:17.462332477Z",
+# +    "@time-modified": "2020-10-23T12:27:21.744541708Z",
+#      "@xmlns": "urn:ietf:params:xml:ns:netconf:base:1.0",
+#      "interfaces.interface.aggregation.config['fallback-timeout']['#text']": "90",
+#      "interfaces.interface.aggregation.config['fallback-timeout']['@xmlns']": "http://arista.com/yang/openconfig/interfaces/augments",
+#      "interfaces.interface.aggregation.config['min-links']": "0",
+#      "interfaces.interface.aggregation['@xmlns']": "http://openconfig.net/yang/interfaces/aggregate",
+# -    "interfaces.interface.config.description": "Configured by ansible 56",
+# +    "interfaces.interface.config.description": "Configured by ansible 67",
+#      "interfaces.interface.config.enabled": "true",
+#      "interfaces.interface.config.mtu": "0",
+#      "interfaces.interface.config.name": "Ethernet2",
+
 """
 
 RETURN = """
@@ -265,51 +392,51 @@ diff:
 """
 
 from ansible.module_utils._text import to_text
-from ansible.module_utils.basic import AnsibleModule, env_fallback
+from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.connection import Connection, ConnectionError
 from ansible_collections.ansible.netcommon.plugins.module_utils.network.netconf.netconf import (
     get_capabilities,
     get_config,
     sanitize_xml,
 )
-
-import sys
+from ansible_collections.ansible.netcommon.plugins.module_utils.utils.data import (
+    dict_to_xml,
+    validate_and_normalize_data,
+)
 
 try:
-    from lxml.etree import tostring, fromstring, XMLSyntaxError
+    from lxml.etree import fromstring, tostring
 except ImportError:
-    from xml.etree.ElementTree import tostring, fromstring
-
-    if sys.version_info < (2, 7):
-        from xml.parsers.expat import ExpatError as XMLSyntaxError
-    else:
-        from xml.etree.ElementTree import ParseError as XMLSyntaxError
+    from xml.etree.ElementTree import fromstring, tostring
 
 
-def get_filter_type(filter):
-    if not filter:
-        return None
-    else:
+def validate_config(module, config, format="xml"):
+    if format == "xml":
         try:
-            fromstring(filter)
-            return "subtree"
-        except XMLSyntaxError:
-            return "xpath"
+            root = fromstring(config)
+            if not root.tag.endswith("config"):
+                module.fail_json(
+                    msg="content value should have XML string with config tag as the root node"
+                )
+        except Exception as exc:
+            module.fail_json(
+                "Value of content option is invalid as per the identified format %s, validation failed with error: %s"
+                % (format, to_text(exc, errors="surrogate_then_replace"))
+            )
 
 
 def main():
-    """ main entry point for module execution
-    """
+    """main entry point for module execution"""
     backup_spec = dict(filename=dict(), dir_path=dict(type="path"))
     argument_spec = dict(
-        content=dict(aliases=["xml"]),
+        content=dict(aliases=["xml"], type="raw"),
         target=dict(
             choices=["auto", "candidate", "running"],
             default="auto",
             aliases=["datastore"],
         ),
         source_datastore=dict(aliases=["source"]),
-        format=dict(choices=["xml", "text"], default="xml"),
+        format=dict(choices=["xml", "text", "json"]),
         lock=dict(
             choices=["never", "always", "if-supported"], default="always"
         ),
@@ -330,70 +457,14 @@ def main():
         delete=dict(type="bool", default=False),
         commit=dict(type="bool", default=True),
         validate=dict(type="bool", default=False),
-        get_filter=dict(),
+        get_filter=dict(type="raw"),
     )
 
-    # deprecated options
-    netconf_top_spec = {
-        "src": dict(
-            type="path",
-            removed_at_date="2020-12-01",
-            removed_from_collection="ansible.netcommon",
-        ),
-        "host": dict(
-            removed_at_date="2020-12-01",
-            removed_from_collection="ansible.netcommon",
-        ),
-        "port": dict(
-            removed_at_date="2020-12-01",
-            removed_from_collection="ansible.netcommon",
-            type="int",
-            default=830,
-        ),
-        "username": dict(
-            fallback=(env_fallback, ["ANSIBLE_NET_USERNAME"]),
-            removed_at_date="2020-12-01",
-            removed_from_collection="ansible.netcommon",
-            no_log=True,
-        ),
-        "password": dict(
-            fallback=(env_fallback, ["ANSIBLE_NET_PASSWORD"]),
-            removed_at_date="2020-12-01",
-            removed_from_collection="ansible.netcommon",
-            no_log=True,
-        ),
-        "ssh_keyfile": dict(
-            fallback=(env_fallback, ["ANSIBLE_NET_SSH_KEYFILE"]),
-            removed_at_date="2020-12-01",
-            removed_from_collection="ansible.netcommon",
-            type="path",
-        ),
-        "hostkey_verify": dict(
-            removed_at_date="2020-12-01",
-            removed_from_collection="ansible.netcommon",
-            type="bool",
-            default=True,
-        ),
-        "look_for_keys": dict(
-            removed_at_date="2020-12-01",
-            removed_from_collection="ansible.netcommon",
-            type="bool",
-            default=True,
-        ),
-        "timeout": dict(
-            removed_at_date="2020-12-01",
-            removed_from_collection="ansible.netcommon",
-            type="int",
-            default=10,
-        ),
-    }
-    argument_spec.update(netconf_top_spec)
-
     mutually_exclusive = [
-        ("content", "src", "source", "delete", "confirm_commit")
+        ("content", "source_datastore", "delete", "confirm_commit")
     ]
     required_one_of = [
-        ("content", "src", "source", "delete", "confirm_commit")
+        ("content", "source_datastore", "delete", "confirm_commit")
     ]
 
     module = AnsibleModule(
@@ -403,7 +474,7 @@ def main():
         supports_check_mode=True,
     )
 
-    config = module.params["content"] or module.params["src"]
+    config = module.params["content"]
     target = module.params["target"]
     lock = module.params["lock"]
     source = module.params["source_datastore"]
@@ -413,7 +484,38 @@ def main():
     validate = module.params["validate"]
     save = module.params["save"]
     filter = module.params["get_filter"]
-    filter_type = get_filter_type(filter)
+    format = module.params["format"]
+
+    try:
+        filter_data, filter_type = validate_and_normalize_data(filter)
+    except Exception as exc:
+        module.fail_json(msg=to_text(exc))
+
+    if filter_type == "xml":
+        filter_type = "subtree"
+    elif filter_type == "json":
+        try:
+            filter = dict_to_xml(filter_data)
+        except Exception as exc:
+            module.fail_json(msg=to_text(exc))
+        filter_type = "subtree"
+    elif filter_type == "xpath":
+        pass
+    elif filter_type is None:
+        if filter_data is not None:
+            # to maintain backward compatibility for ansible 2.9 which
+            # defaults to "subtree" filter type
+            filter_type = "subtree"
+            module.warn(
+                "The data format of get_filter option value couldn't be identified, hence set to 'subtree'"
+            )
+        else:
+            pass
+    else:
+        module.fail_json(
+            msg="Invalid filter type detected %s for get_filter value %s"
+            % (filter_type, filter)
+        )
 
     conn = Connection(module._socket_path)
     capabilities = get_capabilities(module)
@@ -535,12 +637,37 @@ def main():
                     errors="surrogate_then_replace",
                 ).strip()
 
+            if format != "text":
+                # check for format of type json/xml/xpath
+                try:
+                    config_obj, config_format = validate_and_normalize_data(
+                        config, format
+                    )
+                except Exception as exc:
+                    module.fail_json(msg=to_text(exc))
+
+                if config_format == "json":
+                    try:
+                        config = dict_to_xml(config_obj)
+                    except Exception as exc:
+                        module.fail_json(msg=to_text(exc))
+                    format = "xml"
+                elif config_format is None:
+                    format = "xml"
+                    module.warn(
+                        "The data format of content option value couldn't be identified, hence set to 'xml'"
+                    )
+                else:
+                    format = config_format
+
+            validate_config(module, config, format)
+
             kwargs = {
                 "config": config,
                 "target": target,
                 "default_operation": module.params["default_operation"],
                 "error_option": module.params["error_option"],
-                "format": module.params["format"],
+                "format": format,
             }
 
             conn.edit_config(**kwargs)

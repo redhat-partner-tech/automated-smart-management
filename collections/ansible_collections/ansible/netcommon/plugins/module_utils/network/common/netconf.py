@@ -6,28 +6,15 @@
 #
 # (c) 2017 Red Hat Inc.
 #
-# Redistribution and use in source and binary forms, with or without modification,
-# are permitted provided that the following conditions are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#    * Redistributions in binary form must reproduce the above copyright notice,
-#      this list of conditions and the following disclaimer in the documentation
-#      and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-# USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+# Simplified BSD License (see LICENSES/BSD-2-Clause.txt or https://opensource.org/licenses/BSD-2-Clause)
+# SPDX-License-Identifier: BSD-2-Clause
+
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
 import sys
 
-from ansible.module_utils._text import to_text, to_bytes
+from ansible.module_utils._text import to_bytes, to_text
 from ansible.module_utils.connection import Connection, ConnectionError
 
 try:
@@ -38,7 +25,7 @@ except (ImportError, AttributeError):
     HAS_NCCLIENT = False
 
 try:
-    from lxml.etree import Element, fromstring, XMLSyntaxError
+    from lxml.etree import Element, XMLSyntaxError, fromstring
 except ImportError:
     from xml.etree.ElementTree import Element, fromstring
 
@@ -61,12 +48,12 @@ class NetconfConnection(Connection):
 
     def __rpc__(self, name, *args, **kwargs):
         """Executes the json-rpc and returns the output received
-           from remote device.
-           :name: rpc method to be executed over connection plugin that implements jsonrpc 2.0
-           :args: Ordered list of params passed as arguments to rpc method
-           :kwargs: Dict of valid key, value pairs passed as arguments to rpc method
+        from remote device.
+        :name: rpc method to be executed over connection plugin that implements jsonrpc 2.0
+        :args: Ordered list of params passed as arguments to rpc method
+        :kwargs: Dict of valid key, value pairs passed as arguments to rpc method
 
-           For usage refer the respective connection plugin docs.
+        For usage refer the respective connection plugin docs.
         """
         self.check_rc = kwargs.pop("check_rc", True)
         self.ignore_warning = kwargs.pop("ignore_warning", True)
@@ -155,7 +142,10 @@ def remove_namespaces(data):
             "ncclient is required but does not appear to be installed.  "
             "It can be installed using `pip install ncclient`"
         )
-    return NCElement(data, transform_reply()).data_xml
+    return NCElement(
+        to_text(data, errors="surrogate_then_replace").strip(),
+        transform_reply(),
+    ).data_xml
 
 
 def build_root_xml_node(tag):

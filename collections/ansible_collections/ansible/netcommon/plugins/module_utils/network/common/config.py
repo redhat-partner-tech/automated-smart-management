@@ -6,30 +6,17 @@
 #
 # (c) 2016 Red Hat Inc.
 #
-# Redistribution and use in source and binary forms, with or without modification,
-# are permitted provided that the following conditions are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#    * Redistributions in binary form must reproduce the above copyright notice,
-#      this list of conditions and the following disclaimer in the documentation
-#      and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-# USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-import re
-import hashlib
+# Simplified BSD License (see LICENSES/BSD-2-Clause.txt or https://opensource.org/licenses/BSD-2-Clause)
+# SPDX-License-Identifier: BSD-2-Clause
 
-from ansible.module_utils.six.moves import zip
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+import hashlib
+import re
+
 from ansible.module_utils._text import to_bytes, to_native
+from ansible.module_utils.six.moves import zip
 
 DEFAULT_COMMENT_TOKENS = ["#", "!", "/*", "*/", "echo"]
 
@@ -164,10 +151,13 @@ def dumps(objects, output="block", comments=False):
 
 
 class NetworkConfig(object):
-    def __init__(self, indent=1, contents=None, ignore_lines=None):
+    def __init__(
+        self, indent=1, contents=None, comment_tokens=None, ignore_lines=None
+    ):
         self._indent = indent
         self._items = list()
         self._config_text = None
+        self.comment_tokens = comment_tokens
 
         if ignore_lines:
             for item in ignore_lines:
@@ -215,7 +205,7 @@ class NetworkConfig(object):
         with open(fp) as f:
             return self.load(f.read())
 
-    def parse(self, lines, comment_tokens=None):
+    def parse(self, lines):
         toplevel = re.compile(r"\S")
         childline = re.compile(r"^\s*(.+)$")
         entry_reg = re.compile(r"([{};])")
@@ -232,7 +222,7 @@ class NetworkConfig(object):
 
             cfg = ConfigLine(line)
 
-            if not text or ignore_line(text, comment_tokens):
+            if not text or ignore_line(text, self.comment_tokens):
                 continue
 
             # handle top level commands
@@ -376,13 +366,30 @@ class NetworkConfig(object):
         visited = set()
         expanded = list()
 
-        for item in updates:
-            for p in item._parents:
-                if p.line not in visited:
+        for curr_elem in updates:
+            add_parents = False
+            if expanded:
+                last_elem = expanded[-1]
+                # If parent of current line not added in expanded list flag it
+                # to be added later on
+                if (
+                    all([curr_elem.has_parents, last_elem.has_parents])
+                    and curr_elem.parents[0] != last_elem.parents[0]
+                ):
+                    add_parents = True
+                # check if parent of current line is already added, if added don't
+                # add again
+                if (
+                    last_elem.has_children
+                    and last_elem.children[0] != curr_elem.text
+                ):
+                    add_parents = True
+            for p in curr_elem._parents:
+                if p.line not in visited or add_parents:
                     visited.add(p.line)
                     expanded.append(p)
-            expanded.append(item)
-            visited.add(item.line)
+            expanded.append(curr_elem)
+            visited.add(curr_elem.line)
 
         return expanded
 
@@ -395,7 +402,7 @@ class NetworkConfig(object):
         if not parents:
             for line in lines:
                 # handle ignore lines
-                if ignore_line(line):
+                if ignore_line(line, self.comment_tokens):
                     continue
 
                 item = ConfigLine(line)
@@ -424,7 +431,7 @@ class NetworkConfig(object):
             # add child objects
             for line in lines:
                 # handle ignore lines
-                if ignore_line(line):
+                if ignore_line(line, self.comment_tokens):
                     continue
 
                 # check if child already exists

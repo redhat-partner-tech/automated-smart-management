@@ -2,7 +2,8 @@
 extends: default
 
 ignore: |
-  .tox
+  \.tox
+  changelogs/*
 
 rules:
   braces:

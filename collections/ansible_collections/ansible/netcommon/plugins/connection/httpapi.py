@@ -1,18 +1,22 @@
 # (c) 2018 Red Hat Inc.
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
 DOCUMENTATION = """
-author: Ansible Networking Team
-connection: httpapi
+author:
+ - Ansible Networking Team (@ansible-network)
+name: httpapi
 short_description: Use httpapi to run command on network appliances
 description:
 - This connection plugin provides a connection to remote devices over a HTTP(S)-based
   api.
 version_added: 1.0.0
+extends_documentation_fragment:
+- ansible.netcommon.connection_persistent
 options:
   host:
     description:
@@ -20,6 +24,7 @@ options:
       to.
     default: inventory_hostname
     vars:
+    - name: inventory_hostname
     - name: ansible_host
   port:
     type: int
@@ -122,51 +127,13 @@ options:
     - name: ANSIBLE_BECOME_METHOD
     vars:
     - name: ansible_become_method
-  persistent_connect_timeout:
-    type: int
+  platform_type:
     description:
-    - Configures, in seconds, the amount of time to wait when trying to initially
-      establish a persistent connection.  If this value expires before the connection
-      to the remote device is completed, the connection will fail.
-    default: 30
-    ini:
-    - section: persistent_connection
-      key: connect_timeout
+    - Set type of platform.
     env:
-    - name: ANSIBLE_PERSISTENT_CONNECT_TIMEOUT
+    - name: ANSIBLE_PLATFORM_TYPE
     vars:
-    - name: ansible_connect_timeout
-  persistent_command_timeout:
-    type: int
-    description:
-    - Configures, in seconds, the amount of time to wait for a command to return from
-      the remote device.  If this timer is exceeded before the command returns, the
-      connection plugin will raise an exception and close.
-    default: 30
-    ini:
-    - section: persistent_connection
-      key: command_timeout
-    env:
-    - name: ANSIBLE_PERSISTENT_COMMAND_TIMEOUT
-    vars:
-    - name: ansible_command_timeout
-  persistent_log_messages:
-    type: boolean
-    description:
-    - This flag will enable logging the command executed and response received from
-      target device in the ansible log file. For this option to work 'log_path' ansible
-      configuration option is required to be set to a file path with write access.
-    - Be sure to fully understand the security implications of enabling this option
-      as it could create a security vulnerability by logging sensitive information
-      in log file.
-    default: false
-    ini:
-    - section: persistent_connection
-      key: log_messages
-    env:
-    - name: ANSIBLE_PERSISTENT_LOG_MESSAGES
-    vars:
-    - name: ansible_persistent_log_messages
+    - name: ansible_platform_type
 """
 
 from io import BytesIO
@@ -178,8 +145,11 @@ from ansible.module_utils.six.moves import cPickle
 from ansible.module_utils.six.moves.urllib.error import HTTPError, URLError
 from ansible.module_utils.urls import open_url
 from ansible.playbook.play_context import PlayContext
+from ansible.plugins.connection import ensure_connect
 from ansible.plugins.loader import httpapi_loader
-from ansible.plugins.connection import NetworkConnectionBase, ensure_connect
+from ansible_collections.ansible.netcommon.plugins.plugin_utils.connection_base import (
+    NetworkConnectionBase,
+)
 
 
 class Connection(NetworkConnectionBase):
@@ -193,12 +163,15 @@ class Connection(NetworkConnectionBase):
             play_context, new_stdin, *args, **kwargs
         )
 
-        self._url = None
         self._auth = None
-
         if self._network_os:
+            self.load_platform_plugins(self._network_os)
 
-            self.httpapi = httpapi_loader.get(self._network_os, self)
+    def load_platform_plugins(self, platform_type=None):
+        platform_type = platform_type or self.get_option("platform_type")
+
+        if platform_type:
+            self.httpapi = httpapi_loader.get(platform_type, self)
             if self.httpapi:
                 self._sub_plugin = {
                     "type": "httpapi",
@@ -207,25 +180,32 @@ class Connection(NetworkConnectionBase):
                 }
                 self.queue_message(
                     "vvvv",
-                    "loaded API plugin %s from path %s for network_os %s"
+                    "loaded API plugin %s from path %s for platform type %s"
                     % (
                         self.httpapi._load_name,
                         self.httpapi._original_path,
-                        self._network_os,
+                        platform_type,
                     ),
                 )
             else:
                 raise AnsibleConnectionFailure(
-                    "unable to load API plugin for network_os %s"
-                    % self._network_os
+                    "unable to load API plugin for platform type %s"
+                    % platform_type
                 )
 
         else:
             raise AnsibleConnectionFailure(
-                "Unable to automatically determine host network os. Please "
-                "manually configure ansible_network_os value for this host"
+                "Unable to automatically determine host platform type. Please "
+                "manually configure platform_type value for this host"
             )
-        self.queue_message("log", "network_os is set to %s" % self._network_os)
+        self.queue_message("log", "platform_type is set to %s" % platform_type)
+
+    @property
+    def _url(self):
+        protocol = "https" if self.get_option("use_ssl") else "http"
+        host = self.get_option("host")
+        port = self.get_option("port") or (443 if protocol == "https" else 80)
+        return "%s://%s:%s" % (protocol, host, port)
 
     def update_play_context(self, pc_data):
         """Updates the play context information for the connection"""
@@ -249,13 +229,6 @@ class Connection(NetworkConnectionBase):
 
     def _connect(self):
         if not self.connected:
-            protocol = "https" if self.get_option("use_ssl") else "http"
-            host = self.get_option("host")
-            port = self.get_option("port") or (
-                443 if protocol == "https" else 80
-            )
-            self._url = "%s://%s:%s" % (protocol, host, port)
-
             self.queue_message(
                 "vvv",
                 "ESTABLISH HTTP(S) CONNECTFOR USER: %s TO %s"
@@ -283,7 +256,7 @@ class Connection(NetworkConnectionBase):
         super(Connection, self).close()
 
     @ensure_connect
-    def send(self, path, data, **kwargs):
+    def send(self, path, data, retries=None, **kwargs):
         """
         Sends the command to the device over api
         """
@@ -314,11 +287,15 @@ class Connection(NetworkConnectionBase):
         except HTTPError as exc:
             is_handled = self.handle_httperror(exc)
             if is_handled is True:
-                return self.send(path, data, **kwargs)
-            elif is_handled is False:
+                if retries is None:
+                    # The default behavior, retry indefinitely until timeout.
+                    return self.send(path, data, **kwargs)
+                if retries:
+                    return self.send(path, data, retries=retries - 1, **kwargs)
                 raise
-            else:
-                response = is_handled
+            if is_handled is False:
+                raise
+            response = is_handled
         except URLError as exc:
             raise AnsibleConnectionFailure(
                 "Could not connect to {0}: {1}".format(
@@ -337,3 +314,13 @@ class Connection(NetworkConnectionBase):
         response_buffer.seek(0)
 
         return response, response_buffer
+
+    def transport_test(self, connect_timeout):
+        """This method enables wait_for_connection to work.
+
+        The sole purpose of this method is to raise an exception if the API's URL
+        cannot be reached. As such, it does not do anything except attempt to
+        request the root URL with no error handling.
+        """
+
+        open_url(self._url, timeout=connect_timeout)

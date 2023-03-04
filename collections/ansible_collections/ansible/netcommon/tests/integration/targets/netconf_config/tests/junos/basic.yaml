@@ -1,8 +1,11 @@
 ---
-- debug: msg="START netconf_config junos/basic.yaml on connection={{ ansible_connection
+- debug:
+    msg="START netconf_config junos/basic.yaml on connection={{ ansible_connection
     }}"
 
-- include_vars: '{{playbook_dir }}/targets/netconf_config/tests/junos/fixtures/config.yml'
+- include_vars: "{{playbook_dir }}/targets/netconf_config/tests/junos/fixtures/config.yml"
+
+- include_vars: "{{playbook_dir }}/targets/netconf_config/tests/junos/fixtures/invalid_config.yml"
 
 - name: syslog file config- setup
   junipernetworks.junos.junos_config:
@@ -12,7 +15,7 @@
 - name: configure syslog file
   register: result
   ansible.netcommon.netconf_config:
-    content: '{{ syslog_config }}'
+    content: "{{ syslog_config }}"
 
 - assert:
     that:
@@ -22,7 +25,7 @@
 - name: configure syslog file (idempotent)
   register: result
   ansible.netcommon.netconf_config:
-    content: '{{ syslog_config }}'
+    content: "{{ syslog_config }}"
 
 - assert:
     that:
@@ -32,7 +35,7 @@
   register: result
   ignore_errors: true
   ansible.netcommon.netconf_config:
-    content: '{{ syslog_config_replace }}'
+    content: "{{ syslog_config_replace }}"
     default_operation: replace
 
 - assert:
@@ -43,16 +46,27 @@
 - name: replace syslog config with operation key in content
   register: result
   ansible.netcommon.netconf_config:
-    content: '{{ syslog_config_replace }}'
+    content: "{{ syslog_config_replace }}"
 
 - assert:
     that:
       - result.changed == true
 
+- name: test content value in xml format rooted in <config> tag
+  register: result
+  ignore_errors: true
+  ansible.netcommon.netconf_config:
+    content: "{{ invalid_syslog_config }}"
+
+- assert:
+    that:
+      - result.failed == true
+      - "'content value should have XML string with config tag as the root node' in result.msg"
+
 - name: test backup
   register: result
   ansible.netcommon.netconf_config:
-    content: '{{ syslog_config }}'
+    content: "{{ syslog_config }}"
     backup: true
 
 - assert:
@@ -73,5 +87,6 @@
     that:
       - "'backup_path' in result"
 
-- debug: msg="END netconf_config junos/basic.yaml on connection={{ ansible_connection
+- debug:
+    msg="END netconf_config junos/basic.yaml on connection={{ ansible_connection
     }}"

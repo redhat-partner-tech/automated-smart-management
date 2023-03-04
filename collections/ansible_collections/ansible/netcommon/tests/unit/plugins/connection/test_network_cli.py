@@ -1,167 +1,205 @@
 #
 # (c) 2016 Red Hat Inc.
-#
-# This file is part of Ansible
-#
-# Ansible is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Ansible is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Make coding more python3-ish
 from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-import re
 import json
+from unittest.mock import MagicMock
 
-from ansible_collections.ansible.netcommon.tests.unit.compat import unittest
-from ansible_collections.ansible.netcommon.tests.unit.compat.mock import (
-    patch,
-    MagicMock,
-)
-
-from ansible.module_utils._text import to_text
+import pytest
 from ansible.errors import AnsibleConnectionFailure
+from ansible.module_utils._text import to_text
 from ansible.playbook.play_context import PlayContext
 from ansible.plugins.loader import connection_loader
+from ansible_collections.ansible.netcommon.plugins.connection.network_cli import (
+    terminal_loader,
+)
 
 
-class TestConnectionClass(unittest.TestCase):
-    def test_network_cli__invalid_os(self):
-        pc = PlayContext()
-        pc.network_os = "does not exist"
+@pytest.fixture(name="conn")
+def plugin_fixture(monkeypatch):
 
-        self.assertRaises(
-            AnsibleConnectionFailure,
-            connection_loader.get,
-            "network_cli",
-            pc,
-            "/dev/null",
-        )
+    pc = PlayContext()
+    pc.network_os = "fakeos"
 
-    def test_network_cli__no_os(self):
-        pc = PlayContext()
-        pc.network_os = None
+    def get(*args, **kwargs):
+        return MagicMock()
 
-        self.assertRaises(
-            AnsibleConnectionFailure,
-            connection_loader.get,
-            "network_cli",
-            pc,
-            "/dev/null",
-        )
-
-    @patch(
-        "ansible_collections.ansible.netcommon.plugins.connection.network_cli.terminal_loader"
+    monkeypatch.setattr(terminal_loader, "get", get)
+    conn = connection_loader.get(
+        "ansible.netcommon.network_cli", pc, "/dev/null"
     )
-    @patch("ansible.plugins.connection.paramiko_ssh.Connection._connect")
-    def test_network_cli__connect(self, mocked_super, mocked_terminal_loader):
-        pc = PlayContext()
-        pc.network_os = "ios"
-        conn = connection_loader.get("network_cli", pc, "/dev/null")
+    return conn
 
-        conn.ssh = MagicMock()
-        conn.receive = MagicMock()
 
-        conn._connect()
-        self.assertTrue(conn._terminal.on_open_shell.called)
-        self.assertFalse(conn._terminal.on_become.called)
+@pytest.mark.parametrize("network_os", [None, "invalid"])
+def test_network_cli_invalid_os(network_os):
+    pc = PlayContext()
+    pc.network_os = network_os
 
+    with pytest.raises(AnsibleConnectionFailure):
+        connection_loader.get("ansible.netcommon.network_cli", pc, "/dev/null")
+
+
+@pytest.mark.parametrize("look_for_keys", [True, False, None])
+@pytest.mark.parametrize("password", ["password", None])
+@pytest.mark.parametrize("private_key_file", ["/path/to/key/file", None])
+@pytest.mark.parametrize("ssh_type", ["paramiko", "libssh", "auto"])
+def test_look_for_keys(
+    conn, look_for_keys, password, private_key_file, ssh_type
+):
+    conn.set_options(
+        direct={
+            "ssh_type": ssh_type,
+            "password": password,
+            "private_key_file": private_key_file,
+        }
+    )
+    if look_for_keys is not None:
+        conn.set_options(direct={"look_for_keys": look_for_keys})
+        assert conn.ssh_type_conn.get_option("look_for_keys") is look_for_keys
+
+    # We automagically set look_for_keys based on the state of password and
+    # private_key_file. Make sure that setting is preserved if the option
+    # is not set manually.
+    elif private_key_file:
+        assert conn.ssh_type_conn.get_option("look_for_keys") is True
+    elif password:
+        assert conn.ssh_type_conn.get_option("look_for_keys") is False
+    else:
+        assert conn.ssh_type_conn.get_option("look_for_keys") is True
+
+
+@pytest.mark.parametrize("ssh_type", ["paramiko", "libssh", "auto"])
+def test_options_pass_through(conn, ssh_type):
+    conn.set_options(
+        direct={
+            "ssh_type": ssh_type,
+            "host_key_checking": False,
+            "proxy_command": "do a proxy",
+        }
+    )
+    # Options not found in underlying connection plugin are not set
+    assert conn.get_option("ssh_type") == ssh_type
+    with pytest.raises(KeyError):
+        conn.ssh_type_conn.get_option("ssh_type")
+    # Options which are shared do pass through
+    # At some point these options should be able to be dropped from network_cli
+    assert conn.get_option("host_key_checking") is False
+    assert conn.ssh_type_conn.get_option("host_key_checking") is False
+    # Options not found in network_cli are not saved there
+    with pytest.raises(KeyError):
+        conn.get_option("proxy_command")
+    assert conn.ssh_type_conn.get_option("proxy_command") == "do a proxy"
+
+
+@pytest.mark.parametrize("has_libssh", (True, False))
+def test_network_cli_ssh_type_auto(conn, has_libssh):
+    """Test that ssh_type: auto resolves to the correct option."""
+    from ansible_collections.ansible.netcommon.plugins.connection import (
+        network_cli,
+    )
+
+    network_cli.HAS_PYLIBSSH = has_libssh
+
+    conn.set_options(
+        direct={
+            "ssh_type": "auto",
+        }
+    )
+    if has_libssh:
+        assert conn.ssh_type == "libssh"
+    else:
+        assert conn.ssh_type == "paramiko"
+
+
+@pytest.mark.parametrize(
+    "become_method,become_pass", [("enable", "password"), (None, None)]
+)
+def test_network_cli__connect(conn, become_method, become_pass):
+    conn.ssh = MagicMock()
+    conn.receive = MagicMock()
+    conn._terminal = MagicMock()
+    conn._ssh_type_conn = MagicMock()
+
+    if become_method:
         conn._play_context.become = True
-        conn._play_context.become_method = "enable"
-        conn._play_context.become_pass = "password"
-        conn._connected = False
+        conn._play_context.become_method = become_method
+        conn._play_context.become_pass = become_pass
 
-        conn._connect()
-        conn._terminal.on_become.assert_called_with(passwd="password")
+    conn._connect()
+    assert conn._ssh_type_conn._connect.called is True
+    assert conn._terminal.on_open_shell.called is True
+    if become_method:
+        conn._terminal.on_become.assert_called_with(passwd=become_pass)
+    else:
+        assert conn._terminal.on_become.called is False
 
-    @patch("ansible.plugins.connection.paramiko_ssh.Connection.close")
-    def test_network_cli_close(self, mocked_super):
-        pc = PlayContext()
-        pc.network_os = "ios"
-        conn = connection_loader.get("network_cli", pc, "/dev/null")
 
-        terminal = MagicMock(supports_multiplexing=False)
-        conn._terminal = terminal
-        conn._ssh_shell = MagicMock()
-        conn._paramiko_conn = MagicMock()
-        conn._connected = True
+@pytest.mark.parametrize(
+    "command", ["command", json.dumps({"command": "command"})]
+)
+def test_network_cli_exec_command(conn, command):
+    mock_send = MagicMock(return_value=b"command response")
+    conn.send = mock_send
+    conn._ssh_shell = MagicMock()
+    conn._ssh_type_conn = MagicMock()
 
-        conn.close()
-        self.assertTrue(terminal.on_close_shell.called)
-        self.assertIsNone(conn._ssh_shell)
-        self.assertIsNone(conn._paramiko_conn)
+    out = conn.exec_command(command)
 
-    @patch("ansible.plugins.connection.paramiko_ssh.Connection._connect")
-    def test_network_cli_exec_command(self, mocked_super):
-        pc = PlayContext()
-        pc.network_os = "ios"
-        conn = connection_loader.get("network_cli", pc, "/dev/null")
+    mock_send.assert_called_with(command=b"command")
+    assert out == b"command response"
 
-        mock_send = MagicMock(return_value=b"command response")
-        conn.send = mock_send
-        conn._ssh_shell = MagicMock()
 
-        # test sending a single command and converting to dict
-        out = conn.exec_command("command")
-        self.assertEqual(out, b"command response")
-        mock_send.assert_called_with(command=b"command")
-
-        # test sending a json string
-        out = conn.exec_command(json.dumps({"command": "command"}))
-        self.assertEqual(out, b"command response")
-        mock_send.assert_called_with(command=b"command")
-
-    @patch(
-        "ansible_collections.ansible.netcommon.plugins.connection.network_cli.Connection._get_terminal_std_re"
+@pytest.mark.parametrize(
+    "response",
+    [
+        b"device#command\ncommand response\n\ndevice#",
+        pytest.param(
+            b"ERROR: error message device#",
+            marks=pytest.mark.xfail(raises=AnsibleConnectionFailure),
+        ),
+    ],
+)
+@pytest.mark.parametrize("ssh_type", ["paramiko", "libssh", "auto"])
+def test_network_cli_send(conn, response, ssh_type):
+    conn.set_options(
+        direct={
+            "ssh_type": ssh_type,
+            "terminal_stderr_re": [{"pattern": "^ERROR"}],
+            "terminal_stdout_re": [{"pattern": "device#"}],
+        }
     )
-    @patch(
-        "ansible_collections.ansible.netcommon.plugins.connection.network_cli.Connection._connect"
-    )
-    def test_network_cli_send(self, mocked_connect, mocked_terminal_re):
+    mock__shell = MagicMock()
 
-        pc = PlayContext()
-        pc.network_os = "ios"
-        conn = connection_loader.get("network_cli", pc, "/dev/null")
+    conn._terminal = MagicMock()
+    conn._ssh_shell = mock__shell
+    conn._connected = True
 
-        mock__terminal = MagicMock()
-        mocked_terminal_re.side_effect = [
-            [re.compile(b"^ERROR")],
-            [re.compile(b"device#")],
-        ]
-        conn._terminal = mock__terminal
-
-        mock__shell = MagicMock()
-        conn._ssh_shell = mock__shell
-
-        response = b"""device#command
-        command response
-
-        device#
-        """
-
+    if conn.ssh_type == "paramiko":
         mock__shell.recv.side_effect = [response, None]
-        conn.send(b"command")
+    elif conn.ssh_type == "libssh":
+        mock__shell.read_bulk_response.side_effect = [response, None]
+    conn.send(b"command")
 
-        mock__shell.sendall.assert_called_with(b"command\r")
-        self.assertEqual(to_text(conn._command_response), "command response")
+    mock__shell.sendall.assert_called_with(b"command\r")
+    assert to_text(conn._command_response) == "command response"
 
-        mock__shell.reset_mock()
-        mock__shell.recv.side_effect = [b"ERROR: error message device#"]
-        mocked_terminal_re.side_effect = [
-            [re.compile(b"^ERROR")],
-            [re.compile(b"device#")],
-        ]
-        with self.assertRaises(AnsibleConnectionFailure) as exc:
-            conn.send(b"command")
-        self.assertEqual(str(exc.exception), "ERROR: error message device#")
+
+def test_network_cli_close(conn):
+    conn._terminal = MagicMock()
+    conn._ssh_shell = MagicMock()
+    conn._ssh_type_conn = MagicMock()
+    conn._connected = True
+
+    conn.close()
+
+    assert conn._connected is False
+    assert conn._terminal.on_close_shell.called is True
+    assert conn._ssh_shell is None
+    assert conn._ssh_type_conn is None

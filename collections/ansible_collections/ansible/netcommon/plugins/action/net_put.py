@@ -1,33 +1,20 @@
 # (c) 2018, Ansible Inc,
-#
-# This file is part of Ansible
-#
-# Ansible is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Ansible is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
-#
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+import hashlib
 import os
 import uuid
-import hashlib
 
 from ansible.errors import AnsibleError
-from ansible.module_utils._text import to_text, to_bytes
+from ansible.module_utils._text import to_bytes, to_text
 from ansible.module_utils.connection import Connection, ConnectionError
-from ansible.plugins.action import ActionBase
 from ansible.module_utils.six.moves.urllib.parse import urlsplit
+from ansible.plugins.action import ActionBase
 from ansible.utils.display import Display
 
 display = Display()
@@ -77,8 +64,8 @@ class ActionModule(ActionBase):
 
         if mode == "text":
             try:
-                self._handle_template(convert_data=False)
-            except ValueError as exc:
+                self._handle_src_option(convert_data=False)
+            except AnsibleError as exc:
                 return dict(failed=True, msg=to_text(exc))
 
             # Now src has resolved file write to disk in current diectory for scp
@@ -106,7 +93,6 @@ class ActionModule(ActionBase):
 
         if dest is None:
             dest = src_file_path_name
-
         try:
             changed = self._handle_existing_file(
                 conn, output_file, dest, proto, sock_timeout
@@ -114,6 +100,9 @@ class ActionModule(ActionBase):
             if changed is False:
                 result["changed"] = changed
                 result["destination"] = dest
+                if mode == "text":
+                    # Cleanup tmp file expanded wih ansible vars
+                    os.remove(output_file)
                 return result
         except Exception as exc:
             result["msg"] = (
@@ -169,7 +158,6 @@ class ActionModule(ActionBase):
                 if os.path.exists(tmp_source_file):
                     os.remove(tmp_source_file)
                 return True
-
         try:
             with open(source, "r") as f:
                 new_content = f.read()
@@ -215,6 +203,46 @@ class ActionModule(ActionBase):
         if self._task._role is not None:
             cwd = self._task._role._role_path
         return cwd
+
+    def _handle_src_option(self, convert_data=True):
+        src = self._task.args.get("src")
+        working_path = self._get_working_path()
+
+        if os.path.isabs(src) or urlsplit("src").scheme:
+            source = src
+        else:
+            source = self._loader.path_dwim_relative(
+                working_path, "templates", src
+            )
+            if not source:
+                source = self._loader.path_dwim_relative(working_path, src)
+
+        if not os.path.exists(source):
+            raise AnsibleError("path specified in src not found")
+
+        try:
+            with open(source, "r") as f:
+                template_data = to_text(f.read())
+        except IOError as e:
+            raise AnsibleError(
+                "unable to load src file {0}, I/O error({1}): {2}".format(
+                    source, e.errno, e.strerror
+                )
+            )
+
+        # Create a template search path in the following order:
+        # [working_path, self_role_path, dependent_role_paths, dirname(source)]
+        searchpath = [working_path]
+        if self._task._role is not None:
+            searchpath.append(self._task._role._role_path)
+            if hasattr(self._task, "_block:"):
+                dep_chain = self._task._block.get_dep_chain()
+                if dep_chain is not None:
+                    for role in dep_chain:
+                        searchpath.append(role._role_path)
+        searchpath.append(os.path.dirname(source))
+        self._templar.environment.loader.searchpath = searchpath
+        self._task.args["src"] = self._templar.template(template_data)
 
     def _get_network_os(self, task_vars):
         if "network_os" in self._task.args and self._task.args["network_os"]:
