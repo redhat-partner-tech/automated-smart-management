@@ -274,6 +274,13 @@
    "format": 1
   },
   {
+   "name": "bindep.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "184465565a1a4a07b9b405c094a43b58181e9410dfecc5479e6b2a5581c7abdd",
+   "format": 1
+  },
+  {
    "name": "tests",
    "ftype": "dir",
    "chksum_type": null,
@@ -319,7 +326,7 @@
    "name": "galaxy.yml.j2",
    "ftype": "file",
    "chksum_type": "sha256",
-   "chksum_sha256": "d9745daae76572a460256b505a7a5aeccff2943ab110fa4a9d92904687595bb2",
+   "chksum_sha256": "287a59a54cc62beed5eeb6e529d8f6df9c532da1e21cc54ffbdfcfc903e3893b",
    "format": 1
   },
   {
@@ -327,6 +334,13 @@
    "ftype": "file",
    "chksum_type": "sha256",
    "chksum_sha256": "7fe73c62d2d981bbea053b05883467c639f4b6b3668ab089b9ce6d6c3a3735d0",
+   "format": 1
+  },
+  {
+   "name": "requirements.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7cc4959877dbe6b6c63a8eb1bfe3bfb545fa8fe5b28b1b2c13e4a7c1c0d1c4d4",
    "format": 1
   },
   {
@@ -347,7 +361,7 @@
    "name": "docs/inventory.md",
    "ftype": "file",
    "chksum_type": "sha256",
-   "chksum_sha256": "d81f341cd9d8f04ae56d2d6f172fe805431e5cf5898e2c4230f224681fe7b7af",
+   "chksum_sha256": "256e4f12800dd8ddc37e1a08dc61a6b95dc02024e30471da10addbe78723f731",
    "format": 1
   },
   {
@@ -400,6 +414,20 @@
    "format": 1
   },
   {
+   "name": "meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "meta/runtime.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3266d34e6a46242eff38e74fc5cdde6118b654e516608462bf5a8390d7c4399d",
+   "format": 1
+  },
+  {
    "name": ".github",
    "ftype": "dir",
    "chksum_type": null,
@@ -417,7 +445,7 @@
    "name": ".github/workflows/ansible-test.yml",
    "ftype": "file",
    "chksum_type": "sha256",
-   "chksum_sha256": "8169bcb0e18c2398788b72a547ca1d06905a63333f6a7c4fd4313b72a6c1bc82",
+   "chksum_sha256": "419b6af28b91aa12b6c0283213249e83e5cb90497380e0d505c7245a71dcfd93",
    "format": 1
   },
   {
@@ -445,7 +473,7 @@
    "name": "plugins/modules/insights_register.py",
    "ftype": "file",
    "chksum_type": "sha256",
-   "chksum_sha256": "f660dd829fa55e2a5c9a55a0238fa7f0ec64da8d0868c1347dfc7cafbdd9987a",
+   "chksum_sha256": "334512ded62778d417071d8ef77c613f231318c3bd65b9d1861bc858a110e6a4",
    "format": 1
   },
   {
@@ -466,7 +494,7 @@
    "name": "plugins/inventory/insights.py",
    "ftype": "file",
    "chksum_type": "sha256",
-   "chksum_sha256": "381b9d934f4d372a80f69ee59426c40283b829619b6e2afbe6c02a9163c52cab",
+   "chksum_sha256": "06d7696c2b24baab911b179c105c57080ee77a47354456d4856f2d41ecaa54be",
    "format": 1
   },
   {

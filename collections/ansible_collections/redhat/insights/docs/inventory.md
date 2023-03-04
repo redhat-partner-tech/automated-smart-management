@@ -46,6 +46,22 @@ False</td>
 <td> Filter hosts with given tags</td>
 </tr>
 <tr>
+<td><b>get_system_advisories</b></br>
+</td>
+<td><b>Default:</b><br> 
+False</td>
+<td></td>
+<td> Get advisories per ansible managed host in hostvars.</td>
+</tr>
+<tr>
+<td><b>get_system_packages</b></br>
+</td>
+<td><b>Default:</b><br> 
+False</td>
+<td></td>
+<td> Get packages information per ansible managed host in hostvars.</td>
+</tr>
+<tr>
 <td><b>plugin</b></br>
 <p style="color:red;font-size:75%">required</p></td>
 <td><b>Choices:</b><br>
@@ -106,5 +122,14 @@ filter_tags:
 keyed_groups:
   - key: insights_tags['insights-client']
     prefix: insights
+
+# filter host by tags and get advisories and packages data per host
+plugin: redhat.insights.insights
+get_patches: true
+get_system_advisories: true
+get_system_packages: true
+get_tags: True
+filter_tags:
+  - insights-client/env=prod
 
 ```

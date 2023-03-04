@@ -46,6 +46,7 @@ options:
       This option should be set to true if you wish to force a reregister of the insights-client.
       Note that this will remove the existing machine-id and create a new one. Only use this option
       if you are okay with creating a new machine-id.
+    default: false
     required: false
     type: bool
 
@@ -145,7 +146,7 @@ def run_module():
 
     if state == 'absent':
         result['original_message'] = 'Attempting to unregister ' + insights_name
-        if reg_status is not 0:
+        if reg_status != 0:
             result['changed'] = False
             result['message'] = insights_name + ' is already unregistered'
             module.exit_json(**result)
