@@ -112,6 +112,21 @@ options:
         description:
           - zone for I(provider=GCE)
         type: str
+      cloud:
+        description:
+          - cloud for I(provider=AzureRm)
+        type: str
+        choices:
+          - azure
+          - azureusgovernment
+          - azurechina
+          - azuregermancloud
+        version_added: 2.1.0
+      sub_id:
+        description:
+          - Subscription ID for I(provider=AzureRm)
+        type: str
+        version_added: 2.1.0
       ssl_verify_peer:
         description:
           - verify ssl from provider I(provider=proxmox)
@@ -120,6 +135,55 @@ options:
         description:
           - enable caching for I(provider=vmware)
         type: bool
+      set_console_password:
+        description:
+          - Set a randomly generated password on the display connection for I(provider=vmware) and I(provider=libvirt)
+        type: bool
+        version_added: 2.0.0
+      keyboard_layout:
+        description:
+          - Default VNC Keyboard for I(provider=ovirt)
+        type: str
+        version_added: 2.0.0
+        choices:
+          - 'ar'
+          - 'da'
+          - 'de'
+          - 'de-ch'
+          - 'en-gb'
+          - 'en-us'
+          - 'es'
+          - 'et'
+          - 'fi'
+          - 'fo'
+          - 'fr'
+          - 'fr-be'
+          - 'fr-ca'
+          - 'fr-ch'
+          - 'hr'
+          - 'hu'
+          - 'is'
+          - 'it'
+          - 'ja'
+          - 'lt'
+          - 'lv'
+          - 'mk'
+          - 'nl'
+          - 'nl-be'
+          - 'no'
+          - 'pl'
+          - 'pt'
+          - 'pt-br'
+          - 'ru'
+          - 'sl'
+          - 'sv'
+          - 'th'
+          - 'tr'
+      public_key:
+        description:
+          - X509 Certification Authorities, only valid for I(provider=ovirt)
+        type: str
+        version_added: 2.0.0
 extends_documentation_fragment:
   - redhat.satellite.foreman
   - redhat.satellite.foreman.entity_state_with_defaults
@@ -127,7 +191,7 @@ extends_documentation_fragment:
 '''
 
 EXAMPLES = '''
-- name: Create livirt compute resource
+- name: Create libvirt compute resource
   redhat.satellite.compute_resource:
     name: example_compute_resource
     locations:
@@ -136,8 +200,8 @@ EXAMPLES = '''
       - ACME
     provider: libvirt
     provider_params:
-      url: libvirt.example.com
-      display_type: vnc
+      url: qemu+ssh://root@libvirt.example.com/system
+      display_type: spice
     server_url: "https://satellite.example.com"
     username: "admin"
     password: "changeme"
@@ -153,8 +217,8 @@ EXAMPLES = '''
       - ACME
     provider: libvirt
     provider_params:
-      url: libvirt.example.com
-      display_type: vnc
+      url: qemu+ssh://root@libvirt.example.com/system
+      display_type: spice
     server_url: "https://satellite.example.com"
     username: "admin"
     password: "changeme"
@@ -253,7 +317,7 @@ EXAMPLES = '''
       - ACME
     provider: AzureRm
     provider_params:
-      user: SUBSCRIPTION_ID
+      sub_id: SUBSCRIPTION_ID
       tenant: TENANT_ID
       app_ident: CLIENT_ID
       password: CLIENT_SECRET
@@ -304,22 +368,22 @@ def get_provider_info(provider):
     provider_name = provider.lower()
 
     if provider_name == 'libvirt':
-        return 'Libvirt', ['url', 'display_type']
+        return 'Libvirt', ['url', 'display_type', 'set_console_password']
 
     elif provider_name == 'ovirt':
-        return 'Ovirt', ['url', 'user', 'password', 'datacenter', 'use_v4', 'ovirt_quota']
+        return 'Ovirt', ['url', 'user', 'password', 'datacenter', 'use_v4', 'ovirt_quota', 'keyboard_layout', 'public_key']
 
     elif provider_name == 'proxmox':
         return 'Proxmox', ['url', 'user', 'password', 'ssl_verify_peer']
 
     elif provider_name == 'vmware':
-        return 'Vmware', ['url', 'user', 'password', 'datacenter', 'caching_enabled']
+        return 'Vmware', ['url', 'user', 'password', 'datacenter', 'caching_enabled', 'set_console_password']
 
     elif provider_name == 'ec2':
         return 'EC2', ['user', 'password', 'region']
 
     elif provider_name == 'azurerm':
-        return 'AzureRm', ['user', 'password', 'tenant', 'region', 'app_ident']
+        return 'AzureRm', ['user', 'password', 'tenant', 'region', 'app_ident', 'cloud', 'sub_id']
 
     elif provider_name == 'gce':
         return 'GCE', ['project', 'email', 'key_path', 'zone']
@@ -354,7 +418,12 @@ def main():
             email=dict(invisible=True),
             key_path=dict(invisible=True),
             zone=dict(invisible=True),
+            cloud=dict(invisible=True),
             ssl_verify_peer=dict(invisible=True),
+            set_console_password=dict(invisible=True),
+            keyboard_layout=dict(invisible=True),
+            public_key=dict(invisible=True),
+            sub_id=dict(invisible=True),
         ),
         argument_spec=dict(
             provider_params=dict(type='dict', options=dict(
@@ -371,10 +440,18 @@ def main():
                 ovirt_quota=dict(),
                 project=dict(),
                 email=dict(),
-                key_path=dict(),
+                key_path=dict(no_log=False),
                 zone=dict(),
+                cloud=dict(choices=['azure', 'azureusgovernment', 'azurechina', 'azuregermancloud']),
                 ssl_verify_peer=dict(type='bool'),
-            )),
+                set_console_password=dict(type='bool'),
+                keyboard_layout=dict(choices=['ar', 'de-ch', 'es', 'fo', 'fr-ca', 'hu', 'ja', 'mk', 'no', 'pt-br', 'sv', 'da', 'en-gb', 'et', 'fr', 'fr-ch',
+                                              'is', 'lt', 'nl', 'pl', 'ru', 'th', 'de', 'en-us', 'fi', 'fr-be', 'hr', 'it', 'lv', 'nl-be', 'pt', 'sl', 'tr']),
+                public_key=dict(),
+                sub_id=dict(),
+            ),
+                mutually_exclusive=[['user', 'sub_id']],
+            ),
             state=dict(type='str', default='present', choices=['present', 'absent', 'present_with_defaults']),
         ),
         required_if=(
@@ -387,6 +464,8 @@ def main():
             module.foreman_params['provider'], provider_param_keys = get_provider_info(provider=module.foreman_params['provider'])
             provider_params = module.foreman_params.pop('provider_params', {})
 
+            if module.foreman_params['provider'] == 'AzureRm' and 'user' in provider_params:
+                provider_params['sub_id'] = provider_params.pop('user')
             for key in provider_param_keys:
                 if key in provider_params:
                     module.foreman_params[key] = provider_params.pop(key)

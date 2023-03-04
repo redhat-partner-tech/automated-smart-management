@@ -6,14 +6,298 @@ redhat.satellite Release Notes
 
 This changelog describes changes after version 0.8.1.
 
-v1.5.1
+v3.9.0
 ======
 
 Bugfixes
 --------
 
+- content_export_* - increase task timeout to 12h as export tasks can be time intensive (https://bugzilla.redhat.com/show_bug.cgi?id=2162678)
+
+New Modules
+-----------
+
+- redhat.satellite.content_view_filter_info - Fetch information about a Content View Filter
+- redhat.satellite.content_view_filter_rule - Manage content view filter rules
+- redhat.satellite.content_view_filter_rule_info - Fetch information about a Content View Filter Rule
+- redhat.satellite.hostgroup_info - Get information about hostgroup(s)
+
+v3.8.0
+======
+
+Minor Changes
+-------------
+
+- job_template - add ``default`` option to the ``template_inputs`` parameter
+- location, organization - add ``ignore_types`` parameter to adjust automatic association of resources
+- redhat_manifest - Search by UUID on the server side if UUID is known. This is faster and allows fetching of manifest in big accounts (>1000 allocations).
+- redhat_manifest - return the UUID of the manifest so it can be reused later
+- redhat_manifest - set default ``quantity`` to 1 (https://github.com/theforeman/foreman-ansible-modules/pull/1499)
+
+Bugfixes
+--------
+
+- activation_key - properly fetch *all* repositories when managing content overrides (https://bugzilla.redhat.com/show_bug.cgi?id=2134605)
+- redhat_manifest - properly report http errors (https://github.com/theforeman/foreman-ansible-modules/issues/1497)
+- repository_sync - report an error instead of syncing the whole product when the repository could not be found
+
+v3.7.0
+======
+
+Minor Changes
+-------------
+
+- repository - add support for ``include_tags`` and ``exclude_tags`` parameters for Katello 4.4+
+- subscription_manifest - increase the import timeout to 10 minutes (https://github.com/theforeman/foreman-ansible-modules/issues/1474)
+- sync_plans role - document the ``enabled`` parameter (https://github.com/theforeman/foreman-ansible-modules/issues/1477)
+- sync_plans role - expose the ``state`` parameter of the underlying module, thus allowing to delete plans (https://github.com/theforeman/foreman-ansible-modules/issues/1477)
+
+Bugfixes
+--------
+
+- Properly use FQCN notation when redirecting the old ``foreman_*`` and ``katello_*`` module names. (https://github.com/theforeman/foreman-ansible-modules/issues/1484)
+- convert2rhel role - Content views for activation keys (https://bugzilla.redhat.com/2118790)
+
+v3.6.0
+======
+
+New Modules
+-----------
+
+- redhat.satellite.content_export_repository - Manage repository content exports
+- redhat.satellite.content_export_version - Manage content view version content exports
+
+v3.5.0
+======
+
+Minor Changes
+-------------
+
+- add execution environment metadata
+- installation_medium, operatingsystem, partition_table - add ``Fcos``, ``Rhcos``, ``VRP`` OS families
+- job_template - add ``hidden_value`` to ``template_inputs`` parameters
+- job_template - allow ``value_type`` to be ``resource``
+- operatingsystems role - make ``provisioning_template`` parameter optional
+- repositories role - add ``ansible_collection_requirements``
+- repositories role - add ``arch`` and ``os_versions`` parameters
+- repositories role - support ``mirroring_policy``
+- repository, smart_proxy - document deprecation/removal status of ``download_policy=background``
+- setting - the ``foreman_setting`` return entry is deprecated and kept for backwards compatibility, please use ``entity`` as with any other module
+- smart_proxy - add ``inherit`` to possible values of ``download_policy`` (https://github.com/theforeman/foreman-ansible-modules/issues/1438)
+- smart_proxy - add ``streamed`` download policy
+
+New Modules
+-----------
+
+- redhat.satellite.content_export_info - List pulp3 content exports
+- redhat.satellite.content_export_library - Manage content exports
+- redhat.satellite.discovery_rule - Manage Host Discovery Rules
+
+v3.4.0
+======
+
+Minor Changes
+-------------
+
+- add support for module defaults groups for Ansible core 2.12 (https://github.com/theforeman/foreman-ansible-modules/issues/1015)
+- all modules - report smaller diffs by dropping ``null`` values. This should result in not showing fields that were unset to begin with, and mark fields that were explicitly removed as "deleted" instead of "replaced by ``null``"
+- compute_resource - update libvirt examples (https://bugzilla.redhat.com/show_bug.cgi?id=1990119)
+- content_view - add support to set label during creation.
+- repository - add ``rhel-9`` to os version filter choices
+- repository - add support for ``mirroring_policy`` for Katello 4.4+ (https://github.com/theforeman/foreman-ansible-modules/issues/1388)
+
+Bugfixes
+--------
+
+- content_upload - properly detect SRPMs and ensure idempotency during uploads (https://github.com/theforeman/foreman-ansible-modules/issues/1274)
+- inventory plugin - fix caching for Report API (https://github.com/theforeman/foreman-ansible-modules/issues/1246)
+- operatingsystem - find operatingsystems by title or full (name,major,minor) tuple (https://github.com/theforeman/foreman-ansible-modules/issues/1401)
+- os_default_template, provisioning_template - don't document invalid template kind ``ptable`` (https://bugzilla.redhat.com/show_bug.cgi?id=1970132)
+
+v3.3.0
+======
+
+Minor Changes
+-------------
+
+- content_upload - add support for OSTree content uploads (https://github.com/theforeman/foreman-ansible-modules/issues/628, https://projects.theforeman.org/issues/33299)
+- os_default_template, provisioning_template - add ``host_init_config`` to list of possible template types
+
+v3.2.0
+======
+
+Minor Changes
+-------------
+
+- new ``auth_sources_ldap`` role to manage LDAP authentication sources
+
+Bugfixes
+--------
+
+- content_upload - clarify that ``src`` refers to a remote file (https://bugzilla.redhat.com/show_bug.cgi?id=2055416)
+
+v3.1.0
+======
+
+Minor Changes
+-------------
+
+- Warn if the user tries to use a plain HTTP server URL and fail if the URL is neither HTTPS nor HTTP.
+- new ``compute_profiles`` role to manage compute profiles
+- new ``compute_resources`` role to manage compute resources
+- new ``content_view_publish`` role to publish a list of content views (https://github.com/theforeman/foreman-ansible-modules/issues/1209)
+- new ``domains`` role to manage domains
+- new ``operatingsystems`` role to manage operating systems
+- new ``provisioning_templates`` role to manage provisioning templates
+- new ``settings`` role to manage settings
+- new ``subnets`` role to manage subnets
+- repository - new ``download_concurrency`` parameter (https://github.com/theforeman/foreman-ansible-modules/issues/1273)
+
+Bugfixes
+--------
+
+- callback plugin - include timezone information in the callback reported data (https://github.com/theforeman/foreman-ansible-modules/issues/1171)
+- hostgroup, location - don't fail when trying to delete a Hostgroup or Location where the parent is already absent
+- inventory plugin - fetch *all* facts, not only the first 250, when using the old Hosts API
+
+v3.0.0
+======
+
+Minor Changes
+-------------
+
+- Add a role `convert2rhel` to perform setup for converting systems to RHEL
+- inventory plugin - enable certificate validation by default
+- repository - add ``arch`` parameter to limit architectures of the repository (https://github.com/theforeman/foreman-ansible-modules/issues/1265)
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- Set use_reports_api default value to true for the inventory plugin
+- Support for Ansible 2.8 is removed
+
+Bugfixes
+--------
+
+- host, hostgroup - fix updating puppetclasses while also updating description (or other string-like attributes) (https://github.com/theforeman/foreman-ansible-modules/issues/1231)
+
+v2.2.0
+======
+
+Minor Changes
+-------------
+
+- repository - add support for filtering repositories by OS version based on API feature apidoc/v2/repositories/create.html
+
+Bugfixes
+--------
+
+- host, hostgroup - don't accidentally duplicate ``kt_activation_keys`` param (https://github.com/theforeman/foreman-ansible-modules/issues/1268)
+
+v2.1.2
+======
+
+Bugfixes
+--------
+
+- activation_key - submit organization_id when querying subs, required for Katello 4.1
+- content_view_version_cleanup - sort content view versions before deleting (https://github.com/RedHatSatellite/satellite-ansible-collection/issues/30, https://bugzilla.redhat.com/show_bug.cgi?id=1980274)
+- content_view_version_cleanup role - properly clean up when users set keep=0 (https://bugzilla.redhat.com/show_bug.cgi?id=1974314)
+- host, compute_profile - when resolving cluster and other values in vm_attrs, compare them as strings (https://github.com/theforeman/foreman-ansible-modules/issues/1245)
+- subscription_info - mark ``organization`` parameter as required, to match Katello
+
+v2.1.1
+======
+
+Bugfixes
+--------
+
+- external_usergroup - always lookup the ID of the usergroup, instead of passing the name to the API (https://bugzilla.redhat.com/show_bug.cgi?id=1967649)
+- host, hostgroup - don't override already set parameters when passing an activation key only (and vice versa) (https://bugzilla.redhat.com/show_bug.cgi?id=1967904)
+
+v2.1.0
+======
+
+Minor Changes
+-------------
+
+- Add a domain_info module
+- Add a hostgroups role (https://github.com/theforeman/foreman-ansible-modules/issues/1116)
+- Add a role `content_rhel` to perform basic setup for registering and syncing RHEL content hosts
+- Add content credentials role
+- callback plugin - collect facts during the run, merge them correctly and upload them once at the end
+- compute_resource - add ``cloud`` param for the AzureRm provider, to select which Azure cloud to use
+- compute_resource - add ``sub_id`` parameter for handling the Azure Subscription ID instead of the ``user`` parameter
+- host - Add ``Redfish`` to list of possible BMC providers of an interface
+- host, compute_profile - look up the correct id for storage pods and domains given as part of ``volumes_attributes`` (https://bugzilla.redhat.com/show_bug.cgi?id=1885234)
+- hostgroup - add a ``ansible_roles`` parameter (https://github.com/theforeman/foreman-ansible-modules/issues/1123)
+- new ``content_views`` role to manage content views (https://github.com/theforeman/foreman-ansible-modules/issues/1111)
+- new ``organizations`` role to manage organizations (https://github.com/theforeman/foreman-ansible-modules/issues/1109)
+- subnet - add ``bmc_proxy`` parameter to configure BMC proxies for subnets
+
+Bugfixes
+--------
+
+- host - pass the right image id to the compute resource when creating a host (https://github.com/theforeman/foreman-ansible-modules/issues/1160, https://bugzilla.redhat.com/show_bug.cgi?id=1911670)
+
+New Modules
+-----------
+
+- redhat.satellite.content_view_info - Fetch information about Content Views
+- redhat.satellite.content_view_version_info - Fetch information about Content Views
+- redhat.satellite.domain_info - Fetch information about Domains
+- redhat.satellite.host_errata_info - Fetch information about Host Errata
+- redhat.satellite.repository_set_info - Fetch information about Red Hat Repositories
+- redhat.satellite.setting_info - Fetch information about Settings
+- redhat.satellite.subnet_info - Fetch information about Subnets
+- redhat.satellite.subscription_info - Fetch information about Subscriptions
+
+v2.0.1
+======
+
+Bugfixes
+--------
+
+- host - don't filter ``false`` values for ``interfaces_attributes`` (https://github.com/theforeman/foreman-ansible-modules/issues/1148)
+- host_info, repository_info - correctly fetch all entities when neither ``name`` nor ``search`` is set
+- host_info, repository_info - enforce mutual exclusivity of ``name`` and ``search``
+
+v2.0.0
+======
+
+Minor Changes
+-------------
+
+- Add a role `activation_keys` to manage activation keys
+- Add a role `lifecycle_environments` to manage lifecycle environments
+- Add a role `repositories` to manage products, repositories, and repository_sets
+- Add a role `sync_plans` to manage sync plans
+- activation_key - add support for selecting subscriptions by ``upstream_pool_id``
+- compute_resource - add ``set_console_password``, ``keyboard_layout`` and ``public_key`` parameters (https://github.com/theforeman/foreman-ansible-modules/issues/1052)
+- host - clarify that ``owner`` refers to a users login, not their full name (https://github.com/theforeman/foreman-ansible-modules/issues/1045)
+- host - look up the correct network id for a network given as part of ``interfaces_attributes`` (https://github.com/theforeman/foreman-ansible-modules/issues/1104)
+- host, hostgroup - add ``activation_keys`` parameter to ease configuring activation keys for deploments
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- All role variables are now prefixed with ``foreman_`` to avoid clashes with similarly named variables from roles outside this collection.
+
+Bugfixes
+--------
+
 - content_view_version - make the ``version`` parameter not fail when the version was entered without a minor part (https://github.com/theforeman/foreman-ansible-modules/issues/1087)
+- host - allow moving hosts between Organizations and Locations (https://bugzilla.redhat.com/show_bug.cgi?id=1901716)
 - host - fix subnet/domain assignment when multiple interfaces are defined (https://github.com/theforeman/foreman-ansible-modules/issues/1095)
+- host, hostgroup - select kickstart_repository based on lifecycle_environment and content_view if those are set (https://github.com/theforeman/foreman-ansible-modules/issues/1090, https://bugzilla.redhat.com/1915872)
+- resource_info - correctly show the exact resource when passing ``id`` in ``params``
+
+New Modules
+-----------
+
+- redhat.satellite.host_info - Fetch information about Hosts
+- redhat.satellite.puppetclasses_import - Import Puppet Classes from a Proxy
+- redhat.satellite.repository_info - Fetch information about Repositories
 
 v1.5.0
 ======
@@ -207,11 +491,8 @@ New Modules
 - redhat.satellite.role - Manage Roles
 - redhat.satellite.scap_content - Manage SCAP content
 - redhat.satellite.scap_tailoring_file - Manage SCAP Tailoring Files
-- redhat.satellite.scc_account - Manage SUSE Customer Center Accounts
-- redhat.satellite.scc_product - Subscribe SUSE Customer Center Account Products
 - redhat.satellite.setting - Manage Settings
 - redhat.satellite.smart_class_parameter - Manage Smart Class Parameters
-- redhat.satellite.snapshot - Manage Snapshots
 - redhat.satellite.subnet - Manage Subnets
 - redhat.satellite.subscription_manifest - Manage Subscription Manifests
 - redhat.satellite.sync_plan - Manage Sync Plans

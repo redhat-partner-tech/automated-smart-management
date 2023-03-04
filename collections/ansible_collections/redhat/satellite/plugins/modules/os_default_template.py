@@ -40,12 +40,12 @@ options:
       - Bootdisk
       - cloud-init
       - finish
+      - host_init_config
       - iPXE
       - job_template
       - kexec
       - POAP
       - provision
-      - ptable
       - PXEGrub
       - PXEGrub2
       - PXELinux

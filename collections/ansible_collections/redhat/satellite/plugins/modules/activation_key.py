@@ -47,21 +47,30 @@ options:
     type: str
   subscriptions:
     description:
-      - List of subscriptions that include either Name or Pool ID.
-      - Pool IDs are preferred since Names are not unique and the module will fail if it finds more than one subscription with the same name.
+      - List of subscriptions that include either Name, Pool ID, or Upstream Pool ID.
+      - Pool IDs are preferred since Names and Upstream Pool IDs are not guaranteed to be unique. The module will fail if it finds more than one match.
     type: list
     elements: dict
     suboptions:
       name:
         description:
           - Name of the Subscription to be added.
-          - Mutually exclusive with I(pool_id).
+          - Mutually exclusive with I(pool_id) and I(upstream_pool_id).
         type: str
         required: false
       pool_id:
         description:
           - Pool ID of the Subscription to be added.
-          - Mutually exclusive with I(name).
+          - Mutually exclusive with I(name) and I(upstream_pool_id).
+          - Also named C(Candlepin Id) in the CSV export of the subscriptions,
+          - it is as well the C(UUID) as output by C(hammer subscription list).
+        type: str
+        required: false
+      upstream_pool_id:
+        description:
+          - Upstream Pool ID of the Subscription to be added.
+          - Mutually exclusive with I(name) and I(pool_id).
+          - Also named C(Master Pools) in the Red Hat Portal.
         type: str
         required: false
   host_collections:
@@ -71,18 +80,20 @@ options:
     elements: str
   content_overrides:
     description:
-      - List of content overrides that include label and override state ('enabled', 'disabled' or 'default')
+      - List of content overrides that include label and override state
+      - Label refers to repository C(content_label), e.g. rhel-7-server-rpms
+      - Override state ('enabled', 'disabled', or 'default') sets initial state of repository for newly registered hosts
     type: list
     elements: dict
     suboptions:
       label:
         description:
-          - Label of the content override
+          - Repository C(content_label) to override when registering hosts with the activation key
         type: str
         required: true
       override:
         description:
-          - Override value
+          - Override value to use for the repository when registering hosts with the activation key
         choices:
           - enabled
           - disabled
@@ -185,7 +196,7 @@ entity:
       elements: dict
 '''
 
-from ansible_collections.redhat.satellite.plugins.module_utils.foreman_helper import KatelloEntityAnsibleModule
+from ansible_collections.redhat.satellite.plugins.module_utils.foreman_helper import KatelloEntityAnsibleModule, PER_PAGE
 
 
 def override_to_boolnone(override):
@@ -229,9 +240,10 @@ def main():
             subscriptions=dict(type='list', elements='dict', options=dict(
                 name=dict(),
                 pool_id=dict(),
+                upstream_pool_id=dict(),
             ),
-                required_one_of=[['name', 'pool_id']],
-                mutually_exclusive=[['name', 'pool_id']],
+                required_one_of=[['name', 'pool_id', 'upstream_pool_id']],
+                mutually_exclusive=[['name', 'pool_id', 'upstream_pool_id']],
             ),
             content_overrides=dict(type='list', elements='dict', options=dict(
                 label=dict(required=True),
@@ -272,13 +284,18 @@ def main():
                 activation_key = module.ensure_entity('activation_keys', module.foreman_params, activation_key, params=scope)
 
             ak_scope = {'activation_key_id': activation_key['id']}
+            ak_scope.update(scope)
             if subscriptions is not None:
                 desired_subscriptions = []
                 for subscription in subscriptions:
-                    if subscription.get('name') is not None and subscription.get('pool_id') is None:
+                    if subscription.get('name') is not None:
                         desired_subscriptions.append(module.find_resource_by_name('subscriptions', subscription['name'], params=scope, thin=True))
                     if subscription.get('pool_id') is not None:
                         desired_subscriptions.append(module.find_resource_by_id('subscriptions', subscription['pool_id'], params=scope, thin=True))
+                    if subscription.get('upstream_pool_id') is not None:
+                        desired_subscriptions.append(
+                            module.find_resource_by('subscriptions', 'upstream_pool_id', subscription['upstream_pool_id'], params=scope, thin=True)
+                        )
                 desired_subscription_ids = set(item['id'] for item in desired_subscriptions)
                 current_subscriptions = module.list_resource('subscriptions', params=ak_scope) if entity else []
                 current_subscription_ids = set(item['id'] for item in current_subscriptions)
@@ -312,7 +329,8 @@ def main():
                         'activation_keys',
                         'product_content',
                         params={'id': activation_key['id'],
-                                'content_access_mode_all': True},
+                                'content_access_mode_all': True,
+                                'per_page': PER_PAGE},
                         ignore_check_mode=True,
                     )
                 else:

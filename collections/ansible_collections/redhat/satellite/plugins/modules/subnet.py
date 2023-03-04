@@ -118,13 +118,18 @@ options:
     required: false
     type: str
   dns_proxy:
-    description: DNS Smart proxy for this subnet
+    description: Reverse DNS Smart proxy for this subnet
     required: false
     type: str
   template_proxy:
     description: Template Smart proxy for this subnet
     required: false
     type: str
+  bmc_proxy:
+    description: BMC Smart proxy for this subnet
+    required: false
+    type: str
+    version_added: 2.1.0
   remote_execution_proxies:
     description:
       - Remote execution Smart proxies for this subnet
@@ -213,6 +218,7 @@ from ansible_collections.redhat.satellite.plugins.module_utils.foreman_helper im
 try:
     import ipaddress
     HAS_IPADDRESS = True
+    IPADDRESS_IMP_ERR = None
 except ImportError:
     HAS_IPADDRESS = False
     IPADDRESS_IMP_ERR = traceback.format_exc()
@@ -248,6 +254,7 @@ def main():
             discovery_proxy=dict(type='entity', flat_name='discovery_id', resource_type='smart_proxies'),
             dns_proxy=dict(type='entity', flat_name='dns_id', resource_type='smart_proxies'),
             template_proxy=dict(type='entity', flat_name='template_id', resource_type='smart_proxies'),
+            bmc_proxy=dict(type='entity', flat_name='bmc_id', resource_type='smart_proxies'),
             remote_execution_proxies=dict(type='entity_list', resource_type='smart_proxies'),
             externalipam_proxy=dict(type='entity', flat_name='externalipam_id', resource_type='smart_proxies'),
             externalipam_group=dict(),

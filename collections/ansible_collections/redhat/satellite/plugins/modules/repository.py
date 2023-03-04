@@ -25,7 +25,7 @@ module: repository
 version_added: 1.0.0
 short_description: Manage Repositories
 description:
-  - Crate and manage repositories
+  - Create and manage repositories
 author: "Eric D Helms (@ehelms)"
 notes:
   - You can configure certain aspects of existing Red Hat Repositories (like I(download_policy)) using this module,
@@ -112,9 +112,17 @@ options:
     - Repository SSL client private key
     required: false
     type: str
+  download_concurrency:
+    description:
+      - download concurrency for sync from upstream
+      - as the API does not return this value, this will break idempotence for this module
+    required: false
+    type: int
+    version_added: 3.0.0
   download_policy:
     description:
-      - download policy for sync from upstream
+      - The download policy for sync from upstream.
+      - The download policy C(background) is deprecated and not available since Katello 4.3.
     choices:
       - background
       - immediate
@@ -124,9 +132,19 @@ options:
   mirror_on_sync:
     description:
       - toggle "mirror on sync" where the state of the repository mirrors that of the upstream repository at sync time
-    default: true
+      - This is deprecated with Katello 4.3
+      - It has been superseeded by I(mirroring_policy=mirror_content_only)
     type: bool
     required: false
+  mirroring_policy:
+    description:
+      - Policy to set for mirroring content
+      - Supported since Katello 4.3
+    type: str
+    choices:
+      - additive
+      - mirror_content_only
+      - mirror_complete
   verify_ssl_on_sync:
     description:
       - verify the upstream certifcates are signed by a trusted CA
@@ -138,7 +156,8 @@ options:
     type: str
   upstream_password:
     description:
-      - password to access upstream repository
+      - Password to access upstream repository.
+      - When this parameter is set, the module will not be idempotent.
     type: str
   docker_upstream_name:
     description:
@@ -149,6 +168,7 @@ options:
     description:
       - list of tags to sync for Container Image repository
       - only available for I(content_type=docker)
+      - Deprecated since Katello 4.4
     type: list
     elements: str
   deb_releases:
@@ -203,6 +223,39 @@ options:
       - repositories will be automatically enabled on a registered host subscribed to this product
     type: bool
     required: false
+  os_versions:
+    description:
+      - Identifies whether the repository should be disabled on a client with a non-matching OS version.
+      - A maximum of one OS version can be selected.
+      - Set to C([]) to disable filtering again.
+    type: list
+    elements: str
+    required: false
+    choices:
+      - rhel-6
+      - rhel-7
+      - rhel-8
+      - rhel-9
+  arch:
+    description:
+      - Architecture of content in the repository
+      - Set to C(noarch) to disable the architecture restriction again.
+    type: str
+    required: false
+  include_tags:
+    description:
+      - List of tags to sync for a container image repository.
+    type: list
+    elements: str
+    required: false
+    version_added: 3.7.0
+  exclude_tags:
+    description:
+      - List of tags to exclude when syncing a container image repository.
+    type: list
+    elements: str
+    required: false
+    version_added: 3.7.0
 extends_documentation_fragment:
   - redhat.satellite.foreman
   - redhat.satellite.foreman.entity_state_with_defaults
@@ -222,7 +275,7 @@ EXAMPLES = '''
     organization: "Default Organization"
     url: "http://yum.theforeman.org/plugins/latest/el7/x86_64/"
     mirror_on_sync: true
-    download_policy: background
+    download_policy: immediate
 
 - name: "Create repository with content credentials"
   redhat.satellite.repository:
@@ -235,7 +288,7 @@ EXAMPLES = '''
     product: "My Product"
     organization: "Default Organization"
     url: "http://yum.theforeman.org/releases/latest/el7/x86_64/"
-    download_policy: background
+    download_policy: on_demand
     mirror_on_sync: true
     gpg_key: RPM-GPG-KEY-my-product2
 '''
@@ -271,12 +324,14 @@ def main():
             ignore_global_proxy=dict(type='bool'),
             http_proxy_policy=dict(choices=['global_default_http_proxy', 'none', 'use_selected_http_proxy']),
             http_proxy=dict(type='entity'),
-            gpg_key=dict(type='entity', resource_type='content_credentials', scope=['organization']),
+            gpg_key=dict(type='entity', resource_type='content_credentials', scope=['organization'], no_log=False),
             ssl_ca_cert=dict(type='entity', resource_type='content_credentials', scope=['organization']),
             ssl_client_cert=dict(type='entity', resource_type='content_credentials', scope=['organization']),
-            ssl_client_key=dict(type='entity', resource_type='content_credentials', scope=['organization']),
+            ssl_client_key=dict(type='entity', resource_type='content_credentials', scope=['organization'], no_log=False),
             download_policy=dict(choices=['background', 'immediate', 'on_demand']),
-            mirror_on_sync=dict(type='bool', default=True),
+            download_concurrency=dict(type='int'),
+            mirror_on_sync=dict(type='bool'),
+            mirroring_policy=dict(type='str', choices=['additive', 'mirror_content_only', 'mirror_complete']),
             verify_ssl_on_sync=dict(type='bool'),
             upstream_username=dict(),
             upstream_password=dict(no_log=True),
@@ -292,7 +347,14 @@ def main():
             ignorable_content=dict(type='list', elements='str'),
             ansible_collection_requirements=dict(),
             auto_enabled=dict(type='bool'),
+            os_versions=dict(type='list', elements='str', choices=['rhel-6', 'rhel-7', 'rhel-8', 'rhel-9']),
+            arch=dict(),
+            include_tags=dict(type='list', elements='str'),
+            exclude_tags=dict(type='list', elements='str'),
         ),
+        mutually_exclusive=[
+            ['mirror_on_sync', 'mirroring_policy']
+        ],
         argument_spec=dict(
             state=dict(default='present', choices=['present_with_defaults', 'present', 'absent']),
         ),
@@ -304,7 +366,7 @@ def main():
     module.foreman_spec['entity']['scope'].remove('organization')
 
     if module.foreman_params['content_type'] != 'docker':
-        invalid_list = [key for key in ['docker_upstream_name', 'docker_tags_whitelist'] if key in module.foreman_params]
+        invalid_list = [key for key in ['docker_upstream_name', 'docker_tags_whitelist', 'include_tags', 'exclude_tags'] if key in module.foreman_params]
         if invalid_list:
             module.fail_json(msg="({0}) can only be used with content_type 'docker'".format(",".join(invalid_list)))
 
@@ -319,7 +381,7 @@ def main():
             module.fail_json(msg="({0}) can only be used with content_type 'ansible_collection'".format(",".join(invalid_list)))
 
     if module.foreman_params['content_type'] != 'yum':
-        invalid_list = [key for key in ['ignorable_content'] if key in module.foreman_params]
+        invalid_list = [key for key in ['ignorable_content', 'os_versions'] if key in module.foreman_params]
         if invalid_list:
             module.fail_json(msg="({0}) can only be used with content_type 'yum'".format(",".join(invalid_list)))
 

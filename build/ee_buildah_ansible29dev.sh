@@ -4,11 +4,11 @@ set -ex
 # podman login registry.redhat.io
 # Username: {REGISTRY-SERVICE-ACCOUNT-USERNAME}
 # Password: {REGISTRY-SERVICE-ACCOUNT-PASSWORD}
-BASEIMAGEOWNER=ansible-automation-platform-23
-BASEIMAGENAME=ee-29-rhel8
-BIVERSION=1.0.0-234
-IMAGE=ee-automated-smart-mgmt-29dev
-VERSION=1.0.9
+BASEIMAGEOWNER=ansible-automation-platform-22
+BASEIMAGENAME=ee-supported-rhel8
+BIVERSION=1.0.0-229
+IMAGE=ee-automated-smart-mgmt-aap2-dev
+VERSION=1.0.0
 START_DIR=$(pwd)
 TMP_WRKDIR=$(mktemp -d /tmp/XXXXXXXX)
 ctr=$(buildah from registry.redhat.io/$BASEIMAGEOWNER/$BASEIMAGENAME:$BIVERSION)

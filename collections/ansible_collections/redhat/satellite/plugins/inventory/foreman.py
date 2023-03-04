@@ -11,7 +11,6 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
     name: foreman
-    plugin_type: inventory
     short_description: Foreman inventory source
     requirements:
         - requests >= 1.1
@@ -51,7 +50,7 @@ DOCUMENTATION = '''
         description:
           - Whether or not to verify the TLS certificates of the Foreman server.
         type: boolean
-        default: False
+        default: True
         env:
             - name: FOREMAN_VALIDATE_CERTS
       group_prefix:
@@ -88,7 +87,7 @@ DOCUMENTATION = '''
       use_reports_api:
         description: Use Reporting API.
         type: boolean
-        default: False
+        default: True
       foreman:
         description:
           - Foreman server related configuration, deprecated.
@@ -149,6 +148,7 @@ DOCUMENTATION = '''
           - A list of templates in order of precedence to compose inventory_hostname.
           - If the template results in an empty string or None value it is ignored.
         type: list
+        elements: str
         default: ['name']
 '''
 
@@ -168,8 +168,9 @@ password: changeme
 hostnames:
   - name.split('.')[0]
 '''
+import copy
 import json
-from distutils.version import LooseVersion
+from ansible_collections.redhat.satellite.plugins.module_utils._version import LooseVersion
 from time import sleep
 from ansible.errors import AnsibleError
 from ansible.module_utils._text import to_bytes, to_native, to_text
@@ -181,10 +182,10 @@ try:
     import requests
     if LooseVersion(requests.__version__) < LooseVersion('1.1.0'):
         raise ImportError
+    from requests.auth import HTTPBasicAuth
+    HAS_REQUESTS = True
 except ImportError:
-    raise AnsibleError('This script requires python-requests 1.1 as a minimum version')
-
-from requests.auth import HTTPBasicAuth
+    HAS_REQUESTS = False
 
 
 class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
@@ -202,6 +203,9 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         self.session = None
         self.cache_key = None
         self.use_cache = None
+
+        if not HAS_REQUESTS:
+            raise AnsibleError('This script requires python-requests 1.1 as a minimum version')
 
     def verify_file(self, path):
 
@@ -234,7 +238,11 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
             params['page'] = 1
             params['per_page'] = self.get_option('batch_size')
             while True:
-                ret = s.get(url, params=params)
+                # workaround to address the follwing issues where 'verify' is overridden in Requests:
+                #   - https://github.com/psf/requests/issues/3829
+                #   - https://github.com/psf/requests/issues/5209
+                ret = s.get(url, params=params, verify=self.get_option('validate_certs'))
+
                 if ignore_errors and ret.status_code in ignore_errors:
                     break
                 ret.raise_for_status()
@@ -249,8 +257,20 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
                     break
                 elif isinstance(json['results'], MutableMapping):
                     # /facts are returned as dict in 'results'
-                    results = json['results']
-                    break
+                    if not isinstance(results, MutableMapping):
+                        results = {}
+
+                    # check for end of paging
+                    if len(json['results']) == 0:
+                        break
+
+                    for host, facts in json['results'].items():
+                        if host not in results:
+                            results[host] = {}
+                        results[host].update(facts)
+
+                    # get next page
+                    params['page'] += 1
                 else:
                     # /hosts 's 'results' is a list of all hosts, returned is paginated
                     results = results + json['results']
@@ -362,8 +382,15 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
 
     def _post_request(self):
         url = "%s/ansible/api/v2/ansible_inventories/schedule" % self.foreman_url
-        session = self._get_session()
         params = {'input_values': self._fetch_params()}
+
+        if self.use_cache and url in self._cache.get(self.cache_key, {}):
+            return self._cache[self.cache_key][url]
+
+        if self.cache_key not in self._cache:
+            self._cache[self.cache_key] = {}
+
+        session = self._get_session()
         self.poll_interval = self.get_option('poll_interval')
         self.max_timeout = self.get_option('max_timeout')
         # backward compatibility
@@ -376,21 +403,22 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         ret = session.post(url, json=params)
         if not ret:
             raise Exception("Error scheduling inventory report on foreman. Please check foreman logs!")
-        url = "{0}/{1}".format(self.foreman_url, ret.json().get('data_url'))
+        data_url = "{0}/{1}".format(self.foreman_url, ret.json().get('data_url'))
         polls = 0
-        response = session.get(url)
+        response = session.get(data_url)
         while response:
             if response.status_code != 204 or polls > max_polls:
                 break
             sleep(self.poll_interval)
             polls += 1
-            response = session.get(url)
+            response = session.get(data_url)
         if not response:
             raise Exception("Error receiving inventory report from foreman. Please check foreman logs!")
         elif (response.status_code == 204 and polls > max_polls):
             raise Exception("Timeout receiving inventory report from foreman. Check foreman server and max_timeout in foreman.yml")
         else:
-            return response.json()
+            self._cache[self.cache_key][url] = json.loads(response.json())
+            return self._cache[self.cache_key][url]
 
     def _populate(self):
         if self._use_inventory_report():
@@ -425,7 +453,8 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         self.groups = dict()
         self.hosts = dict()
         try:
-            inventory_report_response = self._post_request()
+            # We need a deep copy of the data, as we modify it below and this would also modify the cache
+            host_data = copy.deepcopy(self._post_request())
         except Exception as exc:
             self.display.warning("Failed to use Reports API, falling back to Hosts API: {0}".format(exc))
             self._populate_host_api()
@@ -435,9 +464,8 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         hostnames = self.get_option('hostnames')
         strict = self.get_option('strict')
 
-        host_data = json.loads(inventory_report_response)
         for host in host_data:
-            if not(host):
+            if not host:
                 continue
 
             composed_host_name = self._get_hostname(host, hostnames, strict=strict)
@@ -548,7 +576,7 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         hostnames = self.get_option('hostnames')
         strict = self.get_option('strict')
         for host in self._get_hosts():
-            if not(host):
+            if not host:
                 continue
 
             composed_host_name = self._get_hostname(host, hostnames, strict=strict)
