@@ -1,12 +1,15 @@
 [tests]
+ownership_controls
 missing
 simple
 complex
 dotted
 tags
 encryption_kms
+encryption_bucket_key
 encryption_sse
 public_access
+acl
 
 [all:vars]
 ansible_connection=local

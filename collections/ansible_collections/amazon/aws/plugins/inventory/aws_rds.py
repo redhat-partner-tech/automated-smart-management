@@ -5,49 +5,63 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = '''
-    name: aws_rds
-    plugin_type: inventory
-    short_description: rds instance source
+name: aws_rds
+short_description: RDS instance inventory source
+description:
+  - Get instances and clusters from Amazon Web Services RDS.
+  - Uses a YAML configuration file that ends with aws_rds.(yml|yaml).
+options:
+  regions:
     description:
-        - Get instances and clusters from Amazon Web Services RDS.
-        - Uses a YAML configuration file that ends with aws_rds.(yml|yaml).
-    options:
-        regions:
-          description: A list of regions in which to describe RDS instances and clusters. Available regions are listed here
-              U(https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html)
-          default: []
-        filters:
-          description: A dictionary of filter value pairs. Available filters are listed here
-              U(https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-instances.html#options). If you filter by
-              db-cluster-id and I(include_clusters) is True it will apply to clusters as well.
-          default: {}
-        strict_permissions:
-          description: By default if an AccessDenied exception is encountered this plugin will fail. You can set strict_permissions to
-              False in the inventory config file which will allow the restrictions to be gracefully skipped.
-          type: bool
-          default: True
-        include_clusters:
-          description: Whether or not to query for Aurora clusters as well as instances
-          type: bool
-          default: False
-        statuses:
-          description: A list of desired states for instances/clusters to be added to inventory. Set to ['all'] as a shorthand to find everything.
-          type: list
-          default:
-              - creating
-              - available
-        iam_role_arn:
-          description: The ARN of the IAM role to assume to perform the inventory lookup. You should still provide
-              AWS credentials with enough privilege to perform the AssumeRole action.
-    extends_documentation_fragment:
-    - inventory_cache
-    - constructed
-    - amazon.aws.aws_credentials
-
-    requirements:
-        - boto3
-        - botocore
-    author: Sloane Hertel (@s-hertel)
+      - A list of regions in which to describe RDS instances and clusters. Available regions are listed here
+        U(https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html).
+    default: []
+  filters:
+    description:
+      - A dictionary of filter value pairs. Available filters are listed here
+        U(https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-instances.html#options). If you filter by
+        db-cluster-id and I(include_clusters) is True it will apply to clusters as well.
+    default: {}
+  strict_permissions:
+    description:
+      - By default if an AccessDenied exception is encountered this plugin will fail. You can set strict_permissions to
+        False in the inventory config file which will allow the restrictions to be gracefully skipped.
+    type: bool
+    default: True
+  include_clusters:
+    description: Whether or not to query for Aurora clusters as well as instances.
+    type: bool
+    default: False
+  statuses:
+    description: A list of desired states for instances/clusters to be added to inventory. Set to ['all'] as a shorthand to find everything.
+    type: list
+    elements: str
+    default:
+      - creating
+      - available
+  iam_role_arn:
+    description:
+      - The ARN of the IAM role to assume to perform the inventory lookup. You should still provide
+        AWS credentials with enough privilege to perform the AssumeRole action.
+  hostvars_prefix:
+    description:
+      - The prefix for host variables names coming from AWS.
+    type: str
+    version_added: 3.1.0
+  hostvars_suffix:
+    description:
+      - The suffix for host variables names coming from AWS.
+    type: str
+    version_added: 3.1.0
+notes:
+  - Ansible versions prior to 2.10 should use the fully qualified plugin name 'amazon.aws.aws_rds'.
+extends_documentation_fragment:
+  - inventory_cache
+  - constructed
+  - amazon.aws.aws_boto3
+  - amazon.aws.aws_credentials
+author:
+  - Sloane Hertel (@s-hertel)
 '''
 
 EXAMPLES = '''
@@ -62,6 +76,8 @@ keyed_groups:
     prefix: rds
   - key: tags
   - key: region
+hostvars_prefix: aws_
+hostvars_suffix: _rds
 '''
 
 try:
@@ -197,7 +213,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
         '''
         all_instances = []
         all_clusters = []
-        for connection, region in self._boto3_conn(regions):
+        for connection, _region in self._boto3_conn(regions):
             paginator = connection.get_paginator('describe_db_instances')
             all_instances.extend(
                 self._get_hosts_by_region(connection, instance_filters, strict)
@@ -278,8 +294,17 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                 host['region'] = host['availability_zones'][0][:-1]
 
             self.inventory.add_host(hostname, group=group)
+            hostvars_prefix = self.get_option("hostvars_prefix")
+            hostvars_suffix = self.get_option("hostvars_suffix")
+            new_vars = dict()
             for hostvar, hostval in host.items():
+                if hostvars_prefix:
+                    hostvar = hostvars_prefix + hostvar
+                if hostvars_suffix:
+                    hostvar = hostvar + hostvars_suffix
+                new_vars[hostvar] = hostval
                 self.inventory.set_variable(hostname, hostvar, hostval)
+            host.update(new_vars)
 
             # Use constructed if applicable
             strict = self.get_option('strict')
@@ -292,7 +317,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
 
     def _set_credentials(self):
         '''
-            :param config_data: contents of the inventory config file
         '''
         self.boto_profile = self.get_option('aws_profile')
         aws_access_key_id = self.get_option('aws_access_key')
@@ -335,7 +359,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
         if not HAS_BOTO3:
             raise AnsibleError('The RDS dynamic inventory plugin requires boto3 and botocore.')
 
-        config_data = self._read_config_data(path)
         self._set_credentials()
 
         # get user specifications

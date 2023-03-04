@@ -13,10 +13,8 @@ version_added: 1.0.0
 short_description: Gather information about ec2 AMIs
 description:
   - Gather information about ec2 AMIs
-  - This module was called C(amazon.aws.ec2_ami_facts) before Ansible 2.9. The usage did not change.
 author:
   - Prasad Katti (@prasadkatti)
-requirements: [ boto3 ]
 options:
   image_ids:
     description: One or more image IDs.
@@ -206,11 +204,11 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ..module_utils.core import AnsibleAWSModule
-from ..module_utils.core import is_boto3_error_code
-from ..module_utils.ec2 import AWSRetry
-from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
 
 
 def list_ec2_images(ec2_client, module):
@@ -275,8 +273,6 @@ def main():
     )
 
     module = AnsibleAWSModule(argument_spec=argument_spec, supports_check_mode=True)
-    if module._module._name == 'ec2_ami_facts':
-        module._module.deprecate("The 'ec2_ami_facts' module has been renamed to 'ec2_ami_info'", date='2021-12-01', collection_name='amazon.aws')
 
     ec2_client = module.client('ec2', retry_decorator=AWSRetry.jittered_backoff())
 

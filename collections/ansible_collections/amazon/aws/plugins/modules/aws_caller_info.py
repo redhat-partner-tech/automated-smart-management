@@ -10,17 +10,15 @@ DOCUMENTATION = '''
 ---
 module: aws_caller_info
 version_added: 1.0.0
-short_description: Get information about the user and account being used to make AWS calls.
+short_description: Get information about the user and account being used to make AWS calls
 description:
     - This module returns information about the account and user / role from which the AWS access tokens originate.
     - The primary use of this is to get the account id for templating into ARNs or similar to avoid needing to specify this information in inventory.
-    - This module was called M(amazon.aws.aws_caller_facts) before Ansible 2.9. The usage did not change.
 
 author:
     - Ed Costello (@orthanc)
     - Stijn Dubrul (@sdubrul)
 
-requirements: [ 'botocore', 'boto3' ]
 extends_documentation_fragment:
 - amazon.aws.aws
 - amazon.aws.ec2
@@ -67,8 +65,8 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ..module_utils.core import AnsibleAWSModule
-from ..module_utils.ec2 import AWSRetry
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
 
 
 def main():
@@ -76,8 +74,6 @@ def main():
         argument_spec={},
         supports_check_mode=True,
     )
-    if module._name == 'aws_caller_facts':
-        module.deprecate("The 'aws_caller_facts' module has been renamed to 'aws_caller_info'", date='2021-12-01', collection_name='amazon.aws')
 
     client = module.client('sts', retry_decorator=AWSRetry.jittered_backoff())
 

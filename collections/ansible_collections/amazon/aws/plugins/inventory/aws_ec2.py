@@ -5,100 +5,134 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = '''
-    name: aws_ec2
-    plugin_type: inventory
-    short_description: EC2 inventory source
-    requirements:
-        - boto3
-        - botocore
-    extends_documentation_fragment:
-    - inventory_cache
-    - constructed
-    - amazon.aws.aws_credentials
-
+name: aws_ec2
+short_description: EC2 inventory source
+extends_documentation_fragment:
+  - inventory_cache
+  - constructed
+  - amazon.aws.aws_boto3
+  - amazon.aws.aws_credentials
+description:
+  - Get inventory hosts from Amazon Web Services EC2.
+  - Uses a YAML configuration file that ends with C(aws_ec2.{yml|yaml}).
+notes:
+  - If no credentials are provided and the control node has an associated IAM instance profile then the
+    role will be used for authentication.
+author:
+  - Sloane Hertel (@s-hertel)
+options:
+  plugin:
+    description: Token that ensures this is a source file for the plugin.
+    required: True
+    choices: ['aws_ec2', 'amazon.aws.aws_ec2']
+  iam_role_arn:
     description:
-        - Get inventory hosts from Amazon Web Services EC2.
-        - Uses a YAML configuration file that ends with C(aws_ec2.(yml|yaml)).
-    notes:
-        - If no credentials are provided and the control node has an associated IAM instance profile then the
-          role will be used for authentication.
-    author:
-        - Sloane Hertel (@s-hertel)
-    options:
-        plugin:
-            description: Token that ensures this is a source file for the plugin.
-            required: True
-            choices: ['aws_ec2', 'amazon.aws.aws_ec2']
-        iam_role_arn:
-          description: The ARN of the IAM role to assume to perform the inventory lookup. You should still provide AWS
-              credentials with enough privilege to perform the AssumeRole action.
-        regions:
-          description:
-              - A list of regions in which to describe EC2 instances.
-              - If empty (the default) default this will include all regions, except possibly restricted ones like us-gov-west-1 and cn-north-1.
-          type: list
-          default: []
-        hostnames:
-          description:
-              - A list in order of precedence for hostname variables.
-              - You can use the options specified in U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
-              - To use tags as hostnames use the syntax tag:Name=Value to use the hostname Name_Value, or tag:Name to use the value of the Name tag.
-          type: list
-          default: []
-        filters:
-          description:
-              - A dictionary of filter value pairs.
-              - Available filters are listed here U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
-          type: dict
-          default: {}
-        include_filters:
-          description:
-              - A list of filters. Any instances matching at least one of the filters are included in the result.
-              - Available filters are listed here U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
-              - Every entry in this list triggers a search query. As such, from a performance point of view, it's better to
-                keep the list as short as possible.
-          type: list
-          default: []
-        exclude_filters:
-          description:
-              - A list of filters. Any instances matching one of the filters are excluded from the result.
-              - The filters from C(exclude_filters) take priority over the C(include_filters) and C(filters) keys
-              - Available filters are listed here U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
-              - Every entry in this list triggers a search query. As such, from a performance point of view, it's better to
-                keep the list as short as possible.
-          type: list
-          default: []
-        include_extra_api_calls:
-          description:
-              - Add two additional API calls for every instance to include 'persistent' and 'events' host variables.
-              - Spot instances may be persistent and instances may have associated events.
-          type: bool
-          default: False
-        strict_permissions:
-          description:
-              - By default if a 403 (Forbidden) error code is encountered this plugin will fail.
-              - You can set this option to False in the inventory config file which will allow 403 errors to be gracefully skipped.
-          type: bool
-          default: True
-        use_contrib_script_compatible_sanitization:
-          description:
-            - By default this plugin is using a general group name sanitization to create safe and usable group names for use in Ansible.
-              This option allows you to override that, in efforts to allow migration from the old inventory script and
-              matches the sanitization of groups when the script's ``replace_dash_in_groups`` option is set to ``False``.
-              To replicate behavior of ``replace_dash_in_groups = True`` with constructed groups,
-              you will need to replace hyphens with underscores via the regex_replace filter for those entries.
-            - For this to work you should also turn off the TRANSFORM_INVALID_GROUP_CHARS setting,
-              otherwise the core engine will just use the standard sanitization on top.
-            - This is not the default as such names break certain functionality as not all characters are valid Python identifiers
-              which group names end up being used as.
-          type: bool
-          default: False
-        use_contrib_script_compatible_ec2_tag_keys:
-          description:
-            - Expose the host tags with ec2_tag_TAGNAME keys like the old ec2.py inventory script.
-            - The use of this feature is discouraged and we advise to migrate to the new ``tags`` structure.
-          type: bool
-          default: False
+      - The ARN of the IAM role to assume to perform the inventory lookup. You should still provide AWS
+        credentials with enough privilege to perform the AssumeRole action.
+  regions:
+    description:
+      - A list of regions in which to describe EC2 instances.
+      - If empty (the default) default this will include all regions, except possibly restricted ones like us-gov-west-1 and cn-north-1.
+    type: list
+    elements: str
+    default: []
+  hostnames:
+    description:
+      - A list in order of precedence for hostname variables.
+    type: list
+    elements: dict
+    default: []
+    suboptions:
+      name:
+        description:
+          - Name of the host.
+          - Can be one of the options specified in U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
+          - To use tags as hostnames use the syntax tag:Name=Value to use the hostname Name_Value, or tag:Name to use the value of the Name tag.
+          - If value provided does not exist in the above options, it will be used as a literal string.
+        type: str
+        required: True
+      prefix:
+        description:
+          - Prefix to prepend to I(name). Same options as I(name).
+          - If I(prefix) is specified, final hostname will be I(prefix) +  I(separator) + I(name).
+        type: str
+        default: ''
+        required: False
+      separator:
+        description:
+          - Value to separate I(prefix) and I(name) when I(prefix) is specified.
+        type: str
+        default: '_'
+        required: False
+  filters:
+    description:
+      - A dictionary of filter value pairs.
+      - Available filters are listed here U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
+    type: dict
+    default: {}
+  include_filters:
+    description:
+      - A list of filters. Any instances matching at least one of the filters are included in the result.
+      - Available filters are listed here U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
+      - Every entry in this list triggers a search query. As such, from a performance point of view, it's better to
+        keep the list as short as possible.
+    type: list
+    elements: dict
+    default: []
+    version_added: 1.5.0
+  exclude_filters:
+    description:
+      - A list of filters. Any instances matching one of the filters are excluded from the result.
+      - The filters from C(exclude_filters) take priority over the C(include_filters) and C(filters) keys
+      - Available filters are listed here U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
+      - Every entry in this list triggers a search query. As such, from a performance point of view, it's better to
+        keep the list as short as possible.
+    type: list
+    elements: dict
+    default: []
+    version_added: 1.5.0
+  include_extra_api_calls:
+    description:
+      - Add two additional API calls for every instance to include 'persistent' and 'events' host variables.
+      - Spot instances may be persistent and instances may have associated events.
+    type: bool
+    default: False
+  strict_permissions:
+    description:
+      - By default if a 403 (Forbidden) error code is encountered this plugin will fail.
+      - You can set this option to False in the inventory config file which will allow 403 errors to be gracefully skipped.
+    type: bool
+    default: True
+  use_contrib_script_compatible_sanitization:
+    description:
+      - By default this plugin is using a general group name sanitization to create safe and usable group names for use in Ansible.
+        This option allows you to override that, in efforts to allow migration from the old inventory script and
+        matches the sanitization of groups when the script's ``replace_dash_in_groups`` option is set to ``False``.
+        To replicate behavior of ``replace_dash_in_groups = True`` with constructed groups,
+        you will need to replace hyphens with underscores via the regex_replace filter for those entries.
+      - For this to work you should also turn off the TRANSFORM_INVALID_GROUP_CHARS setting,
+        otherwise the core engine will just use the standard sanitization on top.
+      - This is not the default as such names break certain functionality as not all characters are valid Python identifiers
+        which group names end up being used as.
+    type: bool
+    default: False
+  use_contrib_script_compatible_ec2_tag_keys:
+    description:
+      - Expose the host tags with ec2_tag_TAGNAME keys like the old ec2.py inventory script.
+      - The use of this feature is discouraged and we advise to migrate to the new ``tags`` structure.
+    type: bool
+    default: False
+    version_added: 1.5.0
+  hostvars_prefix:
+    description:
+      - The prefix for host variables names coming from AWS.
+    type: str
+    version_added: 3.1.0
+  hostvars_suffix:
+    description:
+      - The suffix for host variables names coming from AWS.
+    type: str
+    version_added: 3.1.0
 '''
 
 EXAMPLES = '''
@@ -138,6 +172,9 @@ hostnames:
   - name: 'private-ip-address'
     separator: '_'
     prefix: 'tag:Name'
+  - name: 'test_literal' # Using literal values for hostname
+    separator: '-'       # Hostname will be aws-test_literal
+    prefix: 'aws'
 
 # Example using constructed features to create groups and set ansible_host
 plugin: aws_ec2
@@ -188,6 +225,29 @@ include_filters:
 exclude_filters:
 - tag:Name:
   - 'my_first_tag'
+
+# Example using groups to assign the running hosts to a group based on vpc_id
+plugin: aws_ec2
+boto_profile: aws_profile
+# Populate inventory with instances in these regions
+regions:
+  - us-east-2
+filters:
+  # All instances with their state as `running`
+  instance-state-name: running
+keyed_groups:
+  - prefix: tag
+    key: tags
+compose:
+  ansible_host: public_dns_name
+groups:
+  libvpc: vpc_id == 'vpc-####'
+# Define prefix and suffix for host variables coming from AWS.
+plugin: aws_ec2
+regions:
+  - us-east-1
+hostvars_prefix: 'aws_'
+hostvars_suffix: '_ec2'
 '''
 
 import re
@@ -205,12 +265,12 @@ from ansible.plugins.inventory import BaseInventoryPlugin
 from ansible.plugins.inventory import Cacheable
 from ansible.plugins.inventory import Constructable
 from ansible.template import Templar
-from ansible.utils.display import Display
 
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import HAS_BOTO3
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import camel_dict_to_snake_dict
+from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
 
 
 # The mappings give an array of keys to get from the filter name to the value
@@ -353,9 +413,11 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             :param instance: instance dict returned by boto3 ec2 describe_instances()
         '''
         allowed_filters = sorted(list(instance_data_filter_to_boto_attr.keys()) + list(instance_meta_filter_to_boto_attr.keys()))
+
+        # If filter not in allow_filters -> use it as a literal string
         if filter_name not in allowed_filters:
-            raise AnsibleError("Invalid filter '%s' provided; filter must be one of %s." % (filter_name,
-                                                                                            allowed_filters))
+            return filter_name
+
         if filter_name in instance_data_filter_to_boto_attr:
             boto_attr_list = instance_data_filter_to_boto_attr[filter_name]
         else:
@@ -392,7 +454,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                 raise AnsibleError("Insufficient credentials found: %s" % to_native(e))
         return connection
 
-    def _boto3_assume_role(self, credentials, region):
+    def _boto3_assume_role(self, credentials, region=None):
         """
         Assume an IAM role passed by iam_role_arn parameter
 
@@ -431,6 +493,19 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             except botocore.exceptions.NoRegionError:
                 # above seems to fail depending on boto3 version, ignore and lets try something else
                 pass
+            except is_boto3_error_code('UnauthorizedOperation') as e:  # pylint: disable=duplicate-except
+                if iam_role_arn is not None:
+                    try:
+                        # Describe regions assuming arn role
+                        assumed_credentials = self._boto3_assume_role(credentials)
+                        client = self._get_connection(assumed_credentials)
+                        resp = client.describe_regions()
+                        regions = [x['RegionName'] for x in resp.get('Regions', [])]
+                    except botocore.exceptions.NoRegionError:
+                        # above seems to fail depending on boto3 version, ignore and lets try something else
+                        pass
+                else:
+                    raise AnsibleError("Unauthorized operation: %s" % to_native(e))
 
         # fallback to local list hardcoded in boto3 if still no regions
         if not regions:
@@ -468,10 +543,10 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
         '''
         all_instances = []
 
-        for connection, region in self._boto3_conn(regions):
+        for connection, _region in self._boto3_conn(regions):
             try:
                 # By default find non-terminated/terminating instances
-                if not any([f['Name'] == 'instance-state-name' for f in filters]):
+                if not any(f['Name'] == 'instance-state-name' for f in filters):
                     filters.append({'Name': 'instance-state-name', 'Values': ['running', 'pending', 'stopping', 'stopped']})
                 paginator = connection.get_paginator('describe_instances')
                 reservations = paginator.paginate(Filters=filters).build_full_result().get('Reservations')
@@ -531,17 +606,25 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             tag_hostnames = tag_hostnames.split(',')
         else:
             tag_hostnames = [tag_hostnames]
+
         tags = boto3_tag_list_to_ansible_dict(instance.get('Tags', []))
+        tag_values = []
         for v in tag_hostnames:
             if '=' in v:
                 tag_name, tag_value = v.split('=')
                 if tags.get(tag_name) == tag_value:
-                    return to_text(tag_name) + "_" + to_text(tag_value)
+                    tag_values.append(to_text(tag_name) + "_" + to_text(tag_value))
             else:
                 tag_value = tags.get(v)
                 if tag_value:
-                    return to_text(tag_value)
-        return None
+                    tag_values.append(to_text(tag_value))
+        return tag_values
+
+    def _sanitize_hostname(self, hostname):
+        if ':' in to_text(hostname):
+            return self._sanitize_group_name(to_text(hostname))
+        else:
+            return to_text(hostname)
 
     def _get_hostname(self, instance, hostnames):
         '''
@@ -553,6 +636,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             hostnames = ['dns-name', 'private-dns-name']
 
         hostname = None
+        hostname_list = []
         for preference in hostnames:
             if isinstance(preference, dict):
                 if 'name' not in preference:
@@ -561,18 +645,20 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                 hostname_from_prefix = self._get_hostname(instance, [preference["prefix"]])
                 separator = preference.get("separator", "_")
                 if hostname and hostname_from_prefix and 'prefix' in preference:
-                    hostname = hostname_from_prefix + separator + hostname
+                    hostname = hostname_from_prefix[0] + separator + hostname[0]
             elif preference.startswith('tag:'):
                 hostname = self._get_tag_hostname(preference, instance)
             else:
                 hostname = self._get_boto_attr_chain(preference, instance)
+
             if hostname:
-                break
-        if hostname:
-            if ':' in to_text(hostname):
-                return self._sanitize_group_name((to_text(hostname)))
-            else:
-                return to_text(hostname)
+                if isinstance(hostname, list):
+                    for host in hostname:
+                        hostname_list.append(self._sanitize_hostname(host))
+                elif isinstance(hostname, str):
+                    hostname_list.append(self._sanitize_hostname(hostname))
+
+        return hostname_list
 
     def _query(self, regions, include_filters, exclude_filters, strict_permissions):
         '''
@@ -616,7 +702,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             :param hostnames: a list of hostname destination variables in order of preference
         '''
         for host in hosts:
-            hostname = self._get_hostname(host, hostnames)
+            hostname_list = self._get_hostname(host, hostnames)
 
             host = camel_dict_to_snake_dict(host, ignore_list=['Tags'])
             host['tags'] = boto3_tag_list_to_ansible_dict(host.get('tags', []))
@@ -628,24 +714,36 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             # Allow easier grouping by region
             host['placement']['region'] = host['placement']['availability_zone'][:-1]
 
-            if not hostname:
+            if not hostname_list:
                 continue
-            self.inventory.add_host(hostname, group=group)
+            for hostname in hostname_list:
+                self.inventory.add_host(to_text(hostname), group=group)
+            hostvars_prefix = self.get_option("hostvars_prefix")
+            hostvars_suffix = self.get_option("hostvars_suffix")
+            new_vars = dict()
             for hostvar, hostval in host.items():
-                self.inventory.set_variable(hostname, hostvar, hostval)
+                if hostvars_prefix:
+                    hostvar = hostvars_prefix + hostvar
+                if hostvars_suffix:
+                    hostvar = hostvar + hostvars_suffix
+                new_vars[hostvar] = hostval
+                for hostname in hostname_list:
+                    self.inventory.set_variable(to_text(hostname), hostvar, hostval)
+            host.update(new_vars)
 
             # Use constructed if applicable
 
             strict = self.get_option('strict')
 
             # Composed variables
-            self._set_composite_vars(self.get_option('compose'), host, hostname, strict=strict)
+            for hostname in hostname_list:
+                self._set_composite_vars(self.get_option('compose'), host, to_text(hostname), strict=strict)
 
-            # Complex groups based on jinja2 conditionals, hosts that meet the conditional are added to group
-            self._add_host_to_composed_groups(self.get_option('groups'), host, hostname, strict=strict)
+                # Complex groups based on jinja2 conditionals, hosts that meet the conditional are added to group
+                self._add_host_to_composed_groups(self.get_option('groups'), host, to_text(hostname), strict=strict)
 
-            # Create groups based on variable values and add the corresponding hosts to it
-            self._add_host_to_keyed_groups(self.get_option('keyed_groups'), host, hostname, strict=strict)
+                # Create groups based on variable values and add the corresponding hosts to it
+                self._add_host_to_keyed_groups(self.get_option('keyed_groups'), host, to_text(hostname), strict=strict)
 
     def _set_credentials(self, loader):
         '''
@@ -694,6 +792,14 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
         self.display.debug("aws_ec2 inventory filename must end with 'aws_ec2.yml' or 'aws_ec2.yaml'")
         return False
 
+    def build_include_filters(self):
+        if self.get_option('filters'):
+            return [self.get_option('filters')] + self.get_option('include_filters')
+        elif self.get_option('include_filters'):
+            return self.get_option('include_filters')
+        else:  # no filter
+            return [{}]
+
     def parse(self, inventory, loader, path, cache=True):
 
         super(InventoryModule, self).parse(inventory, loader, path)
@@ -710,7 +816,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
 
         # get user specifications
         regions = self.get_option('regions')
-        include_filters = [self.get_option('filters')] + self.get_option('include_filters')
+        include_filters = self.build_include_filters()
         exclude_filters = self.get_option('exclude_filters')
         hostnames = self.get_option('hostnames')
         strict_permissions = self.get_option('strict_permissions')

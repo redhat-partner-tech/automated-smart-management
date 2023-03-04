@@ -6,7 +6,7 @@ General information about setting up your Python environment, testing modules,
 Ansible coding styles, and more can be found in the [Ansible Community Guide](
 https://docs.ansible.com/ansible/latest/community/index.html).
 
-Information about boto library usage, module utils, testing, and more can be
+Information about AWS SDK library usage, module utils, testing, and more can be
 found in the [AWS Guidelines](https://docs.ansible.com/ansible/devel/dev_guide/platforms/aws_guidelines.html)
 documentation.
 
@@ -41,7 +41,7 @@ issue, or by reporting any additional information
 
 ## Pull Requests
 
-All modules MUST have integration tests for new features. Upgrading to boto3 shall be considered a feature request.  
+All modules MUST have integration tests for new features.
 Bug fixes for modules that currently have integration tests SHOULD have tests added.  
 New modules should be submitted to the [community.aws](https://github.com/ansible-collections/community.aws) collection
 and MUST have integration tests.
@@ -65,7 +65,7 @@ Where modules have multiple parameters we recommend running through the 4-step m
 For general information on running the integration tests see the
 [Integration Tests page of the Module Development Guide](https://docs.ansible.com/ansible/devel/dev_guide/testing_integration.html#testing-integration),
 especially the section on configuration for cloud tests.  For questions about writing tests the Ansible AWS community can
-be found on Freenode IRC as detailed below.
+be found on Libera.Chat IRC as detailed below.
 
 
 ### Code of Conduct
@@ -75,7 +75,7 @@ Please read and familiarize yourself with this document.
 
 ### IRC
 Our IRC channels may require you to register your nickname. If you receive an error when you connect, see 
-[Freenode's Nickname Registration guide](https://freenode.net/kb/answer/registration) for instructions
+[Libera.Chat's Nickname Registration guide](https://libera.chat/guides/registration) for instructions.
 
-The `#ansible-aws` channel on Freenode irc is the main and official place to discuss use and development
+The `#ansible-aws` channel on [irc.libera.chat](https://libera.chat/) is the main and official place to discuss use and development
 of the `amazon.aws` collection.

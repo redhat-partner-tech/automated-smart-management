@@ -7,8 +7,7 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import ansible_collections.amazon.aws.plugins.module_utils.elbv2 as elbv2
-from ansible_collections.amazon.aws.tests.unit.compat import unittest
+from ansible_collections.amazon.aws.plugins.module_utils import elbv2
 from ansible_collections.amazon.aws.tests.unit.compat.mock import MagicMock
 
 one_action = [
@@ -27,6 +26,25 @@ one_action = [
     }
 ]
 
+one_action_two_tg = [
+    {
+        "ForwardConfig": {
+            "TargetGroupStickinessConfig": {"Enabled": False},
+            "TargetGroups": [
+                {
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:966509639900:targetgroup/my-tg-58045486/5b231e04f663ae21",
+                    "Weight": 1,
+                },
+                {
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:966509639900:targetgroup/my-tg-dadf7b62/be2f50b4041f11ed",
+                    "Weight": 1,
+                }
+            ],
+        },
+        "Type": "forward",
+    }
+]
+
 
 def test__prune_ForwardConfig():
     expectation = {
@@ -34,6 +52,8 @@ def test__prune_ForwardConfig():
         "Type": "forward",
     }
     assert elbv2._prune_ForwardConfig(one_action[0]) == expectation
+    # https://github.com/ansible-collections/community.aws/issues/1089
+    assert elbv2._prune_ForwardConfig(one_action_two_tg[0]) == one_action_two_tg[0]
 
 
 def _prune_secret():
@@ -44,9 +64,9 @@ def _sort_actions_one_entry():
     assert elbv2._sort_actions(one_action) == one_action
 
 
-class ElBV2UtilsTestSuite(unittest.TestCase):
+class TestElBV2Utils():
 
-    def setUp(self):
+    def setup_method(self):
         self.connection = MagicMock(name="connection")
         self.module = MagicMock(name="module")
 
@@ -114,7 +134,27 @@ class ElBV2UtilsTestSuite(unittest.TestCase):
                 {
                     "Value": "true",
                     "Key": "routing.http2.enabled"
-                }
+                },
+                {
+                    "Value": "defensive",
+                    "Key": "routing.http.desync_mitigation_mode"
+                },
+                {
+                    "Value": "true",
+                    "Key": "routing.http.drop_invalid_header_fields.enabled"
+                },
+                {
+                    "Value": "true",
+                    "Key": "routing.http.x_amzn_tls_version_and_cipher_suite.enabled"
+                },
+                {
+                    "Value": "true",
+                    "Key": "routing.http.xff_client_port.enabled"
+                },
+                {
+                    "Value": "true",
+                    "Key": "waf.fail_open.enabled"
+                },
             ]
         }
         self.connection.describe_tags.return_value = {
@@ -146,22 +186,43 @@ class ElBV2UtilsTestSuite(unittest.TestCase):
         self.connection.describe_tags.assert_called_once()
         self.conn_paginator.paginate.assert_called_once()
         # assert we got the expected value
-        self.assertEqual(return_value, 'ipv4')
+        assert return_value == 'ipv4'
 
     # Test modify_ip_address_type idempotency
     def test_modify_ip_address_type_idempotency(self):
         # Run module
-        return_value = self.elbv2obj.modify_ip_address_type("ipv4")
+        self.elbv2obj.modify_ip_address_type("ipv4")
         # check that no method was called and this has been retrieved from elb attributes
         self.connection.set_ip_address_type.assert_not_called()
         # assert we got the expected value
-        self.assertEqual(self.elbv2obj.changed, False)
+        assert self.elbv2obj.changed is False
 
     # Test modify_ip_address_type
     def test_modify_ip_address_type_update(self):
         # Run module
-        return_value = self.elbv2obj.modify_ip_address_type("dualstack")
+        self.elbv2obj.modify_ip_address_type("dualstack")
         # check that no method was called and this has been retrieved from elb attributes
         self.connection.set_ip_address_type.assert_called_once()
         # assert we got the expected value
-        self.assertEqual(self.elbv2obj.changed, True)
+        assert self.elbv2obj.changed is True
+
+    # Test get_elb_attributes
+    def test_get_elb_attributes(self):
+        # Build expected result
+        expected_elb_attributes = {
+            "access_logs_s3_bucket": "",
+            "access_logs_s3_enabled": "false",
+            "access_logs_s3_prefix": "",
+            "deletion_protection_enabled": "false",
+            "idle_timeout_timeout_seconds": "60",
+            "routing_http2_enabled": "true",
+            "routing_http_desync_mitigation_mode": "defensive",
+            "routing_http_drop_invalid_header_fields_enabled": "true",
+            "routing_http_x_amzn_tls_version_and_cipher_suite_enabled": "true",
+            "routing_http_xff_client_port_enabled": "true",
+            "waf_fail_open_enabled": "true"
+        }
+        # Run module
+        actual_elb_attributes = self.elbv2obj.get_elb_attributes()
+        # Assert we got the expected result
+        assert actual_elb_attributes == expected_elb_attributes

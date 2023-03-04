@@ -13,11 +13,7 @@ version_added: 1.0.0
 short_description: Gather information about ec2 VPC subnets in AWS
 description:
     - Gather information about ec2 VPC subnets in AWS
-    - This module was called C(ec2_vpc_subnet_facts) before Ansible 2.9. The usage did not change.
 author: "Rob White (@wimnat)"
-requirements:
-  - boto3
-  - botocore
 options:
   subnet_ids:
     description:
@@ -155,10 +151,10 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ..module_utils.core import AnsibleAWSModule
-from ..module_utils.ec2 import AWSRetry
-from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
 
 
 @AWSRetry.exponential_backoff()
@@ -217,8 +213,6 @@ def main():
         argument_spec=argument_spec,
         supports_check_mode=True
     )
-    if module._name == 'ec2_vpc_subnet_facts':
-        module.deprecate("The 'ec2_vpc_subnet_facts' module has been renamed to 'ec2_vpc_subnet_info'", date='2021-12-01', collection_name='amazon.aws')
 
     connection = module.client('ec2')
 

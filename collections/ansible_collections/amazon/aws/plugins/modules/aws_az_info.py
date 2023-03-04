@@ -8,11 +8,10 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 module: aws_az_info
-short_description: Gather information about availability zones in AWS.
+short_description: Gather information about availability zones in AWS
 version_added: 1.0.0
 description:
     - Gather information about availability zones in AWS.
-    - This module was called M(amazon.aws.aws_az_facts) before Ansible 2.9. The usage did not change.
 author: 'Henrique Rodrigues (@Sodki)'
 options:
   filters:
@@ -29,8 +28,6 @@ options:
 extends_documentation_fragment:
 - amazon.aws.aws
 - amazon.aws.ec2
-
-requirements: [botocore, boto3]
 '''
 
 EXAMPLES = '''
@@ -52,20 +49,97 @@ availability_zones:
         Availability zones that match the provided filters. Each element consists of a dict with all the information
         related to that available zone.
     type: list
-    sample: "[
+    elements: dict
+    contains:
+        state:
+            description:
+                - The state of the availability zone.
+                - The value is always C(available).
+            type: str
+            returned: on success
+            sample: 'available'
+        opt_in_status:
+            description:
+                - The opt-in status.
+                - The value is always C(opt-in-not-required) for availability zones.
+            type: str
+            returned: on success
+            sample: 'opt-in-not-required'
+        messages:
+            description: List of messages about the availability zone.
+            type: list
+            elements: dict
+            contains:
+                message:
+                    description: The message about the availability zone.
+                    type: str
+                    returned: on success
+                    sample: 'msg'
+            returned: on success
+            sample: [
+                {
+                    'message': 'message_one'
+                },
+                {
+                    'message': 'message_two'
+                }
+            ]
+        region_name:
+            description: The name of the region.
+            type: str
+            returned: on success
+            sample: 'us-east-1'
+        zone_name:
+            description: The name of the availability zone.
+            type: str
+            returned: on success
+            sample: 'us-east-1e'
+        zone_id:
+            description: The ID of the availability zone.
+            type: str
+            returned: on success
+            sample: 'use1-az5'
+        group_name:
+            description:
+                - The name of the associated group.
+                - For availability zones, this will be the same as I(region_name).
+            type: str
+            returned: on success
+            sample: 'us-east-1'
+        network_border_group:
+            description: The name of the network border group.
+            type: str
+            returned: on success
+            sample: 'us-east-1'
+        zone_type:
+            description: The type of zone.
+            type: str
+            returned: on success
+            sample: 'availability-zone'
+    sample: [
         {
-            'messages': [],
-            'region_name': 'us-west-1',
-            'state': 'available',
-            'zone_name': 'us-west-1b'
+            "group_name": "us-east-1",
+            "messages": [],
+            "network_border_group": "us-east-1",
+            "opt_in_status": "opt-in-not-required",
+            "region_name": "us-east-1",
+            "state": "available",
+            "zone_id": "use1-az6",
+            "zone_name": "us-east-1a",
+            "zone_type": "availability-zone"
         },
         {
-            'messages': [],
-            'region_name': 'us-west-1',
-            'state': 'available',
-            'zone_name': 'us-west-1c'
+            "group_name": "us-east-1",
+            "messages": [],
+            "network_border_group": "us-east-1",
+            "opt_in_status": "opt-in-not-required",
+            "region_name": "us-east-1",
+            "state": "available",
+            "zone_id": "use1-az1",
+            "zone_name": "us-east-1b",
+            "zone_type": "availability-zone"
         }
-    ]"
+    ]
 '''
 
 try:
@@ -75,9 +149,9 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ..module_utils.core import AnsibleAWSModule
-from ..module_utils.ec2 import AWSRetry
-from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
 
 
 def main():
@@ -86,8 +160,6 @@ def main():
     )
 
     module = AnsibleAWSModule(argument_spec=argument_spec, supports_check_mode=True)
-    if module._name == 'aws_az_facts':
-        module.deprecate("The 'aws_az_facts' module has been renamed to 'aws_az_info'", date='2022-06-01', collection_name='amazon.aws')
 
     connection = module.client('ec2', retry_decorator=AWSRetry.jittered_backoff())
 

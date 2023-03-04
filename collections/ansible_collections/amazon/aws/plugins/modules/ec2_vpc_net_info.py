@@ -13,11 +13,7 @@ version_added: 1.0.0
 short_description: Gather information about ec2 VPCs in AWS
 description:
     - Gather information about ec2 VPCs in AWS
-    - This module was called C(ec2_vpc_net_facts) before Ansible 2.9. The usage did not change.
 author: "Rob White (@wimnat)"
-requirements:
-  - boto3
-  - botocore
 options:
   vpc_ids:
     description:
@@ -63,7 +59,7 @@ vpcs:
             returned: always
             type: str
         vpc_id:
-            description: The ID of the VPC .
+            description: The ID of the VPC.
             returned: always
             type: str
         state:
@@ -108,7 +104,7 @@ vpcs:
             type: complex
             contains:
                 association_id:
-                    description: The association ID
+                    description: The association ID.
                     returned: always
                     type: str
                 cidr_block:
@@ -130,7 +126,7 @@ vpcs:
             type: complex
             contains:
                 association_id:
-                    description: The association ID
+                    description: The association ID.
                     returned: always
                     type: str
                 ipv6_cidr_block:
@@ -165,11 +161,11 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ..module_utils.core import AnsibleAWSModule
-from ..module_utils.core import is_boto3_error_code
-from ..module_utils.ec2 import AWSRetry
-from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
 
 
 def describe_vpcs(connection, module):
@@ -256,8 +252,6 @@ def main():
     )
 
     module = AnsibleAWSModule(argument_spec=argument_spec, supports_check_mode=True)
-    if module._name == 'ec2_vpc_net_facts':
-        module.deprecate("The 'ec2_vpc_net_facts' module has been renamed to 'ec2_vpc_net_info'", date='2021-12-01', collection_name='amazon.aws')
 
     connection = module.client('ec2', retry_decorator=AWSRetry.jittered_backoff(retries=10))
 

@@ -10,12 +10,11 @@ DOCUMENTATION = '''
 ---
 module: ec2_tag
 version_added: 1.0.0
-short_description: create and remove tags on ec2 resources
+short_description: Create and remove tags on ec2 resources
 description:
     - Creates, modifies and removes tags for any EC2 resource.
     - Resources are referenced by their resource id (for example, an instance being i-XXXXXXX, a VPC being vpc-XXXXXXX).
     - This module is designed to be used with complex args (tags), see the examples.
-requirements: [ "boto3", "botocore" ]
 options:
   resource:
     description:
@@ -25,18 +24,19 @@ options:
   state:
     description:
       - Whether the tags should be present or absent on the resource.
-      - The use of I(state=list) to interrogate the tags of an instance has been
-        deprecated and will be removed after 2022-06-01.  The 'list'
-        functionality has been moved to a dedicated module M(amazon.aws.ec2_tag_info).
+      - The use of I(state=list) to interrogate the tags of an instance was
+        deprecated in release 1.0.0 and is no longer available in release 4.0.0.
+        The 'list' functionality has been moved to a dedicated module
+        M(amazon.aws.ec2_tag_info).
     default: present
-    choices: ['present', 'absent', 'list']
+    choices: ['present', 'absent']
     type: str
   tags:
     description:
       - A dictionary of tags to add or remove from the resource.
       - If the value provided for a key is not set and I(state=absent), the tag will be removed regardless of its current value.
-      - Required when I(state=present) or I(state=absent).
     type: dict
+    required: true
   purge_tags:
     description:
       - Whether unspecified tags should be removed from the resource.
@@ -114,31 +114,21 @@ removed_tags:
   type: dict
 '''
 
-try:
-    from botocore.exceptions import BotoCoreError, ClientError
-except ImportError:
-    pass    # Handled by AnsibleAWSModule
-
-from ..module_utils.core import AnsibleAWSModule
-from ..module_utils.ec2 import AWSRetry
-from ..module_utils.ec2 import ansible_dict_to_boto3_tag_list
-from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
-from ..module_utils.ec2 import compare_aws_tags
-from ..module_utils.ec2 import describe_ec2_tags
-from ..module_utils.ec2 import ensure_ec2_tags
-from ..module_utils.ec2 import remove_ec2_tags
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import compare_aws_tags
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import describe_ec2_tags
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ensure_ec2_tags
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import remove_ec2_tags
 
 
 def main():
     argument_spec = dict(
         resource=dict(required=True),
-        tags=dict(type='dict'),
+        tags=dict(type='dict', required=True),
         purge_tags=dict(type='bool', default=False),
-        state=dict(default='present', choices=['present', 'absent', 'list']),
+        state=dict(default='present', choices=['present', 'absent']),
     )
-    required_if = [('state', 'present', ['tags']), ('state', 'absent', ['tags'])]
-
-    module = AnsibleAWSModule(argument_spec=argument_spec, required_if=required_if, supports_check_mode=True)
+    module = AnsibleAWSModule(argument_spec=argument_spec, supports_check_mode=True)
 
     resource = module.params['resource']
     tags = module.params['tags']
@@ -150,11 +140,6 @@ def main():
     ec2 = module.client('ec2')
 
     current_tags = describe_ec2_tags(ec2, module, resource)
-
-    if state == 'list':
-        module.deprecate(
-            'Using the "list" state has been deprecated.  Please use the ec2_tag_info module instead', date='2022-06-01', collection_name='amazon.aws')
-        module.exit_json(changed=False, tags=current_tags)
 
     if state == 'absent':
         removed_tags = {}

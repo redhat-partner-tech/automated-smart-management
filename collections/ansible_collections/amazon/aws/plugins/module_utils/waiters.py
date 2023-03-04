@@ -11,7 +11,7 @@ try:
 except ImportError:
     pass  # caught by HAS_BOTO3
 
-import ansible_collections.amazon.aws.plugins.module_utils.core as aws_core
+from ansible_collections.amazon.aws.plugins.module_utils.modules import _RetryingBotoClientWrapper
 
 
 ec2_data = {
@@ -54,6 +54,24 @@ ec2_data = {
                 },
             ]
         },
+        "InternetGatewayAttached": {
+            "operation": "DescribeInternetGateways",
+            "delay": 5,
+            "maxAttempts": 40,
+            "acceptors": [
+                {
+                    "expected": "available",
+                    "matcher": "pathAll",
+                    "state": "success",
+                    "argument": "InternetGateways[].Attachments[].State"
+                },
+                {
+                    "matcher": "error",
+                    "expected": "InvalidInternetGatewayID.NotFound",
+                    "state": "retry"
+                },
+            ]
+        },
         "NetworkInterfaceAttached": {
             "operation": "DescribeNetworkInterfaces",
             "delay": 5,
@@ -87,6 +105,30 @@ ec2_data = {
                     "expected": "InvalidNetworkInterfaceID.NotFound",
                     "matcher": "error",
                     "state": "retry"
+                },
+            ]
+        },
+        "NetworkInterfaceDeleted": {
+            "operation": "DescribeNetworkInterfaces",
+            "delay": 5,
+            "maxAttempts": 40,
+            "acceptors": [
+                {
+                    "matcher": "path",
+                    "expected": True,
+                    "argument": "length(NetworkInterfaces[]) > `0`",
+                    "state": "retry"
+                },
+                {
+                    "matcher": "path",
+                    "expected": True,
+                    "argument": "length(NetworkInterfaces[]) == `0`",
+                    "state": "success"
+                },
+                {
+                    "expected": "InvalidNetworkInterfaceID.NotFound",
+                    "matcher": "error",
+                    "state": "success"
                 },
             ]
         },
@@ -160,6 +202,19 @@ ec2_data = {
                     "expected": "InvalidGroup.NotFound",
                     "state": "retry"
                 },
+            ]
+        },
+        "SnapshotCompleted": {
+            "delay": 15,
+            "operation": "DescribeSnapshots",
+            "maxAttempts": 40,
+            "acceptors": [
+                {
+                    "expected": "completed",
+                    "matcher": "pathAll",
+                    "state": "success",
+                    "argument": "Snapshots[].State"
+                }
             ]
         },
         "SubnetAvailable": {
@@ -444,7 +499,135 @@ eks_data = {
                     "expected": "ResourceNotFoundException"
                 }
             ]
+        },
+        "FargateProfileActive": {
+            "delay": 20,
+            "maxAttempts": 30,
+            "operation": "DescribeFargateProfile",
+            "acceptors": [
+                {
+                    "state": "success",
+                    "matcher": "path",
+                    "argument": "fargateProfile.status",
+                    "expected": "ACTIVE"
+                },
+                {
+                    "state": "retry",
+                    "matcher": "error",
+                    "expected": "ResourceNotFoundException"
+                }
+            ]
+        },
+        "FargateProfileDeleted": {
+            "delay": 20,
+            "maxAttempts": 30,
+            "operation": "DescribeFargateProfile",
+            "acceptors": [
+                {
+                    "state": "retry",
+                    "matcher": "path",
+                    "argument": "fargateProfile.status == 'DELETING'",
+                    "expected": True
+                },
+                {
+                    "state": "success",
+                    "matcher": "error",
+                    "expected": "ResourceNotFoundException"
+                }
+            ]
         }
+    }
+}
+
+
+elb_data = {
+    "version": 2,
+    "waiters": {
+        "AnyInstanceInService": {
+            "acceptors": [
+                {
+                    "argument": "InstanceStates[].State",
+                    "expected": "InService",
+                    "matcher": "pathAny",
+                    "state": "success"
+                }
+            ],
+            "delay": 15,
+            "maxAttempts": 40,
+            "operation": "DescribeInstanceHealth"
+        },
+        "InstanceDeregistered": {
+            "delay": 15,
+            "operation": "DescribeInstanceHealth",
+            "maxAttempts": 40,
+            "acceptors": [
+                {
+                    "expected": "OutOfService",
+                    "matcher": "pathAll",
+                    "state": "success",
+                    "argument": "InstanceStates[].State"
+                },
+                {
+                    "matcher": "error",
+                    "expected": "InvalidInstance",
+                    "state": "success"
+                }
+            ]
+        },
+        "InstanceInService": {
+            "acceptors": [
+                {
+                    "argument": "InstanceStates[].State",
+                    "expected": "InService",
+                    "matcher": "pathAll",
+                    "state": "success"
+                },
+                {
+                    "matcher": "error",
+                    "expected": "InvalidInstance",
+                    "state": "retry"
+                }
+            ],
+            "delay": 15,
+            "maxAttempts": 40,
+            "operation": "DescribeInstanceHealth"
+        },
+        "LoadBalancerCreated": {
+            "delay": 10,
+            "maxAttempts": 60,
+            "operation": "DescribeLoadBalancers",
+            "acceptors": [
+                {
+                    "matcher": "path",
+                    "expected": True,
+                    "argument": "length(LoadBalancerDescriptions[]) > `0`",
+                    "state": "success",
+                },
+                {
+                    "matcher": "error",
+                    "expected": "LoadBalancerNotFound",
+                    "state": "retry",
+                },
+            ],
+        },
+        "LoadBalancerDeleted": {
+            "delay": 10,
+            "maxAttempts": 60,
+            "operation": "DescribeLoadBalancers",
+            "acceptors": [
+                {
+                    "matcher": "path",
+                    "expected": True,
+                    "argument": "length(LoadBalancerDescriptions[]) > `0`",
+                    "state": "retry",
+                },
+                {
+                    "matcher": "error",
+                    "expected": "LoadBalancerNotFound",
+                    "state": "success",
+                },
+            ],
+        },
     }
 }
 
@@ -463,6 +646,125 @@ rds_data = {
                     "argument": "DBInstances[].DBInstanceStatus",
                     "expected": "stopped"
                 },
+            ]
+        },
+        "DBClusterAvailable": {
+            "delay": 20,
+            "maxAttempts": 60,
+            "operation": "DescribeDBClusters",
+            "acceptors": [
+                {
+                    "state": "success",
+                    "matcher": "pathAll",
+                    "argument": "DBClusters[].Status",
+                    "expected": "available"
+                },
+                {
+                    "state": "retry",
+                    "matcher": "error",
+                    "expected": "DBClusterNotFoundFault"
+                }
+            ]
+        },
+        "DBClusterDeleted": {
+            "delay": 20,
+            "maxAttempts": 60,
+            "operation": "DescribeDBClusters",
+            "acceptors": [
+                {
+                    "state": "success",
+                    "matcher": "pathAll",
+                    "argument": "DBClusters[].Status",
+                    "expected": "stopped"
+                },
+                {
+                    "state": "success",
+                    "matcher": "error",
+                    "expected": "DBClusterNotFoundFault"
+                }
+            ]
+        },
+        "ReadReplicaPromoted": {
+            "delay": 5,
+            "maxAttempts": 40,
+            "operation": "DescribeDBInstances",
+            "acceptors": [
+                {
+                    "state": "success",
+                    "matcher": "path",
+                    "argument": "length(DBInstances[].StatusInfos) == `0`",
+                    "expected": True
+                },
+                {
+                    "state": "retry",
+                    "matcher": "pathAny",
+                    "argument": "DBInstances[].StatusInfos[].Status",
+                    "expected": "replicating"
+                }
+            ]
+        },
+        "RoleAssociated": {
+            "delay": 5,
+            "maxAttempts": 40,
+            "operation": "DescribeDBInstances",
+            "acceptors": [
+                {
+                    "state": "success",
+                    "matcher": "pathAll",
+                    "argument": "DBInstances[].AssociatedRoles[].Status",
+                    "expected": "ACTIVE"
+                },
+                {
+                    "state": "retry",
+                    "matcher": "pathAny",
+                    "argument": "DBInstances[].AssociatedRoles[].Status",
+                    "expected": "PENDING"
+                }
+            ]
+        },
+        "RoleDisassociated": {
+            "delay": 5,
+            "maxAttempts": 40,
+            "operation": "DescribeDBInstances",
+            "acceptors": [
+                {
+                    "state": "success",
+                    "matcher": "pathAll",
+                    "argument": "DBInstances[].AssociatedRoles[].Status",
+                    "expected": "ACTIVE"
+                },
+                {
+                    "state": "retry",
+                    "matcher": "pathAny",
+                    "argument": "DBInstances[].AssociatedRoles[].Status",
+                    "expected": "PENDING"
+                },
+                {
+                    "state": "success",
+                    "matcher": "path",
+                    "argument": "length(DBInstances[].AssociatedRoles[]) == `0`",
+                    "expected": True
+                },
+            ]
+        }
+    }
+}
+
+
+route53_data = {
+    "version": 2,
+    "waiters": {
+        "ResourceRecordSetsChanged": {
+            "delay": 30,
+            "maxAttempts": 60,
+            "operation": "GetChange",
+            "acceptors": [
+                {
+                    "matcher": "path",
+                    "expected": "INSYNC",
+                    "argument": "ChangeInfo.Status",
+                    "state": "success"
+                }
             ]
         }
     }
@@ -503,9 +805,19 @@ def eks_model(name):
     return eks_models.get_waiter(name)
 
 
+def elb_model(name):
+    elb_models = core_waiter.WaiterModel(waiter_config=_inject_limit_retries(elb_data))
+    return elb_models.get_waiter(name)
+
+
 def rds_model(name):
     rds_models = core_waiter.WaiterModel(waiter_config=_inject_limit_retries(rds_data))
     return rds_models.get_waiter(name)
+
+
+def route53_model(name):
+    route53_models = core_waiter.WaiterModel(waiter_config=_inject_limit_retries(route53_data))
+    return route53_models.get_waiter(name)
 
 
 waiters_by_name = {
@@ -521,9 +833,21 @@ waiters_by_name = {
         core_waiter.NormalizedOperationMethod(
             ec2.describe_internet_gateways
         )),
+    ('EC2', 'internet_gateway_attached'): lambda ec2: core_waiter.Waiter(
+        'internet_gateway_attached',
+        ec2_model('InternetGatewayAttached'),
+        core_waiter.NormalizedOperationMethod(
+            ec2.describe_internet_gateways
+        )),
     ('EC2', 'network_interface_attached'): lambda ec2: core_waiter.Waiter(
         'network_interface_attached',
         ec2_model('NetworkInterfaceAttached'),
+        core_waiter.NormalizedOperationMethod(
+            ec2.describe_network_interfaces
+        )),
+    ('EC2', 'network_interface_deleted'): lambda ec2: core_waiter.Waiter(
+        'network_interface_deleted',
+        ec2_model('NetworkInterfaceDeleted'),
         core_waiter.NormalizedOperationMethod(
             ec2.describe_network_interfaces
         )),
@@ -556,6 +880,12 @@ waiters_by_name = {
         ec2_model('SecurityGroupExists'),
         core_waiter.NormalizedOperationMethod(
             ec2.describe_security_groups
+        )),
+    ('EC2', 'snapshot_completed'): lambda ec2: core_waiter.Waiter(
+        'snapshot_completed',
+        ec2_model('SnapshotCompleted'),
+        core_waiter.NormalizedOperationMethod(
+            ec2.describe_snapshots
         )),
     ('EC2', 'subnet_available'): lambda ec2: core_waiter.Waiter(
         'subnet_available',
@@ -665,17 +995,95 @@ waiters_by_name = {
         core_waiter.NormalizedOperationMethod(
             eks.describe_cluster
         )),
+    ('EKS', 'fargate_profile_active'): lambda eks: core_waiter.Waiter(
+        'fargate_profile_active',
+        eks_model('FargateProfileActive'),
+        core_waiter.NormalizedOperationMethod(
+            eks.describe_fargate_profile
+        )),
+    ('EKS', 'fargate_profile_deleted'): lambda eks: core_waiter.Waiter(
+        'fargate_profile_deleted',
+        eks_model('FargateProfileDeleted'),
+        core_waiter.NormalizedOperationMethod(
+            eks.describe_fargate_profile
+        )),
+    ('ElasticLoadBalancing', 'any_instance_in_service'): lambda elb: core_waiter.Waiter(
+        'any_instance_in_service',
+        elb_model('AnyInstanceInService'),
+        core_waiter.NormalizedOperationMethod(
+            elb.describe_instance_health
+        )),
+    ('ElasticLoadBalancing', 'instance_deregistered'): lambda elb: core_waiter.Waiter(
+        'instance_deregistered',
+        elb_model('InstanceDeregistered'),
+        core_waiter.NormalizedOperationMethod(
+            elb.describe_instance_health
+        )),
+    ('ElasticLoadBalancing', 'instance_in_service'): lambda elb: core_waiter.Waiter(
+        'load_balancer_created',
+        elb_model('InstanceInService'),
+        core_waiter.NormalizedOperationMethod(
+            elb.describe_instance_health
+        )),
+    ('ElasticLoadBalancing', 'load_balancer_created'): lambda elb: core_waiter.Waiter(
+        'load_balancer_created',
+        elb_model('LoadBalancerCreated'),
+        core_waiter.NormalizedOperationMethod(
+            elb.describe_load_balancers
+        )),
+    ('ElasticLoadBalancing', 'load_balancer_deleted'): lambda elb: core_waiter.Waiter(
+        'load_balancer_deleted',
+        elb_model('LoadBalancerDeleted'),
+        core_waiter.NormalizedOperationMethod(
+            elb.describe_load_balancers
+        )),
     ('RDS', 'db_instance_stopped'): lambda rds: core_waiter.Waiter(
         'db_instance_stopped',
         rds_model('DBInstanceStopped'),
         core_waiter.NormalizedOperationMethod(
             rds.describe_db_instances
         )),
+    ('RDS', 'cluster_available'): lambda rds: core_waiter.Waiter(
+        'cluster_available',
+        rds_model('DBClusterAvailable'),
+        core_waiter.NormalizedOperationMethod(
+            rds.describe_db_clusters
+        )),
+    ('RDS', 'cluster_deleted'): lambda rds: core_waiter.Waiter(
+        'cluster_deleted',
+        rds_model('DBClusterDeleted'),
+        core_waiter.NormalizedOperationMethod(
+            rds.describe_db_clusters
+        )),
+    ('RDS', 'read_replica_promoted'): lambda rds: core_waiter.Waiter(
+        'read_replica_promoted',
+        rds_model('ReadReplicaPromoted'),
+        core_waiter.NormalizedOperationMethod(
+            rds.describe_db_instances
+        )),
+    ('RDS', 'role_associated'): lambda rds: core_waiter.Waiter(
+        'role_associated',
+        rds_model('RoleAssociated'),
+        core_waiter.NormalizedOperationMethod(
+            rds.describe_db_instances
+        )),
+    ('RDS', 'role_disassociated'): lambda rds: core_waiter.Waiter(
+        'role_disassociated',
+        rds_model('RoleDisassociated'),
+        core_waiter.NormalizedOperationMethod(
+            rds.describe_db_instances
+        )),
+    ('Route53', 'resource_record_sets_changed'): lambda route53: core_waiter.Waiter(
+        'resource_record_sets_changed',
+        route53_model('ResourceRecordSetsChanged'),
+        core_waiter.NormalizedOperationMethod(
+            route53.get_change
+        )),
 }
 
 
 def get_waiter(client, waiter_name):
-    if isinstance(client, aws_core._RetryingBotoClientWrapper):
+    if isinstance(client, _RetryingBotoClientWrapper):
         return get_waiter(client.client, waiter_name)
     try:
         return waiters_by_name[(client.__class__.__name__, waiter_name)](client)

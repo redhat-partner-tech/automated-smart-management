@@ -13,8 +13,6 @@ version_added: 1.0.0
 short_description: Gather information about ec2 volumes in AWS
 description:
     - Gather information about ec2 volumes in AWS.
-    - This module was called C(ec2_vol_facts) before Ansible 2.9. The usage did not change.
-requirements: [ boto3 ]
 author: "Rob White (@wimnat)"
 options:
   filters:
@@ -49,6 +47,15 @@ EXAMPLES = '''
     filters:
       attachment.status: attached
 
+# Gather information about all volumes related to an EC2 Instance
+# register information to `volumes` variable
+# Replaces functionality of `amazon.aws.ec2_vol` - `state: list`
+- name: get volume(s) info from EC2 Instance
+  amazon.aws.ec2_vol_info:
+    filters:
+      attachment.instance-id: "i-000111222333"
+  register: volumes
+
 '''
 
 RETURN = '''
@@ -59,15 +66,18 @@ volumes:
     returned: always
     contains:
         attachment_set:
-            description: Information about the volume attachments.
-            type: dict
-            sample: {
+            description:
+                - Information about the volume attachments.
+                - This was changed in version 2.0.0 from a dictionary to a list of dictionaries.
+            type: list
+            elements: dict
+            sample: [{
                 "attach_time": "2015-10-23T00:22:29.000Z",
                 "deleteOnTermination": "false",
                 "device": "/dev/sdf",
                 "instance_id": "i-8356263c",
                 "status": "attached"
-            }
+            }]
         create_time:
             description: The time stamp when volume creation was initiated.
             type: str
@@ -110,6 +120,10 @@ volumes:
             description: The Availability Zone of the volume.
             type: str
             sample: "us-east-1b"
+        throughput:
+            description: The throughput that the volume supports, in MiB/s.
+            type: int
+            sample: 131
 '''
 
 try:
@@ -119,15 +133,25 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ..module_utils.core import AnsibleAWSModule
-from ..module_utils.ec2 import AWSRetry
-from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
 
 
 def get_volume_info(volume, region):
 
     attachment = volume["attachments"]
+
+    attachment_data = []
+    for data in volume["attachments"]:
+        attachment_data.append({
+            'attach_time': data.get('attach_time', None),
+            'device': data.get('device', None),
+            'instance_id': data.get('instance_id', None),
+            'status': data.get('state', None),
+            'delete_on_termination': data.get('delete_on_termination', None)
+        })
 
     volume_info = {
         'create_time': volume["create_time"],
@@ -140,15 +164,12 @@ def get_volume_info(volume, region):
         'type': volume["volume_type"],
         'zone': volume["availability_zone"],
         'region': region,
-        'attachment_set': {
-            'attach_time': attachment[0]["attach_time"] if len(attachment) > 0 else None,
-            'device': attachment[0]["device"] if len(attachment) > 0 else None,
-            'instance_id': attachment[0]["instance_id"] if len(attachment) > 0 else None,
-            'status': attachment[0]["state"] if len(attachment) > 0 else None,
-            'delete_on_termination': attachment[0]["delete_on_termination"] if len(attachment) > 0 else None
-        },
+        'attachment_set': attachment_data,
         'tags': boto3_tag_list_to_ansible_dict(volume['tags']) if "tags" in volume else None
     }
+
+    if 'throughput' in volume:
+        volume_info['throughput'] = volume["throughput"]
 
     return volume_info
 
@@ -183,8 +204,6 @@ def main():
     argument_spec = dict(filters=dict(default={}, type='dict'))
 
     module = AnsibleAWSModule(argument_spec=argument_spec, supports_check_mode=True)
-    if module._name == 'ec2_vol_facts':
-        module.deprecate("The 'ec2_vol_facts' module has been renamed to 'ec2_vol_info'", date='2021-12-01', collection_name='amazon.aws')
 
     connection = module.client('ec2')
 

@@ -24,10 +24,6 @@ __metaclass__ = type
 import pytest
 import datetime
 
-# Just to test that we have the prerequisite for InventoryModule and instance_data_filter_to_boto_attr
-boto3 = pytest.importorskip('boto3')
-botocore = pytest.importorskip('botocore')
-
 from ansible.errors import AnsibleError
 from ansible.parsing.dataloader import DataLoader
 from ansible_collections.amazon.aws.plugins.inventory.aws_ec2 import InventoryModule, instance_data_filter_to_boto_attr
@@ -139,25 +135,25 @@ def test_boto3_conn(inventory):
     loader = DataLoader()
     inventory._set_credentials(loader)
     with pytest.raises(AnsibleError) as error_message:
-        for connection, region in inventory._boto3_conn(regions=['us-east-1']):
+        for _connection, _region in inventory._boto3_conn(regions=['us-east-1']):
             assert "Insufficient credentials found" in error_message
 
 
 def test_get_hostname_default(inventory):
     instance = instances['Instances'][0]
-    assert inventory._get_hostname(instance, hostnames=None) == "ec2-12-345-67-890.compute-1.amazonaws.com"
+    assert inventory._get_hostname(instance, hostnames=None)[0] == "ec2-12-345-67-890.compute-1.amazonaws.com"
 
 
 def test_get_hostname(inventory):
     hostnames = ['ip-address', 'dns-name']
     instance = instances['Instances'][0]
-    assert inventory._get_hostname(instance, hostnames) == "12.345.67.890"
+    assert inventory._get_hostname(instance, hostnames)[0] == "12.345.67.890"
 
 
 def test_get_hostname_dict(inventory):
     hostnames = [{'name': 'private-ip-address', 'separator': '_', 'prefix': 'tag:Name'}]
     instance = instances['Instances'][0]
-    assert inventory._get_hostname(instance, hostnames) == "aws_ec2_098.76.54.321"
+    assert inventory._get_hostname(instance, hostnames)[0] == "aws_ec2_098.76.54.321"
 
 
 def test_set_credentials(inventory):
@@ -192,3 +188,31 @@ def test_insufficient_credentials(inventory):
 
 def test_verify_file_bad_config(inventory):
     assert inventory.verify_file('not_aws_config.yml') is False
+
+
+def test_include_filters_with_no_filter(inventory):
+    inventory._options = {
+        'filters': {},
+        'include_filters': [],
+    }
+    print(inventory.build_include_filters())
+    assert inventory.build_include_filters() == [{}]
+
+
+def test_include_filters_with_include_filters_only(inventory):
+    inventory._options = {
+        'filters': {},
+        'include_filters': [{"foo": "bar"}],
+    }
+    assert inventory.build_include_filters() == [{"foo": "bar"}]
+
+
+def test_include_filters_with_filter_and_include_filters(inventory):
+    inventory._options = {
+        'filters': {"from_filter": 1},
+        'include_filters': [{"from_include_filter": "bar"}],
+    }
+    print(inventory.build_include_filters())
+    assert inventory.build_include_filters() == [
+        {"from_filter": 1},
+        {"from_include_filter": "bar"}]

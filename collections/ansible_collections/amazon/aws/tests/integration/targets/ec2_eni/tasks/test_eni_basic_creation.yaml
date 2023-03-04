@@ -1,5 +1,18 @@
 ---
 # ============================================================
+- name: create a network interface (check mode)
+  ec2_eni:
+    device_index: 1
+    private_ip_address: "{{ ip_1 }}"
+    subnet_id: "{{ vpc_subnet_id }}"
+    state: present
+  check_mode: true
+  register: result_check_mode
+
+- assert:
+    that:
+      - result_check_mode.changed
+
 - name: create a network interface
   ec2_eni:
     device_index: 1
@@ -57,11 +70,11 @@
       - _interface_0.private_dns_name is string
       - _interface_0.private_dns_name.endswith("ec2.internal")
       - '"private_ip_address" in _interface_0'
-      - _interface_0.private_ip_address | ipaddr()
+      - _interface_0.private_ip_address | ansible.utils.ipaddr
       - _interface_0.private_ip_address == ip_1
       - '"private_ip_addresses" in _interface_0'
       - _interface_0.private_ip_addresses | length == 1
-      - ip_1 in ( eni_info | community.general.json_query("network_interfaces[].private_ip_addresses[].private_ip_address") | list )
+      - ip_1 in ( eni_info.network_interfaces | map(attribute='private_ip_addresses') | flatten | map(attribute='private_ip_address') | list )
       - '"requester_id" in _interface_0'
       - _interface_0.requester_id is string
       - '"requester_managed" in _interface_0'
@@ -76,6 +89,19 @@
       - _interface_0.tag_set is mapping
       - '"vpc_id" in _interface_0'
       - _interface_0.vpc_id == vpc_id
+
+- name: test idempotence by using the same private_ip_address (check mode)
+  ec2_eni:
+    device_index: 1
+    private_ip_address: "{{ ip_1 }}"
+    subnet_id: "{{ vpc_subnet_id }}"
+    state: present
+  check_mode: true
+  register: result_check_mode
+
+- assert:
+    that:
+      - not result_check_mode.changed
 
 - name: test idempotence by using the same private_ip_address
   ec2_eni:
@@ -152,11 +178,11 @@
       - _interface_0.private_dns_name is string
       - _interface_0.private_dns_name.endswith("ec2.internal")
       - '"private_ip_address" in _interface_0'
-      - _interface_0.private_ip_address | ipaddr()
+      - _interface_0.private_ip_address | ansible.utils.ipaddr
       - _interface_0.private_ip_address == ip_5
       - '"private_ip_addresses" in _interface_0'
       - _interface_0.private_ip_addresses | length == 1
-      - ip_5 in ( eni_info | community.general.json_query("network_interfaces[].private_ip_addresses[].private_ip_address") | list )
+      - ip_5 in ( eni_info.network_interfaces | map(attribute='private_ip_addresses') | flatten | map(attribute='private_ip_address') | list )
       - '"requester_id" in _interface_0'
       - _interface_0.requester_id is string
       - '"requester_managed" in _interface_0'
@@ -181,8 +207,8 @@
     that:
       - '"network_interfaces" in eni_info'
       - eni_info.network_interfaces | length >= 2
-      - eni_id_1 in ( eni_info | community.general.json_query("network_interfaces[].id") | list )
-      - eni_id_2 in ( eni_info | community.general.json_query("network_interfaces[].id") | list )
+      - eni_id_1 in ( eni_info.network_interfaces | selectattr('id') | map(attribute='id') | list )
+      - eni_id_2 in ( eni_info.network_interfaces | selectattr('id') | map(attribute='id') | list )
 
 # ============================================================
 # Run some VPC filter based tests of ec2_eni_info
@@ -199,8 +225,8 @@
     that:
       - '"network_interfaces" in eni_info'
       - eni_info.network_interfaces | length == 2
-      - eni_id_1 in ( eni_info | community.general.json_query("network_interfaces[].id") | list )
-      - eni_id_2 in ( eni_info | community.general.json_query("network_interfaces[].id") | list )
+      - eni_id_1 in ( eni_info.network_interfaces | selectattr('id') | map(attribute='id') | list )
+      - eni_id_2 in ( eni_info.network_interfaces | selectattr('id') | map(attribute='id') | list )
 
 - name: Fetch ENI info with VPC filters - VPC
   ec2_eni_info:
@@ -213,7 +239,25 @@
     that:
       - '"network_interfaces" in eni_info'
       - eni_info.network_interfaces | length == 4
-      - eni_id_1 in ( eni_info | community.general.json_query("network_interfaces[].id") | list )
-      - eni_id_2 in ( eni_info | community.general.json_query("network_interfaces[].id") | list )
-      - ec2_ips[0] in ( eni_info | community.general.json_query("network_interfaces[].private_ip_addresses[].private_ip_address") | list )
-      - ec2_ips[1] in ( eni_info | community.general.json_query("network_interfaces[].private_ip_addresses[].private_ip_address") | list )
+      - eni_id_1 in ( eni_info.network_interfaces | selectattr('id') | map(attribute='id') | list )
+      - eni_id_2 in ( eni_info.network_interfaces | selectattr('id') | map(attribute='id') | list )
+      - ec2_ips[0] in ( eni_info.network_interfaces | map(attribute='private_ip_addresses') | flatten | map(attribute='private_ip_address') | list )
+      - ec2_ips[1] in ( eni_info.network_interfaces | map(attribute='private_ip_addresses') | flatten | map(attribute='private_ip_address') | list )
+
+
+# =========================================================
+
+- name: create another network interface without private_ip_address
+  ec2_eni:
+    device_index: 1
+    subnet_id: "{{ vpc_subnet_id }}"
+    state: present
+  register: result_no_private_ip
+
+- assert:
+    that:
+      - result_no_private_ip.changed
+
+- name: save the third network interface ID for cleanup
+  set_fact:
+    eni_id_3: "{{ result_no_private_ip.interface.id }}"

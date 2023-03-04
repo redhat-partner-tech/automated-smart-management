@@ -80,6 +80,8 @@ options:
           type: str
           description:
           - The device name. For example C(/dev/sda).
+          - The C(DeviceName) alias had been deprecated and will be removed in
+            release 5.0.0.
           required: yes
           aliases: ['DeviceName']
         virtual_name:
@@ -87,13 +89,15 @@ options:
           description:
           - The virtual name for the device.
           - See the AWS documentation for more detail U(https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_BlockDeviceMapping.html).
-          - Alias C(VirtualName) has been deprecated and will be removed after 2022-06-01.
+          - The C(VirtualName) alias has been deprecated and will be removed in
+            release 5.0.0.
           aliases: ['VirtualName']
         no_device:
           type: bool
           description:
           - Suppresses the specified device included in the block device mapping of the AMI.
-          - Alias C(NoDevice) has been deprecated and will be removed after 2022-06-01.
+          - The C(NoDevice) alias has been deprecated and will be removed in
+            release 5.0.0.
           aliases: ['NoDevice']
         volume_type:
           type: str
@@ -117,14 +121,6 @@ options:
   delete_snapshot:
     description:
       - Delete snapshots when deregistering the AMI.
-    default: false
-    type: bool
-  tags:
-    description:
-      - A dictionary of tags to add to the new image; '{"key":"value"}' and '{"key":"value","key":"value"}'
-    type: dict
-  purge_tags:
-    description: Whether to remove existing tags that aren't passed in the C(tags) parameter
     default: false
     type: bool
   launch_permissions:
@@ -162,7 +158,7 @@ author:
 extends_documentation_fragment:
 - amazon.aws.aws
 - amazon.aws.ec2
-
+- amazon.aws.tags.deprecated_purge
 '''
 
 # Thank you to iAcquire for sponsoring development of this module.
@@ -369,13 +365,14 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ..module_utils.core import AnsibleAWSModule
-from ..module_utils.core import is_boto3_error_code
-from ..module_utils.ec2 import AWSRetry
-from ..module_utils.ec2 import ansible_dict_to_boto3_tag_list
-from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
-from ..module_utils.ec2 import compare_aws_tags
-from ..module_utils.waiters import get_waiter
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ensure_ec2_tags
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import add_ec2_tags
+from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_list_to_ansible_dict
+from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_specifications
+from ansible_collections.amazon.aws.plugins.module_utils.waiters import get_waiter
 
 
 def get_block_device_mapping(image):
@@ -450,6 +447,13 @@ def create_image(module, connection):
     ramdisk_id = module.params.get('ramdisk_id')
     sriov_net_support = module.params.get('sriov_net_support')
 
+    if module.check_mode:
+        image = connection.describe_images(Filters=[{'Name': 'name', 'Values': [str(name)]}])
+        if not image['Images']:
+            module.exit_json(changed=True, msg='Would have created a AMI if not in check mode.')
+        else:
+            module.exit_json(changed=False, msg='Error registering image: AMI name is already in use by another AMI')
+
     try:
         params = {
             'Name': name,
@@ -457,7 +461,6 @@ def create_image(module, connection):
         }
 
         block_device_mapping = None
-
         # Remove empty values injected by using options
         if device_mapping:
             block_device_mapping = []
@@ -474,12 +477,23 @@ def create_image(module, connection):
                 device = rename_item_if_exists(device, 'volume_size', 'VolumeSize', 'Ebs', attribute_type=int)
                 device = rename_item_if_exists(device, 'iops', 'Iops', 'Ebs')
                 device = rename_item_if_exists(device, 'encrypted', 'Encrypted', 'Ebs')
+
+                # The NoDevice parameter in Boto3 is a string. Empty string omits the device from block device mapping
+                # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.create_image
+                if 'NoDevice' in device:
+                    if device['NoDevice'] is True:
+                        device['NoDevice'] = ""
+                    else:
+                        del device['NoDevice']
                 block_device_mapping.append(device)
         if block_device_mapping:
             params['BlockDeviceMappings'] = block_device_mapping
         if instance_id:
             params['InstanceId'] = instance_id
             params['NoReboot'] = no_reboot
+            tag_spec = boto3_tag_specifications(tags, types=['image', 'snapshot'])
+            if tag_spec:
+                params['TagSpecifications'] = tag_spec
             image_id = connection.create_image(aws_retry=True, **params).get('ImageId')
         else:
             if architecture:
@@ -510,11 +524,15 @@ def create_image(module, connection):
         waiter = get_waiter(connection, 'image_available')
         waiter.wait(ImageIds=[image_id], WaiterConfig=dict(Delay=delay, MaxAttempts=max_attempts))
 
-    if tags:
-        try:
-            connection.create_tags(aws_retry=True, Resources=[image_id], Tags=ansible_dict_to_boto3_tag_list(tags))
-        except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
-            module.fail_json_aws(e, msg="Error tagging image")
+    if tags and 'TagSpecifications' not in params:
+        image_info = get_image_by_id(module, connection, image_id)
+        add_ec2_tags(connection, module, image_id, tags)
+        if image_info and image_info.get('BlockDeviceMappings'):
+            for mapping in image_info.get('BlockDeviceMappings'):
+                # We can only tag Ebs volumes
+                if 'Ebs' not in mapping:
+                    continue
+                add_ec2_tags(connection, module, mapping.get('Ebs').get('SnapshotId'), tags)
 
     if launch_permissions:
         try:
@@ -552,6 +570,8 @@ def deregister_image(module, connection):
 
     # When trying to re-deregister an already deregistered image it doesn't raise an exception, it just returns an object without image attributes.
     if 'ImageId' in image:
+        if module.check_mode:
+            module.exit_json(changed=True, msg='Would have deregistered AMI if not in check mode.')
         try:
             connection.deregister_image(aws_retry=True, ImageId=image_id)
         except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
@@ -610,41 +630,30 @@ def update_image(module, connection, image_id):
 
         if to_add or to_remove:
             try:
-                connection.modify_image_attribute(aws_retry=True,
-                                                  ImageId=image_id, Attribute='launchPermission',
-                                                  LaunchPermission=dict(Add=to_add, Remove=to_remove))
+                if not module.check_mode:
+                    connection.modify_image_attribute(aws_retry=True,
+                                                      ImageId=image_id, Attribute='launchPermission',
+                                                      LaunchPermission=dict(Add=to_add, Remove=to_remove))
                 changed = True
             except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
                 module.fail_json_aws(e, msg="Error updating launch permissions of image %s" % image_id)
 
     desired_tags = module.params.get('tags')
     if desired_tags is not None:
-        current_tags = boto3_tag_list_to_ansible_dict(image.get('Tags'))
-        tags_to_add, tags_to_remove = compare_aws_tags(current_tags, desired_tags, purge_tags=module.params.get('purge_tags'))
-
-        if tags_to_remove:
-            try:
-                connection.delete_tags(aws_retry=True, Resources=[image_id], Tags=[dict(Key=tagkey) for tagkey in tags_to_remove])
-                changed = True
-            except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
-                module.fail_json_aws(e, msg="Error updating tags")
-
-        if tags_to_add:
-            try:
-                connection.create_tags(aws_retry=True, Resources=[image_id], Tags=ansible_dict_to_boto3_tag_list(tags_to_add))
-                changed = True
-            except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
-                module.fail_json_aws(e, msg="Error updating tags")
+        changed |= ensure_ec2_tags(connection, module, image_id, tags=desired_tags, purge_tags=module.params.get('purge_tags'))
 
     description = module.params.get('description')
     if description and description != image['Description']:
         try:
-            connection.modify_image_attribute(aws_retry=True, Attribute='Description ', ImageId=image_id, Description=dict(Value=description))
+            if not module.check_mode:
+                connection.modify_image_attribute(aws_retry=True, Attribute='Description ', ImageId=image_id, Description=dict(Value=description))
             changed = True
         except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
             module.fail_json_aws(e, msg="Error setting description for image %s" % image_id)
 
     if changed:
+        if module.check_mode:
+            module.exit_json(changed=True, msg='Would have updated AMI if not in check mode.')
         module.exit_json(msg="AMI updated.", changed=True,
                          **get_ami_info(get_image_by_id(module, connection, image_id)))
     else:
@@ -694,13 +703,15 @@ def rename_item_if_exists(dict_object, attribute, new_attribute, child_node=None
 
 def main():
     mapping_options = dict(
-        device_name=dict(type='str', aliases=['DeviceName'], required=True),
+        device_name=dict(
+            type='str', aliases=['DeviceName'], required=True,
+            deprecated_aliases=[dict(name='DeviceName', version='5.0.0', collection_name='amazon.aws')]),
         virtual_name=dict(
             type='str', aliases=['VirtualName'],
-            deprecated_aliases=[dict(name='VirtualName', date='2022-06-01', collection_name='amazon.aws')]),
+            deprecated_aliases=[dict(name='VirtualName', version='5.0.0', collection_name='amazon.aws')]),
         no_device=dict(
             type='bool', aliases=['NoDevice'],
-            deprecated_aliases=[dict(name='NoDevice', date='2022-06-01', collection_name='amazon.aws')]),
+            deprecated_aliases=[dict(name='NoDevice', version='5.0.0', collection_name='amazon.aws')]),
         volume_type=dict(type='str'),
         delete_on_termination=dict(type='bool'),
         snapshot_id=dict(type='str'),
@@ -723,27 +734,36 @@ def main():
         no_reboot=dict(default=False, type='bool'),
         state=dict(default='present', choices=['present', 'absent']),
         device_mapping=dict(type='list', elements='dict', options=mapping_options),
-        tags=dict(type='dict'),
         launch_permissions=dict(type='dict'),
         image_location=dict(),
         enhanced_networking=dict(type='bool'),
         billing_products=dict(type='list', elements='str',),
         ramdisk_id=dict(),
         sriov_net_support=dict(),
-        purge_tags=dict(type='bool', default=False)
+        tags=dict(type='dict', aliases=['resource_tags']),
+        purge_tags=dict(type='bool'),
     )
 
     module = AnsibleAWSModule(
         argument_spec=argument_spec,
         required_if=[
             ['state', 'absent', ['image_id']],
-        ]
+        ],
+        supports_check_mode=True,
     )
 
     # Using a required_one_of=[['name', 'image_id']] overrides the message that should be provided by
     # the required_if for state=absent, so check manually instead
     if not any([module.params['image_id'], module.params['name']]):
         module.fail_json(msg="one of the following is required: name, image_id")
+
+    if module.params.get('purge_tags') is None:
+        module.deprecate(
+            'The purge_tags parameter currently defaults to False.'
+            ' For consistency across the collection, this default value'
+            ' will change to True in release 5.0.0.',
+            version='5.0.0', collection_name='amazon.aws')
+        module.params['purge_tags'] = False
 
     connection = module.client('ec2', retry_decorator=AWSRetry.jittered_backoff())
 

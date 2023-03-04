@@ -5,17 +5,15 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = r'''
-lookup: aws_secret
+name: aws_secret
 author:
-  - Aaron Smith <ajsmith10381@gmail.com>
-requirements:
-  - boto3
-  - botocore>=1.10.0
+  - Aaron Smith (!UNKNOWN) <ajsmith10381@gmail.com>
 extends_documentation_fragment:
-- amazon.aws.aws_credentials
-- amazon.aws.aws_region
+  - amazon.aws.aws_boto3
+  - amazon.aws.aws_credentials
+  - amazon.aws.aws_region
 
-short_description: Look up secrets stored in AWS Secrets Manager.
+short_description: Look up secrets stored in AWS Secrets Manager
 description:
   - Look up secrets stored in AWS Secrets Manager provided the caller
     has the appropriate permissions to read the secret.
@@ -43,26 +41,36 @@ options:
     required: False
   join:
     description:
-        - Join two or more entries to form an extended secret.
-        - This is useful for overcoming the 4096 character limit imposed by AWS.
-        - No effect when used with I(bypath).
+      - Join two or more entries to form an extended secret.
+      - This is useful for overcoming the 4096 character limit imposed by AWS.
+      - No effect when used with I(bypath).
     type: boolean
     default: false
+  on_deleted:
+    description:
+      - Action to take if the secret has been marked for deletion.
+      - C(error) will raise a fatal error when the secret has been marked for deletion.
+      - C(skip) will silently ignore the deleted secret.
+      - C(warn) will skip over the deleted secret but issue a warning.
+    default: error
+    type: string
+    choices: ['error', 'skip', 'warn']
+    version_added: 2.0.0
   on_missing:
     description:
-        - Action to take if the secret is missing.
-        - C(error) will raise a fatal error when the secret is missing.
-        - C(skip) will silently ignore the missing secret.
-        - C(warn) will skip over the missing secret but issue a warning.
+      - Action to take if the secret is missing.
+      - C(error) will raise a fatal error when the secret is missing.
+      - C(skip) will silently ignore the missing secret.
+      - C(warn) will skip over the missing secret but issue a warning.
     default: error
     type: string
     choices: ['error', 'skip', 'warn']
   on_denied:
     description:
-        - Action to take if access to the secret is denied.
-        - C(error) will raise a fatal error when access to the secret is denied.
-        - C(skip) will silently ignore the denied secret.
-        - C(warn) will skip over the denied secret but issue a warning.
+      - Action to take if access to the secret is denied.
+      - C(error) will raise a fatal error when access to the secret is denied.
+      - C(skip) will silently ignore the denied secret.
+      - C(warn) will skip over the denied secret but issue a warning.
     default: error
     type: string
     choices: ['error', 'skip', 'warn']
@@ -94,6 +102,14 @@ EXAMPLES = r"""
    debug: msg="{{ lookup('amazon.aws.aws_secret', 'secrets.environments.production.password', nested=true) }}"
    # The secret can be queried using the following syntax: `aws_secret_object_name.key1.key2.key3`.
    # If an object is of the form `{"key1":{"key2":{"key3":1}}}` the query would return the value `1`.
+ - name: lookup secretsmanager secret in a specific region using specified region and aws profile using nested feature
+   debug: >
+    msg="{{ lookup('amazon.aws.aws_secret', 'secrets.environments.production.password', region=region, aws_profile=aws_profile,
+    aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, nested=true) }}"
+   # The secret can be queried using the following syntax: `aws_secret_object_name.key1.key2.key3`.
+   # If an object is of the form `{"key1":{"key2":{"key3":1}}}` the query would return the value `1`.
+   # Region is the AWS region where the AWS secret is stored.
+   # AWS_profile is the aws profile to use, that has access to the AWS secret.
 """
 
 RETURN = r"""
@@ -116,6 +132,7 @@ from ansible.module_utils._text import to_native
 from ansible.plugins.lookup import LookupBase
 
 from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
+from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_message
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import HAS_BOTO3
 
 
@@ -124,11 +141,11 @@ def _boto3_conn(region, credentials):
 
     try:
         connection = boto3.session.Session(profile_name=boto_profile).client('secretsmanager', region, **credentials)
-    except (botocore.exceptions.ProfileNotFound, botocore.exceptions.PartialCredentialsError) as e:
+    except (botocore.exceptions.ProfileNotFound, botocore.exceptions.PartialCredentialsError):
         if boto_profile:
             try:
                 connection = boto3.session.Session(profile_name=boto_profile).client('secretsmanager', region)
-            except (botocore.exceptions.ProfileNotFound, botocore.exceptions.PartialCredentialsError) as e:
+            except (botocore.exceptions.ProfileNotFound, botocore.exceptions.PartialCredentialsError):
                 raise AnsibleError("Insufficient credentials found.")
         else:
             raise AnsibleError("Insufficient credentials found.")
@@ -139,7 +156,7 @@ class LookupModule(LookupBase):
     def run(self, terms, variables=None, boto_profile=None, aws_profile=None,
             aws_secret_key=None, aws_access_key=None, aws_security_token=None, region=None,
             bypath=False, nested=False, join=False, version_stage=None, version_id=None, on_missing='error',
-            on_denied='error'):
+            on_denied='error', on_deleted='error'):
         '''
                    :arg terms: a list of lookups to run.
                        e.g. ['parameter_name', 'parameter_name_too' ]
@@ -155,11 +172,16 @@ class LookupModule(LookupBase):
                    :kwarg version_stage: Stage of the secret version
                    :kwarg version_id: Version of the secret(s)
                    :kwarg on_missing: Action to take if the secret is missing
+                   :kwarg on_deleted: Action to take if the secret is marked for deletion
                    :kwarg on_denied: Action to take if access to the secret is denied
                    :returns: A list of parameter values or a list of dictionaries if bypath=True.
                '''
         if not HAS_BOTO3:
             raise AnsibleError('botocore and boto3 are required for aws_ssm lookup.')
+
+        deleted = on_deleted.lower()
+        if not isinstance(deleted, string_types) or deleted not in ['error', 'warn', 'skip']:
+            raise AnsibleError('"on_deleted" must be a string and one of "error", "warn" or "skip", not %s' % deleted)
 
         missing = on_missing.lower()
         if not isinstance(missing, string_types) or missing not in ['error', 'warn', 'skip']:
@@ -193,22 +215,25 @@ class LookupModule(LookupBase):
             secrets = {}
             for term in terms:
                 try:
-                    response = client.list_secrets(Filters=[{'Key': 'name', 'Values': [term]}])
+                    paginator = client.get_paginator('list_secrets')
+                    paginator_response = paginator.paginate(
+                        Filters=[{'Key': 'name', 'Values': [term]}])
+                    for object in paginator_response:
+                        if 'SecretList' in object:
+                            for secret_obj in object['SecretList']:
+                                secrets.update({secret_obj['Name']: self.get_secret_value(
+                                    secret_obj['Name'], client, on_missing=missing, on_denied=denied)})
+                    secrets = [secrets]
 
-                    if 'SecretList' in response:
-                        for secret in response['SecretList']:
-                            secrets.update({secret['Name']: self.get_secret_value(secret['Name'], client,
-                                                                                  on_missing=missing,
-                                                                                  on_denied=denied)})
                 except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError) as e:
                     raise AnsibleError("Failed to retrieve secret: %s" % to_native(e))
-            secrets = [secrets]
         else:
             secrets = []
             for term in terms:
                 value = self.get_secret_value(term, client,
                                               version_stage=version_stage, version_id=version_id,
-                                              on_missing=missing, on_denied=denied, nested=nested)
+                                              on_missing=missing, on_denied=denied, on_deleted=deleted,
+                                              nested=nested)
                 if value:
                     secrets.append(value)
             if join:
@@ -218,7 +243,7 @@ class LookupModule(LookupBase):
 
         return secrets
 
-    def get_secret_value(self, term, client, version_stage=None, version_id=None, on_missing=None, on_denied=None, nested=False):
+    def get_secret_value(self, term, client, version_stage=None, version_id=None, on_missing=None, on_denied=None, on_deleted=None, nested=False):
         params = {}
         params['SecretId'] = term
         if version_id:
@@ -237,7 +262,6 @@ class LookupModule(LookupBase):
                 return response['SecretBinary']
             if 'SecretString' in response:
                 if nested:
-                    secrets = []
                     query = term.split('.')[1:]
                     secret_string = json.loads(response['SecretString'])
                     ret_val = secret_string
@@ -249,7 +273,12 @@ class LookupModule(LookupBase):
                     return str(ret_val)
                 else:
                     return response['SecretString']
-        except is_boto3_error_code('ResourceNotFoundException'):
+        except is_boto3_error_message('marked for deletion'):
+            if on_deleted == 'error':
+                raise AnsibleError("Failed to find secret %s (marked for deletion)" % term)
+            elif on_deleted == 'warn':
+                self._display.warning('Skipping, did not find secret (marked for deletion) %s' % term)
+        except is_boto3_error_code('ResourceNotFoundException'):  # pylint: disable=duplicate-except
             if on_missing == 'error':
                 raise AnsibleError("Failed to find secret %s (ResourceNotFound)" % term)
             elif on_missing == 'warn':
