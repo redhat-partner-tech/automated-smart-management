@@ -174,3 +174,175 @@ releases:
     fragments:
     - controller.yml
     release_date: '2021-07-15'
+  2.0.0-1:
+    changes:
+      bugfixes:
+      - Changed all references for ansible.tower to ansible.controller
+      - Fixed issue where `credential` was not working for project and instead the
+        old `scm_credential` option remained.
+      major_changes:
+      - Created awx and controller playbook that users can invoke for using the collection
+      minor_changes:
+      - Created Readme for playbook in the playbooks directory
+      - Removed the playbook configs folder, it was previously moved to the .github/playbooks
+        directory
+    fragments:
+    - bug-224.yml
+    - playbook.yml
+    release_date: '2021-09-01'
+  2.1.0:
+    changes:
+      bugfixes:
+      - Fixed readme's to point in right direction for workflows and the export model
+        in examples
+      - Moved Example playbooks to the example directory
+      - Removes json_query which is not in a RH Certified collection so does not receive
+        support and replaced with native ansible filters
+      - Updated workflow inventory option to be able to use workflows from the export
+        model.
+      - added default to organization as null on project as it is not required for
+        the module, but it is highly recommended.
+      - added when to skip inventory source update when item is absent
+      - added when to skip project update when item is absent
+      major_changes:
+      - added diff plugin and tests for diff plugin to aid in removal tasks
+      minor_changes:
+      - Added new options for adding manifest to Ansible Controller inc. from a URL
+        and from b64 encoded content
+      - added tests for the project and inventory source skips
+    fragments:
+    - doc_fix.yml
+    - license.yml
+    - removal_tasks.yml
+    - remove_json_query.yml
+    - update_fix.yml
+    release_date: '2021-12-17'
+  2.1.1:
+    changes:
+      bugfixes:
+      - warn on default if the api list fed to controller_object_diff lookup is empty
+      minor_changes:
+      - Allows for using the roles for deletion to only use required fields.
+      - Changed default to omit for several fields for notification templates and
+        inventor sources.
+      - These changes are in line with the modules required fields.
+    fragments:
+    - diff_empty_fix.yml
+    - removal_fix.yml
+    release_date: '2022-01-18'
+  2.1.3:
+    changes:
+      breaking_changes:
+      - galaxy credentials in the organization role now require assign_galaxy_organizations_to_org
+        to be true.
+      bugfixes:
+      - Fixes option of `survey_spec` on job_templates role.
+      minor_changes:
+      - Added asynchronous to {organizations,credentials,credential_types,inventories,job_templates}
+        task to speed up creation.
+      - Allow setting the organization when creating users.
+      - Update to controller_object_diff lookup plugin to better handle group, host,
+        inventory, credential, workflow_job_template_node and user objects.
+      - Update to controller_object_diff lookup plugin to better handle organizations.
+    fragments:
+    - playbook.yml
+    - survey.yml
+    - users.yml
+    release_date: '2022-03-23'
+  2.1.4:
+    changes:
+      bugfixes:
+      - Fixes async to work on default execution enviroments.
+      - Fixes inventories hardcoded 'no_log' true on the async job check task.
+    fragments:
+    - async.yml
+    - inventories.yml
+    release_date: '2022-03-31'
+  2.1.5:
+    changes:
+      bugfixes:
+      - Changed default interval for inventory_source_update, project_update and project
+        to be the value of the role's async delay value. This still defaults to 1
+        if the delay value is not set as previously.
+      major_changes:
+      - Adds dispatch role - A role to run all other roles.
+    fragments:
+    - dispatch.yml
+    - interval_delay.yaml
+    release_date: '2022-05-04'
+  2.1.6:
+    changes:
+      bugfixes:
+      - Fixed broken documentation for controller_object_diff plugin
+    fragments:
+    - object_diff_docs.yml
+    release_date: '2022-06-06'
+  2.1.7:
+    changes:
+      major_changes:
+      - Adds Configuration as Code filetree_create - A role to export and convert
+        all  Controller's objects configuration in yaml files to be consumed with
+        previous roles.
+      - Adds Configuration as Code filetree_read role - A role to load controller
+        variables (objects) from a hierarchical and scalable directory structure.
+      - Adds Configuration as Code object_diff role - A role to get differences between
+        code and controller. It will give us the lists to remove absent objects in
+        the controller which they are not in code.
+      minor_changes:
+      - Adds credential and organization options for schedule role.
+      - inventory_sources - update ``source_vars`` to parse Jinja variables using
+        the same workaround as inventories role.
+    fragments:
+    - casc_roles.yml
+    - inventory_sources.yml
+    - schedule_role.yml
+    release_date: '2022-08-30'
+  2.1.8:
+    changes:
+      bugfixes:
+      - Fixed optional lists to default to omit if the list is empty.
+      - Reduce the memory usage on the filetree_create role.
+      minor_changes:
+      - Add a way to detect which of `awx.awx` or `ansible.controller` collection
+        is installed. Added to the playbooks and examples.
+      - Add markdown linter
+      - Add the current object ID to the corresponding output yaml filename.
+      - Fix all linter reported errors
+      - Move linter configurations to root directory
+      - Organize the output in directories (one per each object type).
+      - Remove json_query and jmespath dependency from filetree_create role.
+      - Update linter versions
+    fragments:
+    - awx_awx-ansible_controller-independence.yml
+    - default_list_changes.yml
+    - reduce_memory_usage.yml
+    - remove_json_query_dependency.yml
+    - update_linting.yml
+    release_date: '2022-11-02'
+  2.1.9:
+    changes:
+      major_changes:
+      - Added instance role to add instances using the new awx.awx.instance module.
+      minor_changes:
+      - Update options on inventories, job templates, liscence, projects, schedules,
+        and workflow_job_templates roles to match latest awx.awx release
+    fragments:
+    - update_options.yml
+    release_date: '2022-11-11'
+  2.2.4:
+    changes:
+      breaking_changes:
+      - infra.controller_configuration 2.2.3 is broken, it is aap_utilities release.
+        We are bumping the version to minimize the issues.
+      - rewrote playbooks/controller_configure.yml and removed all other playbooks
+      minor_changes:
+      - Update release process to avoid problems that have happened and automate it.
+      - removed all examples from repo outside of readmes
+      removed_features:
+      - update_on_project_update in inventory_source as an option due to the awx module
+        no longer supports this option.
+    fragments:
+    - release_fix.yml
+    - remove_examples.yml
+    - removed_ update_on_project_update.yml
+    release_date: '2022-11-30'

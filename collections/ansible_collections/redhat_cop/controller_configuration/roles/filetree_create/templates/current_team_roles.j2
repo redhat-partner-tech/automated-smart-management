@@ -1,0 +1,26 @@
+---
+controller_roles:
+{% for role in team_roles_lookvar %}
+{% if role.summary_fields.resource_type is defined %}
+  - team: "{{ teamname }}"
+{% if role.summary_fields.resource_type is match('organization') %}
+    organizations:
+      - "{{ role.summary_fields.resource_name }}"
+{% elif role.summary_fields.resource_type is match('team') %}
+    target_teams:
+      - "{{ role.summary_fields.resource_name }}"
+{% elif role.summary_fields.resource_type is match('job_template') %}
+    job_template: "{{ role.summary_fields.resource_name }}"
+{% elif role.summary_fields.resource_type is match('inventory') %}
+    inventory: "{{ role.summary_fields.resource_name }}"
+{% elif role.summary_fields.resource_type is match('workflow_job_template') %}
+    workflow_job_template: "{{ role.summary_fields.resource_name }}"
+{% elif role.summary_fields.resource_type is match('project') %}
+    project: "{{ role.summary_fields.resource_name }}"
+{% elif role.summary_fields.resource_type is match('credential') %}
+    credential: "{{ role.summary_fields.resource_name }}"
+{% endif %}
+    role: "{{ role.name | lower }}"
+{% endif %}
+{% endfor %}
+...

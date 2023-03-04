@@ -1,29 +1,33 @@
 # controller_configuration.inventory_sources
 
 ## Description
+
 An Ansible role to create inventory sources on Ansible Controller.
 
 ## Requirements
-ansible-galaxy collection install  -r tests/collections/requirements.yml to be installed
+
+ansible-galaxy collection install -r tests/collections/requirements.yml to be installed
 Currently:
   awx.awx
   or
-  ansible.tower
+  ansible.controller
 
 ## Variables
 
 ### Authentication
+
 |Variable Name|Default Value|Required|Description|Example|
-|:---:|:---:|:---:|:---:|:---:|
-|`controller_state`|"present"|no|The state all objects will take unless overriden by object default|'absent'|
+|:---|:---:|:---:|:---|:---|
+|`controller_state`|"present"|no|The state all objects will take unless overridden by object default|'absent'|
 |`controller_hostname`|""|yes|URL to the Ansible Controller Server.|127.0.0.1|
 |`controller_validate_certs`|`True`|no|Whether or not to validate the Ansible Controller Server's SSL certificate.||
-|`controller_username`|""|yes|Admin User on the Ansible Controller Server.||
-|`controller_password`|""|yes|Controller Admin User's password on the Ansible Controller Server.  This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook.||
-|`controller_oauthtoken`|""|yes|Controller Admin User's token on the Ansible Controller Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
+|`controller_username`|""|no|Admin User on the Ansible Controller Server. Either username / password or oauthtoken need to be specified.||
+|`controller_password`|""|no|Controller Admin User's password on the Ansible Controller Server. This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.||
+|`controller_oauthtoken`|""|no|Controller Admin User's token on the Ansible Controller Server. This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.|||
 |`controller_inventory_sources`|`see below`|yes|Data structure describing your inventory sources Described below.||
 
 ### Secure Logging Variables
+
 The following Variables compliment each other.
 If Both variables are not set, secure logging defaults to false.
 The role defaults to False as normally the add inventory_source task does not include sensitive information.
@@ -31,11 +35,47 @@ controller_configuration_inventory_sources_secure_logging defaults to the value 
 
 |Variable Name|Default Value|Required|Description|
 |:---:|:---:|:---:|:---:|
-|`controller_configuration_inventory_sources_secure_logging`|`False`|no|Whether or not to include the sensitive Inventory Sources role tasks in the log.  Set this value to `True` if you will be providing your sensitive values from elsewhere.|
-|`controller_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared accross multiple roles, see above.|
+|`controller_configuration_inventory_sources_secure_logging`|`False`|no|Whether or not to include the sensitive Inventory Sources role tasks in the log. Set this value to `True` if you will be providing your sensitive values from elsewhere.|
+|`controller_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared across multiple roles, see above.|
+
+### Asynchronous Retry Variables
+
+The following Variables set asynchronous retries for the role.
+If neither of the retries or delay or retries are set, they will default to their respective defaults.
+This allows for all items to be created, then checked that the task finishes successfully.
+This also speeds up the overall role.
+
+|Variable Name|Default Value|Required|Description|
+|:---:|:---:|:---:|:---:|
+|`controller_configuration_async_retries`|30|no|This variable sets the number of retries to attempt for the role globally.|
+|`controller_configuration_inventory_sources_async_retries`|`{{ controller_configuration_async_retries }}`|no|This variable sets the number of retries to attempt for the role.|
+|`controller_configuration_async_delay`|1|no|This sets the delay between retries for the role globally.|
+|`controller_configuration_inventory_sources_async_delay`|`controller_configuration_async_delay`|no|This sets the delay between retries for the role.|
+
+### Formating Variables
+
+Variables can use a standard Jinja templating format to describe the resource.
+
+Example:
+
+```json
+{{ variable }}
+```
+
+Because of this it is difficult to provide controller with the required format for these fields.
+
+The workaround is to use the following format:
+
+```json
+{  { variable }}
+```
+
+The role will strip the double space between the curly bracket in order to provide controller with the correct format for the Variables.
 
 ## Data Structure
-### Variables
+
+### Inventory Sources Variables
+
 |Variable Name|Default Value|Required|Description|
 |:---:|:---:|:---:|:---:|
 |`name`|""|yes|The name to use for the inventory source.|
@@ -59,16 +99,16 @@ controller_configuration_inventory_sources_secure_logging defaults to the value 
 |`update_on_launch`|""|no|Refresh inventory data from its source each time a job is run.|
 |`update_cache_timeout`|""|no|Time in seconds to consider an inventory sync to be current.|
 |`source_project`|""|no|Project to use as source with scm option|
-|`update_on_project_update`|""|no|Update this source when the related project updates if source is C(scm)|
 |`state`|`present`|no|Desired state of the resource.|
 |`notification_templates_started`|""|no|The notifications on started to use for this inventory source in a list.|
 |`notification_templates_success`|""|no|The notifications on success to use for this inventory source in a list.|
 |`notification_templates_error`|""|no|The notifications on error to use for this inventory source in a list.|
 
 ### Standard Inventory Source Data Structure
+
 #### Json Example
+
 ```json
----
 {
   "controller_inventory_sources": [
     {
@@ -85,7 +125,9 @@ controller_configuration_inventory_sources_secure_logging defaults to the value 
 }
 
 ```
+
 #### Yaml Example
+
 ```yaml
 ---
 controller_inventory_sources:
@@ -99,8 +141,11 @@ controller_inventory_sources:
     update_cache_timeout: 0
 
 ```
+
 ## Playbook Examples
+
 ### Standard Role Usage
+
 ```yaml
 ---
 - name: Playbook to configure ansible controller post installation
@@ -120,10 +165,12 @@ controller_inventory_sources:
     - {role: redhat_cop.controller_configuration.inventory_sources, when: controller_inventory_sources is defined}
 ```
 
-# License
-[MIT](LICENSE)
+## License
 
-# Author
+[MIT](https://github.com/redhat-cop/controller_configuration#licensing)
+
+## Author
+
 [Edward Quail](mailto:equail@redhat.com)
 
 [Andrew J. Huffman](https://github.com/ahuffman)

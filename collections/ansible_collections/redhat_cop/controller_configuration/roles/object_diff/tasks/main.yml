@@ -1,0 +1,48 @@
+---
+# tasks file for object_diff
+- name: "Check requirements (block)"
+  tags:
+    - always
+  block:
+    - name: "Check installed collections (block)"
+      block:
+        - name: "Check if the collection ansible.controller is installed"
+          ansible.builtin.set_fact:
+            ansible_controller_collection_installed: "{{ lookup('ansible.builtin.pipe', 'ansible-galaxy collection list | grep -i ansible.controller || echo NOTINSTALLED') }}"
+          failed_when: ansible_controller_collection_installed is match('NOTINSTALLED')
+      rescue:
+        - name: "Check if the collection awx.awx is installed"
+          ansible.builtin.set_fact:
+            awx_awx_collection_installed: "{{ lookup('ansible.builtin.pipe', 'ansible-galaxy collection list | grep -i awx.awx || echo NOTINSTALLED') }}"
+          failed_when: awx_awx_collection_installed is match('NOTINSTALLED')
+      always:
+        - name: "Set the collection providing the controller_api lookup plugin"
+          ansible.builtin.set_fact:
+            controller_api_plugin: "{{ ('ansible.controller.controller_api' if ansible_controller_collection_installed is defined) | default('awx.awx.controller_api' if awx_awx_collection_installed is defined) | default('NONE') }}"
+        - name: "Fail if no collection is detected"
+          ansible.builtin.fail:
+            msg: "One of the following collections is required to be installed: 'ansible.controller' or 'awx.awx'."
+          when: controller_api_plugin is match('NONE')
+        - name: "Show the plugin we are using"
+          ansible.builtin.debug:
+            msg: "Using the 'controller_api' plugin from: {{ controller_api_plugin }}"
+
+- name: "Check if the connection is to an Ansible Tower or to Automation Platform"
+  ansible.builtin.set_fact:
+    is_aap: "{{ lookup(controller_api_plugin, 'ping',
+                       host=controller_hostname, oauth_token=controller_oauthtoken,
+                       verify_ssl=controller_validate_certs).version is version('4.0.0', '>=') }}"
+  no_log: "{{ controller_configuration_object_diff_secure_logging }}"
+  tags:
+    - always
+
+- name: "Include Tasks to get OBJECT DIFF {{ __task_diff.name }}"
+  ansible.builtin.include_tasks: "{{ __task_diff.name }}.yml"
+  args:
+    apply:
+      tags: "{{ __task_diff.tags }}"
+  tags: always
+  loop: "{{ controller_configuration_object_diff_tasks }}"
+  loop_control:
+    loop_var: __task_diff
+...

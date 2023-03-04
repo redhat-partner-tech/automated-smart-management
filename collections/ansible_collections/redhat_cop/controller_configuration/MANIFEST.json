@@ -2,13 +2,14 @@
  "collection_info": {
   "namespace": "redhat_cop",
   "name": "controller_configuration",
-  "version": "2.0.0",
+  "version": "2.2.5",
   "authors": [
    "Andrew Huffman",
    "Jonathan Lozada De La Matta @jlozadad",
    "Kedar Kulkarni @kedark3",
    "Tom Page @Tompage1994",
-   "Sean Sullivan @sean-m-sullivan"
+   "Sean Sullivan @sean-m-sullivan",
+   "David Danielsson @djdanielsson"
   ],
   "readme": "README.md",
   "tags": [
@@ -23,16 +24,16 @@
   ],
   "license_file": null,
   "dependencies": {},
-  "repository": "https://github.com/redhat-cop/tower_configuration",
+  "repository": "https://github.com/redhat-cop/controller_configuration/",
   "documentation": null,
   "homepage": null,
-  "issues": "https://github.com/redhat-cop/tower_configuration/issues"
+  "issues": "https://github.com/redhat-cop/controller_configuration//issues"
  },
  "file_manifest_file": {
   "name": "FILES.json",
   "ftype": "file",
   "chksum_type": "sha256",
-  "chksum_sha256": "6c1021d631f02a5e346c28676acd023dc844f6b72aca771ee80166e7eee1b946",
+  "chksum_sha256": "d7abe26a8e1f090cb951d50a025894047567f469dacec398c5aba255ddfd2e26",
   "format": 1
  },
  "format": 1

@@ -2,4 +2,5 @@ collections/*
 !collections/requirements.yml
 galaxy.yml
 *.tar.gz
-.pre-commit-config.yaml
+*.pyc
+id_rsa*

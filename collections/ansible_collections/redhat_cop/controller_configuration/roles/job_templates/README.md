@@ -1,28 +1,33 @@
 # controller_configuration.job_templates
+
 ## Description
+
 An Ansible Role to create Job Templates on Ansible Controller.
 
 ## Requirements
-ansible-galaxy collection install  -r tests/collections/requirements.yml to be installed
+
+ansible-galaxy collection install -r tests/collections/requirements.yml to be installed
 Currently:
   awx.awx
   or
-  ansible.tower
+  ansible.controller
 
 ## Variables
 
 ### Authentication
+
 |Variable Name|Default Value|Required|Description|Example|
-|:---:|:---:|:---:|:---:|:---:|
-|`controller_state`|"present"|no|The state all objects will take unless overriden by object default|'absent'|
+|:---|:---:|:---:|:---|:---|
+|`controller_state`|"present"|no|The state all objects will take unless overridden by object default|'absent'|
 |`controller_hostname`|""|yes|URL to the Ansible Controller Server.|127.0.0.1|
 |`controller_validate_certs`|`True`|no|Whether or not to validate the Ansible Controller Server's SSL certificate.||
-|`controller_username`|""|yes|Admin User on the Ansible Controller Server.||
-|`controller_password`|""|yes|Controller Admin User's password on the Ansible Controller Server.  This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook.||
-|`controller_oauthtoken`|""|yes|Controller Admin User's token on the Ansible Controller Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
+|`controller_username`|""|no|Admin User on the Ansible Controller Server. Either username / password or oauthtoken need to be specified.||
+|`controller_password`|""|no|Controller Admin User's password on the Ansible Controller Server. This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.||
+|`controller_oauthtoken`|""|no|Controller Admin User's token on the Ansible Controller Server. This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.|||
 |`controller_templates`|`see below`|yes|Data structure describing your job template or job templates Described below.||
 
 ### Secure Logging Variables
+
 The following Variables compliment each other.
 If Both variables are not set, secure logging defaults to false.
 The role defaults to False as normally the add job_template task does not include sensitive information.
@@ -30,11 +35,27 @@ controller_configuration_job_templates_secure_logging defaults to the value of c
 
 |Variable Name|Default Value|Required|Description|
 |:---:|:---:|:---:|:---:|
-|`controller_configuration_job_templates_secure_logging`|`False`|no|Whether or not to include the sensitive Job Template role tasks in the log.  Set this value to `True` if you will be providing your sensitive values from elsewhere.|
-|`controller_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared accross multiple roles, see above.|
+|`controller_configuration_job_templates_secure_logging`|`False`|no|Whether or not to include the sensitive Job Template role tasks in the log. Set this value to `True` if you will be providing your sensitive values from elsewhere.|
+|`controller_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared across multiple roles, see above.|
+
+### Asynchronous Retry Variables
+
+The following Variables set asynchronous retries for the role.
+If neither of the retries or delay or retries are set, they will default to their respective defaults.
+This allows for all items to be created, then checked that the task finishes successfully.
+This also speeds up the overall role.
+
+|Variable Name|Default Value|Required|Description|
+|:---:|:---:|:---:|:---:|
+|`controller_configuration_async_retries`|30|no|This variable sets the number of retries to attempt for the role globally.|
+|`controller_configuration_job_templates_async_retries`|`{{ controller_configuration_async_retries }}`|no|This variable sets the number of retries to attempt for the role.|
+|`controller_configuration_async_delay`|1|no|This sets the delay between retries for the role globally.|
+|`controller_configuration_job_templates_async_delay`|`controller_configuration_async_delay`|no|This sets the delay between retries for the role.|
 
 ## Data Structure
-### Variables
+
+### Job Template Variables
+
 |Variable Name|Default Value|Required|Type|Description|
 |:---:|:---:|:---:|:---:|:---:|
 |`name`|""|yes|str|Name of Job Template|
@@ -69,6 +90,13 @@ controller_configuration_job_templates_secure_logging defaults to the value of c
 |`ask_verbosity_on_launch`|""|no|bool|Prompt user to choose a verbosity level on launch.|
 |`ask_inventory_on_launch`|""|no|bool|Prompt user for inventory on launch.|
 |`ask_credential_on_launch`|""|no|bool|Prompt user for credential on launch.|
+|`ask_execution_environment_on_launch`|""|no|bool|Prompt user for execution environment on launch.|
+|`ask_forks_on_launch`|""|no|bool|Prompt user for forks on launch.|
+|`ask_instance_groups_on_launch`|""|no|bool|Prompt user for instance groups on launch.|
+|`ask_job_slice_count_on_launch`|""|no|bool|Prompt user for job slice count on launch.|
+|`ask_labels_on_launch`|""|no|bool|Prompt user for labels on launch.|
+|`ask_timeout_on_launch`|""|no|bool|Prompt user for timeout on launch.|
+|`prevent_instance_group_fallback`|""|no|bool|Prevent falling back to instance groups set on the associated inventory or organization.|
 |`survey_enabled`|""|no|bool|Enable a survey on the job template.|
 |`survey_spec`|""|no|dict|JSON/YAML dict formatted survey definition.|
 |`survey`|""|no|dict|JSON/YAML dict formatted survey definition. Alias of survey_spec|
@@ -80,16 +108,17 @@ controller_configuration_job_templates_secure_logging defaults to the value of c
 |`webhook_service`|""|no|str|Service that webhook requests will be accepted from (github, gitlab)|
 |`webhook_credential`|""|no|str|Personal Access Token for posting back the status to the service API|
 |`scm_branch`|""|no|str|Branch to use in job run. Project default used if blank. Only allowed if project allow_override field is set to true.|
-|`labels`|""|no|list|The labels applied to this job template|
+|`labels`|""|no|list|The labels applied to this job template. NOTE: Labels must be created with the [labels](https://github.com/redhat-cop/controller_configuration/tree/devel/roles/labels) role first, an error will occur if the label supplied to this role does not exist.|
 |`custom_virtualenv`|""|no|str|Local absolute file path containing a custom Python virtualenv to use.|
 |`notification_templates_started`|""|no|list|The notifications on started to use for this organization in a list.|
 |`notification_templates_success`|""|no|list|The notifications on success to use for this organization in a list.|
 |`notification_templates_error`|""|no|list|The notifications on error to use for this organization in a list.|
 |`state`|`present`|no|str|Desired state of the resource.|
 
-
 ### Surveys
+
 Refer to the [controller Api Guide](https://docs.ansible.com/ansible-tower/latest/html/towerapi/api_ref.html#/Job_Templates/Job_Templates_job_templates_survey_spec_create) for more information about forming surveys
+
 |Variable Name|Variable Description|
 |:---:|:---:|
 |`name`|Name of the survey|
@@ -104,14 +133,15 @@ Refer to the [controller Api Guide](https://docs.ansible.com/ansible-tower/lates
 |`min`|Minimum value for a number type|
 |`max`|Maximum value for a number type|
 |`choices`|List of choices for a "multi" type|
-|`new_question`|Boolean???|
+|`new_question`|Boolean|
 
 ### Standard Project Data Structure
+
 #### Json Example
+
 ```json
----
 {
-    "templates": [
+    "controller_templates": [
         {
             "name": "Survey Template with vars",
             "job_type": "run",
@@ -146,13 +176,16 @@ Refer to the [controller Api Guide](https://docs.ansible.com/ansible-tower/lates
     ]
 }
 ```
+
 #### Yaml Example
+
 ```yaml
 ---
-templates:
+controller_templates:
 - name: Survey Template with vars
   job_type: run
   inventory: Demo Inventory
+  execution_environment: my_exec_env
   survey_enabled: true
   survey: "{{ lookup('template', 'template_surveys/basic_survey.json') | regex_replace('\\n', '') }}"
   project: controller Config
@@ -174,8 +207,11 @@ templates:
   notification_templates_error:
   - Slack_for_testing
 ```
+
 ### Survey Data Structure
-#### Json Example
+
+#### Survey Json Example
+
 ```json
 {
     "name": "Basic Survey",
@@ -220,8 +256,11 @@ templates:
     ]
   }
 ```
+
 ## Playbook Examples
+
 ### Standard Role Usage
+
 ```yaml
 ---
 - name: Playbook to configure ansible controller post installation
@@ -240,8 +279,11 @@ templates:
   roles:
     - {role: redhat_cop.controller_configuration.job_templates, when: controller_templates is defined}
 ```
+
 ## License
-[MIT](LICENSE)
+
+[MIT](https://github.com/redhat-cop/controller_configuration#licensing)
 
 ## Author
+
 [Sean Sullivan](https://github.com/sean-m-sullivan)

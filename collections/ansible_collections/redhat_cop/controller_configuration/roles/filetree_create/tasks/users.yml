@@ -1,0 +1,56 @@
+---
+- name: "Get current Users from the API"
+  ansible.builtin.set_fact:
+    users_lookvar: "{{ query(controller_api_plugin, 'api/v2/users/',
+                             host=controller_hostname, oauth_token=controller_oauthtoken, verify_ssl=controller_validate_certs,
+                             return_all=true, max_objects=query_controller_api_max_objects)
+                    }}"
+  no_log: "{{ controller_configuration_filetree_create_secure_logging }}"
+
+- name: "Add the users the Organizations information"
+  ansible.builtin.set_fact:
+    current_users: "{{ (current_users | default([])) + [user_lookvar_item | combine({'organizations': user_lookvar_item_organizations})] }}"
+  vars:
+    user_lookvar_item_organizations: "{{ query(controller_api_plugin, user_lookvar_item.related.organizations,
+                                               host=controller_hostname, oauth_token=controller_oauthtoken, verify_ssl=controller_validate_certs,
+                                               return_all=true, max_objects=query_controller_api_max_objects
+                                              ) | selectattr('name', 'defined') | map(attribute='name')
+                                      }}"
+  loop: "{{ users_lookvar }}"
+  loop_control:
+    loop_var: user_lookvar_item
+    label: "User {{ user_lookvar_item.username }}"
+  no_log: "{{ controller_configuration_filetree_create_secure_logging }}"
+
+- name: "Create the <ORGANIZATION_NAME> output directory for users in {{ output_path }}"
+  ansible.builtin.file:
+    path: "{{ __path }}"
+    state: directory
+    mode: '0755'
+  vars:
+    __path: "{{ output_path }}/{{ current_user_dir | regex_replace('/', '_') }}/users"
+  loop: "{{ current_users | selectattr('organizations', 'defined') | map(attribute='organizations') | flatten | unique }}"
+  loop_control:
+    loop_var: current_user_dir
+    label: "{{ __path }}"
+
+- name: "Add current users to the <ORGANIZATION_NAME>/<USERNAME>.yaml output file in {{ output_path }}"
+  ansible.builtin.template:
+    src: "templates/current_users.j2"
+    dest: "{{ __dest }}"
+    mode: '0644'
+  vars:
+    current_users_asset_value: "{{ current_user_dir.0 }}"
+    __dest: "{{ output_path }}/{{ current_user_dir.1 | regex_replace('/', '_') }}/users/{{ current_user_dir.0.username | regex_replace('/', '_') }}.yaml"
+  loop: "{{ current_users | subelements('organizations') }}"
+  loop_control:
+    loop_var: current_user_dir
+    label: "{{ __dest }}"
+
+- name: "Set the user's roles"
+  ansible.builtin.include_tasks: "user_roles.yml"
+  vars:
+    username: "{{ item.username }}"
+  loop: "{{ users_lookvar }}"
+  when: not item.is_superuser
+...

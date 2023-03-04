@@ -37,6 +37,7 @@ galaxy_info:
     - "commands"
 
 collections:
+  - ansible.controller
   - awx.awx
 
 dependencies: []

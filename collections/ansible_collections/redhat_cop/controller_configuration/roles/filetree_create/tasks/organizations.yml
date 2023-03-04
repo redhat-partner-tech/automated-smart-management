@@ -1,0 +1,47 @@
+---
+- name: "Get current Organizations from the API"
+  ansible.builtin.set_fact:
+    orgs_lookvar: "{{ query(controller_api_plugin, 'api/v2/organizations/',
+                            query_params={'order_by': 'id'},
+                            host=controller_hostname, oauth_token=controller_oauthtoken, verify_ssl=controller_validate_certs,
+                            return_all=true, max_objects=query_controller_api_max_objects)
+                   }}"
+  no_log: "{{ controller_configuration_filetree_create_secure_logging }}"
+
+- name: "Create the output directory for organizations: {{ output_path + '/' + current_organization_dir.name }}"
+  ansible.builtin.file:
+    path: "{{ __path }}"
+    state: directory
+    mode: '0755'
+  vars:
+    __path: "{{ output_path }}/{{ current_organization_dir.name | regex_replace('/', '_') }}"
+  loop: "{{ orgs_lookvar }}"
+  loop_control:
+    loop_var: current_organization_dir
+    label: "{{ __path }}"
+
+- name: "Add current organizations to the output yaml file"
+  ansible.builtin.template:
+    src: "templates/current_organizations.j2"
+    dest: "{{ __dest }}"
+    mode: '0644'
+  vars:
+    __dest: "{{ output_path }}/{{ current_organization.name | regex_replace('/', '_') }}/current_organization.yaml"
+    query_notification_error: "{{ query(controller_api_plugin, current_organization.related.notification_templates_error,
+                     host=controller_hostname, oauth_token=controller_oauthtoken, verify_ssl=controller_validate_certs,
+                     return_all=true, max_objects=query_controller_api_max_objects) }}"
+    query_notification_started: "{{ query(controller_api_plugin, current_organization.related.notification_templates_started,
+                     host=controller_hostname, oauth_token=controller_oauthtoken, verify_ssl=controller_validate_certs,
+                     return_all=true, max_objects=query_controller_api_max_objects) }}"
+    query_notification_success: "{{ query(controller_api_plugin, current_organization.related.notification_templates_success,
+                     host=controller_hostname, oauth_token=controller_oauthtoken, verify_ssl=controller_validate_certs,
+                     return_all=true, max_objects=query_controller_api_max_objects) }}"
+    query_notification_approvals: "{{ query(controller_api_plugin, current_organization.related.notification_templates_approvals,
+                     host=controller_hostname, oauth_token=controller_oauthtoken, verify_ssl=controller_validate_certs,
+                     return_all=true, max_objects=query_controller_api_max_objects) }}"
+  loop: "{{ orgs_lookvar }}"
+  loop_control:
+    loop_var: current_organization
+    label: "{{ __dest }}"
+  no_log: "{{ controller_configuration_filetree_create_secure_logging }}"
+...

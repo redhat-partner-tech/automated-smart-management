@@ -1,28 +1,33 @@
 # controller_configuration.roles
+
 ## Description
+
 An Ansible Role to create RBAC Entries on Ansible Controller.
 
 ## Requirements
-ansible-galaxy collection install  -r tests/collections/requirements.yml to be installed
+
+ansible-galaxy collection install -r tests/collections/requirements.yml to be installed
 Currently:
   awx.awx
   or
-  ansible.tower
+  ansible.controller
 
 ## Variables
 
 ### Authentication
+
 |Variable Name|Default Value|Required|Description|Example|
-|:---:|:---:|:---:|:---:|:---:|
-|`controller_state`|"present"|no|The state all objects will take unless overriden by object default|'absent'|
+|:---|:---:|:---:|:---|:---|
+|`controller_state`|"present"|no|The state all objects will take unless overridden by object default|'absent'|
 |`controller_hostname`|""|yes|URL to the Ansible Controller Server.|127.0.0.1|
 |`controller_validate_certs`|`True`|no|Whether or not to validate the Ansible Controller Server's SSL certificate.||
-|`controller_username`|""|yes|Admin User on the Ansible Controller Server.||
-|`controller_password`|""|yes|Controller Admin User's password on the Ansible Controller Server.  This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook.||
-|`controller_oauthtoken`|""|yes|Controller Admin User's token on the Ansible Controller Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
+|`controller_username`|""|no|Admin User on the Ansible Controller Server. Either username / password or oauthtoken need to be specified.||
+|`controller_password`|""|no|Controller Admin User's password on the Ansible Controller Server. This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.||
+|`controller_oauthtoken`|""|no|Controller Admin User's token on the Ansible Controller Server. This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.|||
 |`controller_roles`|`see below`|yes|Data structure describing your RBAC entries described below.||
 
 ### Secure Logging Variables
+
 The following Variables compliment each other.
 If Both variables are not set, secure logging defaults to false.
 The role defaults to False as normally the add rbac task does not include sensitive information.
@@ -31,10 +36,26 @@ The role defaults to False as normally the add rbac task does not include sensit
 |Variable Name|Default Value|Required|Description|
 |:---:|:---:|:---:|:---:|
 |`controller_configuration_role_secure_logging`|`False`|no|Whether or not to include the sensitive rbac role tasks in the log.  Set this value to `True` if you will be providing your sensitive values from elsewhere.|
-|`controller_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared accross multiple roles, see above.|
+|`controller_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared across multiple roles, see above.|
+
+### Asynchronous Retry Variables
+
+The following Variables set asynchronous retries for the role.
+If neither of the retries or delay or retries are set, they will default to their respective defaults.
+This allows for all items to be created, then checked that the task finishes successfully.
+This also speeds up the overall role.
+
+|Variable Name|Default Value|Required|Description|
+|:---:|:---:|:---:|:---:|
+|`controller_configuration_async_retries`|30|no|This variable sets the number of retries to attempt for the role globally.|
+|`controller_configuration_role_async_retries`|`{{ controller_configuration_async_retries }}`|no|This variable sets the number of retries to attempt for the role.|
+|`controller_configuration_async_delay`|1|no|This sets the delay between retries for the role globally.|
+|`controller_configuration_role_async_delay`|`controller_configuration_async_delay`|no|This sets the delay between retries for the role.|
 
 ## Data Structure
-### Variables
+
+### Role Variables
+
 |Variable Name|Default Value|Required|Type|Description|
 |:---:|:---:|:---:|:---:|:---:|
 |`user`|""|no|str|The user for which the role applies|
@@ -52,13 +73,15 @@ The role defaults to False as normally the add rbac task does not include sensit
 |`credentials`|""|no|list|The credentials the role applies against|
 |`organization`|""|no|str|The organization the role applies against|
 |`organizations`|""|no|list|The organizations the role applies against|
-|`lookup_organization`|""|no|str|Organization the inventories, job templates, projects, or workflows the items exists in.Used to help lookup the object, for organizaiton roles see organization. If not provided, will lookup by name only, which does not work with duplicates.|
+|`lookup_organization`|""|no|str|Organization the inventories, job templates, projects, or workflows the items exists in. Used to help lookup the object, for organization roles see organization. If not provided, will lookup by name only, which does not work with duplicates.|
 |`project`|""|no|str|The project the role applies against|
 |`projects`|""|no|list|The project the role applies against|
 |`state`|`present`|no|str|Desired state of the resource.|
 
 #### Role
+
 `role` must be one of the following:
+
 - `admin`
 - `read`
 - `member`
@@ -75,7 +98,9 @@ The role defaults to False as normally the add rbac task does not include sensit
 - `job_template_admin`
 
 ### Standard RBAC Data Structure
+
 #### Json Example
+
 ```json
 {
   "controller_roles": [
@@ -92,7 +117,9 @@ The role defaults to False as normally the add rbac task does not include sensit
   ]
 }
 ```
+
 #### Yaml Example
+
 ```yaml
 ---
 controller_roles:
@@ -105,7 +132,9 @@ controller_roles:
 ```
 
 ## Playbook Examples
+
 ### Standard Role Usage
+
 ```yaml
 ---
 - name: Playbook to configure ansible controller post installation
@@ -124,8 +153,11 @@ controller_roles:
   roles:
     - {role: redhat_cop.controller_configuration.roles, when: controller_roles is defined}
 ```
+
 ## License
-[MIT](LICENSE)
+
+[MIT](https://github.com/redhat-cop/controller_configuration#licensing)
 
 ## Author
+
 [Tom Page](https://github.com/Tompage1994)

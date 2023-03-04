@@ -4,11 +4,11 @@
     name:                                 "{{ __controller_source_item.name | mandatory }}"
     new_name:                             "{{ __controller_source_item.new_name | default(omit, true) }}"
     description:                          "{{ __controller_source_item.description | default(omit, true) }}"
-    inventory:                            "{{ __controller_source_item.inventory.name | default( __controller_source_item.inventory ) | mandatory }}"
-    organization:                         "{{ __controller_source_item.inventory.organization.name | default( __controller_source_item.organization | default(omit, true)) }}"
-    source:                               "{{ __controller_source_item.source | mandatory }}"
+    inventory:                            "{{ __controller_source_item.inventory.name | default(__controller_source_item.inventory) | mandatory }}"
+    organization:                         "{{ __controller_source_item.inventory.organization.name | default(__controller_source_item.organization | default(omit, true)) }}"
+    source:                               "{{ __controller_source_item.source | default(omit, true) }}"
     source_path:                          "{{ __controller_source_item.source_path | default(omit, true) }}"
-    source_vars:                          "{{ __controller_source_item.source_vars | default(omit, true) }}"
+    source_vars:                          "{{ __controller_source_item.source_vars | default(omit, true) | regex_replace('[ ]{2,}', '') }}"
     enabled_var:                          "{{ __controller_source_item.enabled_var | default(omit, true) }}"
     enabled_value:                        "{{ __controller_source_item.enabled_value | default(omit, true) }}"
     host_filter:                          "{{ __controller_source_item.host_filter | default(omit, true) }}"
@@ -21,12 +21,11 @@
     verbosity:                            "{{ __controller_source_item.verbosity | default(omit, true) }}"
     update_on_launch:                     "{{ __controller_source_item.update_on_launch | default(omit) }}"
     update_cache_timeout:                 "{{ __controller_source_item.update_cache_timeout | default(omit, true) }}"
-    source_project:                       "{{ __controller_source_item.source_project.name | default( __controller_source_item.source_project | default(omit, true)) }}"
-    update_on_project_update:             "{{ __controller_source_item.update_on_project_update | default(omit) }}"
+    source_project:                       "{{ __controller_source_item.source_project.name | default(__controller_source_item.source_project | default(omit, true)) }}"
     state:                                "{{ __controller_source_item.state | default(controller_state | default('present')) }}"
-    notification_templates_started:       "{{ __controller_source_item.notification_templates_started | default(__controller_source_item.related.notification_templates_started | default([]) | map(attribute='name') | list ) }}"
-    notification_templates_success:       "{{ __controller_source_item.notification_templates_success | default(__controller_source_item.related.notification_templates_success | default([]) | map(attribute='name') | list ) }}"
-    notification_templates_error:         "{{ __controller_source_item.notification_templates_error | default(__controller_source_item.related.notification_templates_error | default([]) | map(attribute='name') | list ) }}"
+    notification_templates_started:       "{{ __controller_source_item.notification_templates_started | default(__controller_source_item.related.notification_templates_started | default([]) | map(attribute='name') | list) | default(omit, true) }}"
+    notification_templates_success:       "{{ __controller_source_item.notification_templates_success | default(__controller_source_item.related.notification_templates_success | default([]) | map(attribute='name') | list) | default(omit, true) }}"
+    notification_templates_error:         "{{ __controller_source_item.notification_templates_error | default(__controller_source_item.related.notification_templates_error | default([]) | map(attribute='name') | list) | default(omit, true) }}"
 
     # Role Standard Options
     controller_config_file:               "{{ controller_config_file | default(omit, true) }}"
@@ -39,4 +38,25 @@
   loop_control:
     loop_var: __controller_source_item
   no_log: "{{ controller_configuration_inventory_sources_secure_logging }}"
+  async: 1000
+  poll: 0
+  register: __inventory_source_job_async
+  changed_when: not __inventory_source_job_async.changed
+  vars:
+    ansible_async_dir: '/tmp/.ansible_async'
+
+- name: "Configure Inventory Source | Wait for finish the Inventory Source creation"
+  ansible.builtin.async_status:
+    jid: "{{ __inventory_source_job_async_results_item.ansible_job_id }}"
+  register: __inventory_source_job_async_result
+  until: __inventory_source_job_async_result.finished
+  retries: "{{ controller_configuration_inventory_sources_async_retries }}"
+  delay: "{{ controller_configuration_inventory_sources_async_delay }}"
+  loop: "{{ __inventory_source_job_async.results }}"
+  loop_control:
+    loop_var: __inventory_source_job_async_results_item
+  when: __inventory_source_job_async_results_item.ansible_job_id is defined
+  no_log: "{{ controller_configuration_inventory_sources_secure_logging }}"
+  vars:
+    ansible_async_dir: '/tmp/.ansible_async'
 ...

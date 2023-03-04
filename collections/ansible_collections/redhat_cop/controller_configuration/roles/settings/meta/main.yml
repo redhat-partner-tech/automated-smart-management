@@ -18,7 +18,7 @@ galaxy_info:
   # - CC-BY-4.0
   license: "MIT"
 
-  min_ansible_version: 2.9
+  min_ansible_version: "2.9"
 
   # If this a Container Enabled role, provide the minimum Ansible Container version.
   # min_ansible_container_version:
@@ -49,8 +49,8 @@ galaxy_info:
     - "settings"
 
 collections:
+  - ansible.controller
   - awx.awx
-  - ansible.tower
 
 dependencies: []
 # List your role dependencies here, one per line. Be sure to remove the '[]' above,

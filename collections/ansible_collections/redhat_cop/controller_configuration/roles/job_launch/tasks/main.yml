@@ -1,12 +1,11 @@
 ---
-
 # Launch Controller Job
 - name: Launch a Controller Job
   job_launch:
     name:                     "{{ __job_launch_item.name | mandatory }}"
     job_type:                 "{{ __job_launch_item.job_type | default(omit, true) }}"
     inventory:                "{{ __job_launch_item.inventory | default(omit, true) }}"
-    organization:             "{{ __job_launch_item.organization.name | default( __job_launch_item.organization | default(omit, true)) }}"
+    organization:             "{{ __job_launch_item.organization.name | default(__job_launch_item.organization | default(omit, true)) }}"
     credentials:              "{{ __job_launch_item.credentials | default(omit, true) }}"
     extra_vars:               "{{ __job_launch_item.extra_vars | default(omit, true) }}"
     limit:                    "{{ __job_launch_item.limit | default(omit, true) }}"
@@ -16,8 +15,14 @@
     verbosity:                "{{ __job_launch_item.verbosity | default(omit, true) }}"
     diff_mode:                "{{ __job_launch_item.diff_mode | default(omit) }}"
     credential_passwords:     "{{ __job_launch_item.credential_passwords | default(omit, true) }}"
+    execution_environment:    "{{ __job_launch_item.execution_environment.name | default(__job_launch_item.execution_environment | default(omit, true)) }}"
+    forks:                    "{{ __job_launch_item.forks | default(omit, true) }}"
+    instance_groups:          "{{ __job_launch_item.instance_groups | default(omit, true) }}"
+    job_slice_count:          "{{ __job_launch_item.job_slice_count | default(omit, true) }}"
+    labels:                   "{{ __job_launch_item.labels | default(__job_launch_item.related.labels | default([]) | map(attribute='name') | list) | default(omit, true) }}"
+    job_timeout:              "{{ __job_launch_item.job_timeout | default(omit, true) }}"
     wait:                     "{{ __job_launch_item.wait | default(omit) }}"
-    interval:                 "{{ __job_launch_item.interval | default(1) }}"
+    interval:                 "{{ __job_launch_item.interval | default(omit) }}"
     timeout:                  "{{ __job_launch_item.timeout | default(omit, true) }}"
 
     # Role Standard Options

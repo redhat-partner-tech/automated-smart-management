@@ -5,14 +5,182 @@ redhat_cop.controller_configuration Release Notes
 .. contents:: Topics
 
 
+v2.2.4
+======
+
+Minor Changes
+-------------
+
+- Update release process to avoid problems that have happened and automate it.
+- removed all examples from repo outside of readmes
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- infra.controller_configuration 2.2.3 is broken, it is aap_utilities release. We are bumping the version to minimize the issues.
+- rewrote playbooks/controller_configure.yml and removed all other playbooks
+
+Removed Features (previously deprecated)
+----------------------------------------
+
+- update_on_project_update in inventory_source as an option due to the awx module no longer supports this option.
+
+v2.1.9
+======
+
+Major Changes
+-------------
+
+- Added instance role to add instances using the new awx.awx.instance module.
+
+Minor Changes
+-------------
+
+- Update options on inventories, job templates, liscence, projects, schedules, and workflow_job_templates roles to match latest awx.awx release
+
+v2.1.8
+======
+
+Minor Changes
+-------------
+
+- Add a way to detect which of `awx.awx` or `ansible.controller` collection is installed. Added to the playbooks and examples.
+- Add markdown linter
+- Add the current object ID to the corresponding output yaml filename.
+- Fix all linter reported errors
+- Move linter configurations to root directory
+- Organize the output in directories (one per each object type).
+- Remove json_query and jmespath dependency from filetree_create role.
+- Update linter versions
+
+Bugfixes
+--------
+
+- Fixed optional lists to default to omit if the list is empty.
+- Reduce the memory usage on the filetree_create role.
+
+v2.1.7
+======
+
+Major Changes
+-------------
+
+- Adds Configuration as Code filetree_create - A role to export and convert all  Controller's objects configuration in yaml files to be consumed with previous roles.
+- Adds Configuration as Code filetree_read role - A role to load controller variables (objects) from a hierarchical and scalable directory structure.
+- Adds Configuration as Code object_diff role - A role to get differences between code and controller. It will give us the lists to remove absent objects in the controller which they are not in code.
+
+Minor Changes
+-------------
+
+- Adds credential and organization options for schedule role.
+- inventory_sources - update ``source_vars`` to parse Jinja variables using the same workaround as inventories role.
+
+v2.1.6
+======
+
+Bugfixes
+--------
+
+- Fixed broken documentation for controller_object_diff plugin
+
+v2.1.5
+======
+
+Major Changes
+-------------
+
+- Adds dispatch role - A role to run all other roles.
+
+Bugfixes
+--------
+
+- Changed default interval for inventory_source_update, project_update and project to be the value of the role's async delay value. This still defaults to 1 if the delay value is not set as previously.
+
+v2.1.4
+======
+
+Bugfixes
+--------
+
+- Fixes async to work on default execution enviroments.
+- Fixes inventories hardcoded 'no_log' true on the async job check task.
+
+v2.1.3
+======
+
+Minor Changes
+-------------
+
+- Added asynchronous to {organizations,credentials,credential_types,inventories,job_templates} task to speed up creation.
+- Allow setting the organization when creating users.
+- Update to controller_object_diff lookup plugin to better handle group, host, inventory, credential, workflow_job_template_node and user objects.
+- Update to controller_object_diff lookup plugin to better handle organizations.
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- galaxy credentials in the organization role now require assign_galaxy_organizations_to_org to be true.
+
+Bugfixes
+--------
+
+- Fixes option of `survey_spec` on job_templates role.
+
+v2.1.1
+======
+
+Minor Changes
+-------------
+
+- Allows for using the roles for deletion to only use required fields.
+- Changed default to omit for several fields for notification templates and inventor sources.
+- These changes are in line with the modules required fields.
+
+Bugfixes
+--------
+
+- warn on default if the api list fed to controller_object_diff lookup is empty
+
+v2.1.0
+======
+
+Major Changes
+-------------
+
+- added diff plugin and tests for diff plugin to aid in removal tasks
+
+Minor Changes
+-------------
+
+- Added new options for adding manifest to Ansible Controller inc. from a URL and from b64 encoded content
+- added tests for the project and inventory source skips
+
+Bugfixes
+--------
+
+- Fixed readme's to point in right direction for workflows and the export model in examples
+- Moved Example playbooks to the example directory
+- Removes json_query which is not in a RH Certified collection so does not receive support and replaced with native ansible filters
+- Updated workflow inventory option to be able to use workflows from the export model.
+- added default to organization as null on project as it is not required for the module, but it is highly recommended.
+- added when to skip inventory source update when item is absent
+- added when to skip project update when item is absent
+
 v2.0.0
 ======
+
+Major Changes
+-------------
+
+- Created awx and controller playbook that users can invoke for using the collection
 
 Minor Changes
 -------------
 
 - Additional module options have been added such as instance_groups and copy_from where applicable.
 - All role tests have been converted to use one format.
+- Created Readme for playbook in the playbooks directory
+- Removed the playbook configs folder, it was previously moved to the .github/playbooks directory
 
 Breaking Changes / Porting Guide
 --------------------------------
@@ -21,6 +189,12 @@ Breaking Changes / Porting Guide
 - Changed all module names to be in line with changes to awx.awx as of 19.2.1.
 - Changed variable names for all objects from tower_* to controller_*.
 - Removed depreciated module options for notification Templates.
+
+Bugfixes
+--------
+
+- Changed all references for ansible.tower to ansible.controller
+- Fixed issue where `credential` was not working for project and instead the old `scm_credential` option remained.
 
 v1.5.0
 ======

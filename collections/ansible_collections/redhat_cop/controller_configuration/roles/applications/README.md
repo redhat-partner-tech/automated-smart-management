@@ -1,29 +1,33 @@
 # controller_configuration.applications
+
 ## Description
+
 An Ansible Role to create Applications on Ansible Controller.
 
 ## Requirements
-ansible-galaxy collection install  -r tests/collections/requirements.yml to be installed
+
+ansible-galaxy collection install -r tests/collections/requirements.yml to be installed
 Currently:
   awx.awx
   or
-  ansible.tower
+  ansible.controller
 
 ## Variables
 
 ### Authentication
+
 |Variable Name|Default Value|Required|Description|Example|
-|:---:|:---:|:---:|:---:|:---:|
-|`controller_state`|"present"|no|The state all objects will take unless overriden by object default|'absent'|
+|:---|:---:|:---:|:---|:---|
+|`controller_state`|"present"|no|The state all objects will take unless overridden by object default|'absent'|
 |`controller_hostname`|""|yes|URL to the Ansible Controller Server.|127.0.0.1|
 |`controller_validate_certs`|`True`|no|Whether or not to validate the Ansible Controller Server's SSL certificate.||
-|`controller_username`|""|yes|Admin User on the Ansible Controller Server.||
-|`controller_password`|""|yes|Controller Admin User's password on the Ansible Controller Server.  This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook.||
-|`controller_oauthtoken`|""|yes|Controller Admin User's token on the Ansible Controller Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
+|`controller_username`|""|no|Admin User on the Ansible Controller Server. Either username / password or oauthtoken need to be specified.||
+|`controller_password`|""|no|Controller Admin User's password on the Ansible Controller Server. This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.||
+|`controller_oauthtoken`|""|no|Controller Admin User's token on the Ansible Controller Server. This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.||
 |`controller_applications`|`see below`|yes|Data structure describing your applications, described below.||
 
-
 ### Secure Logging Variables
+
 The following Variables compliment each other.
 If Both variables are not set, secure logging defaults to false.
 The role defaults to False as normally the add application task does not include sensitive information.
@@ -31,12 +35,27 @@ controller_configuration_applications_secure_logging defaults to the value of co
 
 |Variable Name|Default Value|Required|Description|
 |:---:|:---:|:---:|:---:|
-|`controller_configuration_applications_secure_logging`|`False`|no|Whether or not to include the sensitive Application role tasks in the log.  Set this value to `True` if you will be providing your sensitive values from elsewhere.|
+|`controller_configuration_applications_secure_logging`|`False`|no|Whether or not to include the sensitive Application role tasks in the log. Set this value to `True` if you will be providing your sensitive values from elsewhere.|
 |`controller_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared across multiple roles, see above.|
 
+### Asynchronous Retry Variables
+
+The following Variables set asynchronous retries for the role.
+If neither of the retries or delay or retries are set, they will default to their respective defaults.
+This allows for all items to be created, then checked that the task finishes successfully.
+This also speeds up the overall role.
+
+|Variable Name|Default Value|Required|Description|
+|:---:|:---:|:---:|:---:|
+|`controller_configuration_async_retries`|30|no|This variable sets the number of retries to attempt for the role globally.|
+|`controller_configuration_applications_async_retries`|`{{ controller_configuration_async_retries }}`|no|This variable sets the number of retries to attempt for the role.|
+|`controller_configuration_async_delay`|1|no|This sets the delay between retries for the role globally.|
+|`controller_configuration_applications_async_delay`|`controller_configuration_async_delay`|no|This sets the delay between retries for the role.|
 
 ## Data Structure
-### Variables
+
+### Application Variables
+
 |Variable Name|Default Value|Required|Type|Description|
 |:---:|:---:|:---:|:---:|:---:|
 |`name`|""|yes|str|Name of application|
@@ -44,16 +63,15 @@ controller_configuration_applications_secure_logging defaults to the value of co
 |`description`|""|no|str|Description to use for the application.|
 |`authorization_grant_type`|"password"|yes|str|Grant type for tokens in this application, "password" or "authorization-code"|
 |`client_type`|"public"|yes|str|Application client type, "confidential" or "public"|
-|`redirect_uris`|""|no|str|Allowed urls list, space separated. Required with "autorization-code" grant type|
+|`redirect_uris`|""|no|str|Allowed urls list, space separated. Required with "authorization-code" grant type|
 |`skip_authorization`|"false"|yes|bool|Set True to skip authorization step for completely trusted applications.|
 |`state`|`present`|no|str|Desired state of the application.|
 
-
-
 ### Standard Project Data Structure
+
 #### Json Example
+
 ```json
----
  {
     "controller_applications": [
       {
@@ -67,7 +85,9 @@ controller_configuration_applications_secure_logging defaults to the value of co
     ]
 }
 ```
-#### Ymal Example
+
+#### Yaml Example
+
 ```yaml
 ---
 controller_applications:
@@ -80,7 +100,9 @@ controller_applications:
 ```
 
 ## Playbook Examples
+
 ### Standard Role Usage
+
 ```yaml
 - name: Playbook to configure ansible controller post installation
   hosts: localhost
@@ -98,8 +120,11 @@ controller_applications:
   roles:
     - {role: redhat_cop.controller_configuration.applications, when: controller_applications is defined}
 ```
+
 ## License
-[MIT](LICENSE)
+
+[MIT](https://github.com/redhat-cop/controller_configuration#licensing)
 
 ## Author
+
 [Mike Shriver](https://github.com/mshriver)

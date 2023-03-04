@@ -6,7 +6,7 @@
     inventory:                "{{ __inventory_source_update_item.inventory }}"
     organization:             "{{ __inventory_source_update_item.organization | default(omit, true) }}"
     wait:                     "{{ __inventory_source_update_item.wait | default(omit) }}"
-    interval:                 "{{ __inventory_source_update_item.interval | default(1) }}"
+    interval:                 "{{ __inventory_source_update_item.interval | default(controller_configuration_inventory_source_update_async_delay) }}"
     timeout:                  "{{ __inventory_source_update_item.timeout | default(omit, true) }}"
 
     # Role Standard Options
@@ -20,5 +20,28 @@
   loop_control:
     loop_var: "__inventory_source_update_item"
   no_log: "{{ controller_configuration_inventory_source_update_secure_logging }}"
-  when: controller_inventory_sources is defined
+  when:
+    - controller_inventory_sources is defined
+    - __inventory_source_update_item.state | default('present') != "absent"
+  async: 1000
+  poll: 0
+  register: __inventory_source_update_async
+  changed_when: not __inventory_source_update_async.changed
+  vars:
+    ansible_async_dir: '/tmp/.ansible_async'
+
+- name: "Configure Inventory Source | Wait for finish the Inventory Source creation"
+  ansible.builtin.async_status:
+    jid: "{{ __inventory_source_update_async_results_item.ansible_job_id }}"
+  register: __inventory_source_update_async_result
+  until: __inventory_source_update_async_result.finished
+  retries: "{{ controller_configuration_inventory_source_update_async_retries }}"
+  delay: "{{ controller_configuration_inventory_source_update_async_delay }}"
+  loop: "{{ __inventory_source_update_async.results }}"
+  loop_control:
+    loop_var: __inventory_source_update_async_results_item
+  when: __inventory_source_update_async_results_item.ansible_job_id is defined
+  no_log: "{{ controller_configuration_inventory_source_update_secure_logging }}"
+  vars:
+    ansible_async_dir: '/tmp/.ansible_async'
 ...

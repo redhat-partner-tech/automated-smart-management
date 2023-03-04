@@ -1,28 +1,33 @@
 # controller_configuration.organizations
+
 ## Description
+
 An Ansible Role to create Organizations on Ansible Controller.
 
 ## Requirements
-ansible-galaxy collection install  -r tests/collections/requirements.yml to be installed
+
+ansible-galaxy collection install -r tests/collections/requirements.yml to be installed
 Currently:
   awx.awx
   or
-  ansible.tower
+  ansible.controller
 
 ## Variables
 
 ### Authentication
+
 |Variable Name|Default Value|Required|Description|Example|
-|:---:|:---:|:---:|:---:|:---:|
-|`controller_state`|"present"|no|The state all objects will take unless overriden by object default|'absent'|
+|:---|:---:|:---:|:---|:---|
+|`controller_state`|"present"|no|The state all objects will take unless overridden by object default|'absent'|
 |`controller_hostname`|""|yes|URL to the Ansible Controller Server.|127.0.0.1|
 |`controller_validate_certs`|`True`|no|Whether or not to validate the Ansible Controller Server's SSL certificate.||
-|`controller_username`|""|yes|Admin User on the Ansible Controller Server.||
-|`controller_password`|""|yes|Controller Admin User's password on the Ansible Controller Server.  This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook.||
-|`controller_oauthtoken`|""|yes|Controller Admin User's token on the Ansible Controller Server.  This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook.||
+|`controller_username`|""|no|Admin User on the Ansible Controller Server. Either username / password or oauthtoken need to be specified.||
+|`controller_password`|""|no|Controller Admin User's password on the Ansible Controller Server. This should be stored in an Ansible Vault at vars/controller-secrets.yml or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.||
+|`controller_oauthtoken`|""|no|Controller Admin User's token on the Ansible Controller Server. This should be stored in an Ansible Vault at or elsewhere and called from a parent playbook. Either username / password or oauthtoken need to be specified.|||
 |`controller_organizations`|`see below`|yes|Data structure describing your organization or organizations Described below.||
 
 ### Secure Logging Variables
+
 The following Variables compliment each other.
 If Both variables are not set, secure logging defaults to false.
 The role defaults to False as normally the add organization task does not include sensitive information.
@@ -30,13 +35,29 @@ controller_configuration_organizations_secure_logging defaults to the value of c
 
 |Variable Name|Default Value|Required|Description|
 |:---:|:---:|:---:|:---:|
-|`controller_configuration_organizations_secure_logging`|`False`|no|Whether or not to include the sensitive Organization role tasks in the log.  Set this value to `True` if you will be providing your sensitive values from elsewhere.|
+|`controller_configuration_organizations_secure_logging`|`False`|no|Whether or not to include the sensitive Organization role tasks in the log. Set this value to `True` if you will be providing your sensitive values from elsewhere.|
 |`controller_configuration_secure_logging`|`False`|no|This variable enables secure logging as well, but is shared across multiple roles, see above.|
 
-## Organization Data Structure
-This role accepts two data models. A simple straightforward easy to maintain model, and another based on the controller api. The 2nd one is more complicated and includes more detail, and is compatiable with controller import/export.
+### Asynchronous Retry Variables
 
-### Variables
+The following Variables set asynchronous retries for the role.
+If neither of the retries or delay or retries are set, they will default to their respective defaults.
+This allows for all items to be created, then checked that the task finishes successfully.
+This also speeds up the overall role.
+
+|Variable Name|Default Value|Required|Description|
+|:---:|:---:|:---:|:---:|
+|`controller_configuration_async_retries`|30|no|This variable sets the number of retries to attempt for the role globally.|
+|`controller_configuration_organizations_async_retries`|`{{ controller_configuration_async_retries }}`|no|This variable sets the number of retries to attempt for the role.|
+|`controller_configuration_async_delay`|1|no|This sets the delay between retries for the role globally.|
+|`controller_configuration_organizations_async_delay`|`controller_configuration_async_delay`|no|This sets the delay between retries for the role.|
+
+## Organization Data Structure
+
+This role accepts two data models. A simple straightforward easy to maintain model, and another based on the controller api. The 2nd one is more complicated and includes more detail, and is compatible with controller import/export.
+
+### Organization Variables
+
 |Variable Name|Default Value|Required|Description|
 |:---:|:---:|:---:|:---:|
 |`name`|""|yes|Name of Organization|
@@ -51,11 +72,14 @@ This role accepts two data models. A simple straightforward easy to maintain mod
 |`notification_templates_error`|""|no|The notifications on error to use for this organization in a list.|
 |`notification_templates_approvals`|""|no|The notifications for approval to use for this organization in a list.|
 |`state`|`present`|no|Desired state of the resource.|
+|`assign_galaxy_credentials_to_org`|`True`|no|Boolean to indicate whether credentials should be assigned or not. It should be noted that credentials must exist before adding it. |
+|`assign_default_ee_to_org`|`True`|no|Boolean to indicate whether default execution environment should be assigned or not. It should be noted that execution environment must exist before adding it. |
 
 ### Standard Organization Data Structure model
+
 #### Json Example
+
 ```json
----
 {
     "controller_organizations": [
       {
@@ -65,7 +89,7 @@ This role accepts two data models. A simple straightforward easy to maintain mod
       {
         "name": "Automation Group",
         "description": "This is the Automation Group",
-        "custom_virtualenv": "/opt/cust/enviroment/",
+        "custom_virtualenv": "/opt/cust/environment/",
         "max_hosts": 10,
         "galaxy_credentials": "Automation Hub",
         "notification_templates_error": [
@@ -75,7 +99,9 @@ This role accepts two data models. A simple straightforward easy to maintain mod
     ]
 }
 ```
+
 #### Yaml Example
+
 ```yaml
 ---
 controller_organizations:
@@ -83,12 +109,14 @@ controller_organizations:
   description: This is the Default Group
 - name: Automation Group
   description: This is the Automation Group
-  custom_virtualenv: "/opt/cust/enviroment/"
+  custom_virtualenv: "/opt/cust/environment/"
   max_hosts: 10
 ```
 
 #### Controller Export Data structure model
-##### Yaml Example
+
+##### Export Yaml Example
+
 ```yaml
 ---
 controller_organizations:
@@ -116,7 +144,9 @@ controller_organizations:
 ```
 
 ## Playbook Examples
+
 ### Standard Role Usage
+
 ```yaml
 ---
 - name: Playbook to configure ansible controller post installation
@@ -133,10 +163,13 @@ controller_organizations:
         ignore_files: [controller_config.yml.template]
         extensions: ["yml"]
   roles:
-    - {role: redhat_cop.controller_configuration.license, when: controller_license is defined}
+    - {role: redhat_cop.controller_configuration.organizations, when: controller_organizations is defined}
 ```
+
 ## License
-[MIT](LICENSE)
+
+[MIT](https://github.com/redhat-cop/controller_configuration#licensing)
 
 ## Author
+
 [Sean Sullivan](https://github.com/sean-m-sullivan)
