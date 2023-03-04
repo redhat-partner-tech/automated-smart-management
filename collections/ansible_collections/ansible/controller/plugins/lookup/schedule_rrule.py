@@ -90,8 +90,6 @@ from ansible.module_utils.six import raise_from
 from ansible.plugins.lookup import LookupBase
 from ansible.errors import AnsibleError
 from datetime import datetime
-from dateutil import rrule
-from distutils.version import LooseVersion
 
 try:
     import pytz
@@ -133,10 +131,7 @@ class LookupModule(LookupBase):
     # plugin constructor
     def __init__(self, *args, **kwargs):
         if LIBRARY_IMPORT_ERROR:
-            raise_from(
-                AnsibleError('{0}'.format(LIBRARY_IMPORT_ERROR)),
-                LIBRARY_IMPORT_ERROR
-            )
+            raise_from(AnsibleError('{0}'.format(LIBRARY_IMPORT_ERROR)), LIBRARY_IMPORT_ERROR)
         super().__init__(*args, **kwargs)
 
     @staticmethod
@@ -170,7 +165,7 @@ class LookupModule(LookupBase):
             try:
                 rrule_kwargs['dtstart'] = LookupModule.parse_date_time(kwargs['start_date'])
             except Exception as e:
-                raise AnsibleError('Parameter start_date must be in the format YYYY-MM-DD [HH:MM:SS]') from e
+                raise_from(AnsibleError('Parameter start_date must be in the format YYYY-MM-DD [HH:MM:SS]'), e)
 
         # If we are a none frequency we don't need anything else
         if frequency == 'none':
@@ -185,7 +180,7 @@ class LookupModule(LookupBase):
                     try:
                         rrule_kwargs['until'] = LookupModule.parse_date_time(end_on)
                     except Exception as e:
-                        raise AnsibleError('Parameter end_on must either be an integer or in the format YYYY-MM-DD [HH:MM:SS]') from e
+                        raise_from(AnsibleError('Parameter end_on must either be an integer or in the format YYYY-MM-DD [HH:MM:SS]'), e)
 
             # A week-based frequency can also take the on_days parameter
             if frequency == 'week' and 'on_days' in kwargs:
@@ -209,7 +204,7 @@ class LookupModule(LookupBase):
                         if my_month_day < 1 or my_month_day > 31:
                             raise Exception()
                     except Exception as e:
-                        raise AnsibleError('month_day_number must be between 1 and 31') from e
+                        raise_from(AnsibleError('month_day_number must be between 1 and 31'), e)
 
                     rrule_kwargs['bymonthday'] = my_month_day
 
@@ -217,7 +212,7 @@ class LookupModule(LookupBase):
                     try:
                         (occurance, weekday) = kwargs['on_the'].split(' ')
                     except Exception as e:
-                        raise AnsibleError('on_the parameter must be two words separated by a space') from e
+                        raise_from(AnsibleError('on_the parameter must be two words separated by a space'), e)
 
                     if weekday not in LookupModule.weekdays:
                         raise AnsibleError('Weekday portion of on_the parameter is not valid')

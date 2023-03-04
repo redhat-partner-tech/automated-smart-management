@@ -13,46 +13,61 @@ class ModuleDocFragment(object):
     # Automation Platform Controller documentation fragment
     DOCUMENTATION = r'''
 options:
-    host:
-        description: The network address of your Automation Platform Controller host.
-        env:
-            - name: CONTROLLER_HOST
-            - name: TOWER_HOST
-              deprecated:
-                alternatives: 'CONTROLLER_HOST'
-    username:
-        description: The user that you plan to use to access inventories on the controller.
-        env:
-            - name: CONTROLLER_USERNAME
-            - name: TOWER_USERNAME
-              deprecated:
-                alternatives: 'CONTROLLER_USERNAME'
-    password:
-        description: The password for your controller user.
-        env:
-            - name: CONTROLLER_PASSWORD
-            - name: TOWER_PASSWORD
-              deprecated:
-                alternatives: 'CONTROLLER_PASSWORD'
-    oauth_token:
-        description:
-            - The OAuth token to use.
-        env:
-            - name: CONTROLLER_OAUTH_TOKEN
-            - name: TOWER_OAUTH_TOKEN
-              deprecated:
-                alternatives: 'CONTROLLER_OAUTH_TOKEN'
-    verify_ssl:
-        description:
-            - Specify whether Ansible should verify the SSL certificate of the controller host.
-            - Defaults to True, but this is handled by the shared module_utils code
-        type: bool
-        env:
-            - name: CONTROLLER_VERIFY_SSL
-            - name: TOWER_VERIFY_SSL
-              deprecated:
-                alternatives: 'CONTROLLER_VERIFY_SSL'
-        aliases: [ validate_certs ]
+  host:
+    description: The network address of your Automation Platform Controller host.
+    env:
+    - name: CONTROLLER_HOST
+    - name: TOWER_HOST
+      deprecated:
+        collection_name: 'awx.awx'
+        version: '4.0.0'
+        why: Collection name change
+        alternatives: 'CONTROLLER_HOST'
+  username:
+    description: The user that you plan to use to access inventories on the controller.
+    env:
+    - name: CONTROLLER_USERNAME
+    - name: TOWER_USERNAME
+      deprecated:
+        collection_name: 'awx.awx'
+        version: '4.0.0'
+        why: Collection name change
+        alternatives: 'CONTROLLER_USERNAME'
+  password:
+    description: The password for your controller user.
+    env:
+    - name: CONTROLLER_PASSWORD
+    - name: TOWER_PASSWORD
+      deprecated:
+        collection_name: 'awx.awx'
+        version: '4.0.0'
+        why: Collection name change
+        alternatives: 'CONTROLLER_PASSWORD'
+  oauth_token:
+    description:
+    - The OAuth token to use.
+    env:
+    - name: CONTROLLER_OAUTH_TOKEN
+    - name: TOWER_OAUTH_TOKEN
+      deprecated:
+        collection_name: 'awx.awx'
+        version: '4.0.0'
+        why: Collection name change
+        alternatives: 'CONTROLLER_OAUTH_TOKEN'
+  verify_ssl:
+    description:
+    - Specify whether Ansible should verify the SSL certificate of the controller host.
+    - Defaults to True, but this is handled by the shared module_utils code
+    type: bool
+    env:
+    - name: CONTROLLER_VERIFY_SSL
+    - name: TOWER_VERIFY_SSL
+      deprecated:
+        collection_name: 'awx.awx'
+        version: '4.0.0'
+        why: Collection name change
+        alternatives: 'CONTROLLER_VERIFY_SSL'
+    aliases: [ validate_certs ]
 
 notes:
 - If no I(config_file) is provided we will attempt to use the tower-cli library

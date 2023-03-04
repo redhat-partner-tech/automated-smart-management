@@ -26,6 +26,10 @@ options:
         - Name to use for the project.
       required: True
       type: str
+    new_name:
+      description:
+        - Setting this option will change the existing name (looked up via the name field.
+      type: str
     copy_from:
       description:
         - Name or id to copy the project from.
@@ -232,9 +236,6 @@ def wait_for_project_update(module, last_request):
         if not wait:
             module.exit_json(**module.json_output)
 
-        # Grab our start time to compare against for the timeout
-        start = time.time()
-
         # Invoke wait function
         result_final = module.wait_on_url(
             url=result['json']['url'], object_name=module.get_item_name(last_request), object_type='Project Update', timeout=timeout, interval=interval
@@ -252,6 +253,7 @@ def main():
     # Any additional arguments that are not fields of the item can be added here
     argument_spec = dict(
         name=dict(required=True),
+        new_name=dict(),
         copy_from=dict(),
         description=dict(),
         scm_type=dict(choices=['manual', 'git', 'svn', 'insights'], default='manual'),
@@ -284,6 +286,7 @@ def main():
 
     # Extract our parameters
     name = module.params.get('name')
+    new_name = module.params.get("new_name")
     copy_from = module.params.get('copy_from')
     scm_type = module.params.get('scm_type')
     if scm_type == "manual":
@@ -293,12 +296,10 @@ def main():
     scm_update_on_launch = module.params.get('scm_update_on_launch')
     scm_update_cache_timeout = module.params.get('scm_update_cache_timeout')
     default_ee = module.params.get('default_environment')
-    custom_virtualenv = module.params.get('custom_virtualenv')
     organization = module.params.get('organization')
     state = module.params.get('state')
     wait = module.params.get('wait')
     update_project = module.params.get('update_project')
-    interval = module.params.get('interval')
 
     # Attempt to look up the related items the user specified (these will fail the module if not found)
     lookup_data = {}
@@ -352,7 +353,7 @@ def main():
 
     # Create the data that gets sent for create and update
     project_fields = {
-        'name': module.get_item_name(project) if project else name,
+        'name': new_name if new_name else (module.get_item_name(project) if project else name),
         'scm_type': scm_type,
         'organization': org_id,
         'scm_update_on_launch': scm_update_on_launch,

@@ -8,6 +8,7 @@
     org_name: "AWX-Collection-tests-organization-org-{{ test_id }}"
     scm_cred_name: "AWX-Collection-tests-workflow_job_template-scm-cred-{{ test_id }}"
     demo_project_name: "AWX-Collection-tests-workflow_job_template-proj-{{ test_id }}"
+    demo_project_name_2: "AWX-Collection-tests-workflow_job_template-proj-{{ test_id }}_2"
     jt1_name: "AWX-Collection-tests-workflow_job_template-jt1-{{ test_id }}"
     jt2_name: "AWX-Collection-tests-workflow_job_template-jt2-{{ test_id }}"
     approval_node_name: "AWX-Collection-tests-workflow_approval_node-{{ test_id }}"
@@ -29,7 +30,7 @@
   credential:
     name: "{{ scm_cred_name }}"
     organization: Default
-    kind: scm
+    credential_type: Source Control
   register: result
 
 - assert:
@@ -41,15 +42,16 @@
     name: "{{ email_not }}"
     organization: Default
     notification_type: email
-    username: user
-    password: s3cr3t
-    sender: tower@example.com
-    recipients:
-      - user1@example.com
-    host: smtp.example.com
-    port: 25
-    use_tls: false
-    use_ssl: false
+    notification_configuration:
+      username: user
+      password: s3cr3t
+      sender: tower@example.com
+      recipients:
+        - user1@example.com
+      host: smtp.example.com
+      port: 25
+      use_tls: false
+      use_ssl: false
     state: present
 
 - name: Add webhook notification
@@ -57,9 +59,10 @@
     name: "{{ webhook_not }}"
     organization: Default
     notification_type: webhook
-    url: http://www.example.com/hook
-    headers:
-      X-Custom-Header: value123
+    notification_configuration:
+      url: http://www.example.com/hook
+      headers:
+        X-Custom-Header: value123
     state: present
   register: result
 
@@ -85,6 +88,20 @@
     that:
       - "result is changed"
 
+- name: Create a 2nd Demo Project in another org
+  project:
+    name: "{{ demo_project_name_2 }}"
+    organization: "{{ org_name }}"
+    state: present
+    scm_type: git
+    scm_url: https://github.com/ansible/ansible-tower-samples.git
+    scm_credential: "{{ scm_cred_name }}"
+  register: result
+
+- assert:
+    that:
+      - "result is changed"
+
 - name: Add an inventory
   inventory:
     description: Test inventory
@@ -100,11 +117,11 @@
     source_path: "/inventories/inventory.ini"
     overwrite: true
     source: scm
-  register: result
+  register: project_inv_source_result
 
 - assert:
     that:
-      - "result is changed"
+      - "project_inv_source_result is changed"
 
 - name: Create a Job Template
   job_template:
@@ -134,6 +151,20 @@
     that:
       - "result is changed"
 
+- name: Create a second Job Template in new org
+  job_template:
+    name: "{{ jt2_name }}"
+    project: "{{ demo_project_name_2 }}"
+    inventory: Demo Inventory
+    playbook: hello_world.yml
+    job_type: run
+    state: present
+  register: jt2_name_result
+
+- assert:
+    that:
+      - "jt2_name_result is changed"
+
 - name: Add a Survey to second Job Template
   job_template:
     name: "{{ jt2_name }}"
@@ -159,7 +190,44 @@
     extra_vars: {'foo': 'bar', 'another-foo': {'barz': 'bar2'}}
     labels:
       - "{{ lab1 }}"
+    ask_inventory_on_launch: true
+    ask_scm_branch_on_launch: true
+    ask_limit_on_launch: true
+    ask_variables_on_launch: true
   register: result
+
+- assert:
+    that:
+      - "result is changed"
+
+- name: Create a workflow job template with bad label
+  workflow_job_template:
+    name: "{{ wfjt_name }}"
+    organization: Default
+    inventory: Demo Inventory
+    extra_vars: {'foo': 'bar', 'another-foo': {'barz': 'bar2'}}
+    labels:
+      - label_bad
+    ask_inventory_on_launch: true
+    ask_scm_branch_on_launch: true
+    ask_limit_on_launch: true
+    ask_variables_on_launch: true
+  register: bad_label_results
+  ignore_errors: true
+
+- assert:
+    that:
+      - "bad_label_results.msg == 'Could not find label entry with name label_bad'"
+
+# Turn off ask_ * settings to test that the issue/10057 has been fixed
+- name: Turn ask_* settings OFF
+  tower_workflow_job_template:
+    name: "{{ wfjt_name }}"
+    ask_inventory_on_launch: false
+    ask_scm_branch_on_launch: false
+    ask_limit_on_launch: false
+    ask_variables_on_launch: false
+    state: present
 
 - assert:
     that:
@@ -171,6 +239,7 @@
   workflow_job_template_node:
     identifier: leaf
     unified_job_template: "{{ jt2_name }}"
+    lookup_organization: "{{ org_name }}"
     workflow: "{{ wfjt_name }}"
 
 - name: Create root node
@@ -486,7 +555,7 @@
     schema:
       - identifier: node101
         unified_job_template:
-          name: "{{ project_inv_source }}"
+          name: "{{ project_inv_source_result.id }}"
           inventory:
             organization:
               name: Default
@@ -596,6 +665,22 @@
   job_template:
     name: "{{ jt2_name }}"
     project: "{{ demo_project_name }}"
+    organization: Default
+    inventory: Demo Inventory
+    playbook: hello_world.yml
+    job_type: run
+    state: absent
+  register: result
+
+- assert:
+    that:
+      - "result is changed"
+
+- name: Delete the second Job Template
+  job_template:
+    name: "{{ jt2_name }}"
+    project: "{{ demo_project_name_2 }}"
+    organization: "{{ org_name }}"
     inventory: Demo Inventory
     playbook: hello_world.yml
     job_type: run
@@ -638,6 +723,16 @@
     state: absent
   register: result
 
+- name: Delete the 2nd Demo Project
+  project:
+    name: "{{ demo_project_name_2 }}"
+    organization: "{{ org_name }}"
+    scm_type: git
+    scm_url: https://github.com/ansible/ansible-tower-samples.git
+    scm_credential: "{{ scm_cred_name }}"
+    state: absent
+  register: result
+
 - assert:
     that:
       - "result is changed"
@@ -646,7 +741,7 @@
   credential:
     name: "{{ scm_cred_name }}"
     organization: Default
-    kind: scm
+    credential_type: Source Control
     state: absent
   register: result
 

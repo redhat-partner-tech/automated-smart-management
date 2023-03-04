@@ -2,7 +2,7 @@
  "collection_info": {
   "namespace": "ansible",
   "name": "controller",
-  "version": "4.0.0",
+  "version": "4.2.0",
   "authors": [
    "AWX Project Contributors <awx-project@googlegroups.com>"
   ],
@@ -29,7 +29,7 @@
   "name": "FILES.json",
   "ftype": "file",
   "chksum_type": "sha256",
-  "chksum_sha256": "64465ddfd9792a8795d1ae7dafd374a371cdd08a3b99fab5d455318bc178f882",
+  "chksum_sha256": "9da2a06b8816d00fe2051d27a2d686ba7067063db1f92202e7b30fbbbc2bf949",
   "format": 1
  },
  "format": 1

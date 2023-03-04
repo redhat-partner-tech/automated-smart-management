@@ -10,7 +10,7 @@ from requests.models import Response
 from unittest import mock
 
 awx_name = 'AWX'
-controller_name = 'Red Hat Automation Platform Controller'
+controller_name = 'Red Hat Ansible Automation Platform'
 ping_version = '1.2.3'
 
 
@@ -21,6 +21,11 @@ def getTowerheader(self, header_name, default):
 
 def getAWXheader(self, header_name, default):
     mock_headers = {'X-API-Product-Name': awx_name, 'X-API-Product-Version': ping_version}
+    return mock_headers.get(header_name, default)
+
+
+def getNoheader(self, header_name, default):
+    mock_headers = {}
     return mock_headers.get(header_name, default)
 
 
@@ -48,6 +53,14 @@ def mock_awx_ping_response(self, method, url, **kwargs):
     return r
 
 
+def mock_no_ping_response(self, method, url, **kwargs):
+    r = Response()
+    r.getheader = getNoheader.__get__(r)
+    r.read = read.__get__(r)
+    r.status = status.__get__(r)
+    return r
+
+
 def test_version_warning(collection_import, silence_warning):
     ControllerAPIModule = collection_import('plugins.module_utils.controller_api').ControllerAPIModule
     cli_data = {'ANSIBLE_MODULE_ARGS': {}}
@@ -60,6 +73,21 @@ def test_version_warning(collection_import, silence_warning):
             my_module.get_endpoint('ping')
     silence_warning.assert_called_once_with(
         'You are running collection version {0} but connecting to {1} version {2}'.format(my_module._COLLECTION_VERSION, awx_name, ping_version)
+    )
+
+
+def test_no_version_warning(collection_import, silence_warning):
+    ControllerAPIModule = collection_import('plugins.module_utils.controller_api').ControllerAPIModule
+    cli_data = {'ANSIBLE_MODULE_ARGS': {}}
+    testargs = ['module_file2.py', json.dumps(cli_data)]
+    with mock.patch.object(sys, 'argv', testargs):
+        with mock.patch('ansible.module_utils.urls.Request.open', new=mock_no_ping_response):
+            my_module = ControllerAPIModule(argument_spec=dict())
+            my_module._COLLECTION_VERSION = "2.0.0"
+            my_module._COLLECTION_TYPE = "awx"
+            my_module.get_endpoint('ping')
+    silence_warning.assert_called_once_with(
+        'You are using the {0} version of this collection but connecting to a controller that did not return a version'.format(my_module._COLLECTION_VERSION)
     )
 
 
@@ -171,7 +199,7 @@ def test_conflicting_name_and_id(run_module, admin_user):
     """
     org_by_id = Organization.objects.create(name='foo')
     slug = str(org_by_id.id)
-    org_by_name = Organization.objects.create(name=slug)
+    Organization.objects.create(name=slug)
     result = run_module('team', {'name': 'foo_team', 'description': 'fooin around', 'organization': slug}, admin_user)
     assert not result.get('failed', False), result.get('msg', result)
     team = Team.objects.filter(name='foo_team').first()
@@ -189,7 +217,7 @@ def test_multiple_lookup(run_module, admin_user):
         scm_type='git',
         scm_url="https://github.com/ansible/ansible-tower-samples",
     )
-    proj2 = Project.objects.create(
+    Project.objects.create(
         name='foo',
         organization=org2,
         scm_type='git',

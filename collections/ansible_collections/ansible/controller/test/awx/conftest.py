@@ -15,6 +15,8 @@ from requests.models import Response, PreparedRequest
 
 import pytest
 
+from ansible.module_utils.six import raise_from
+
 from awx.main.tests.functional.conftest import _request
 from awx.main.models import Organization, Project, Inventory, JobTemplate, Credential, CredentialType, ExecutionEnvironment, UnifiedJob
 
@@ -31,7 +33,7 @@ try:
     # Because awxkit will be a directory at the root of this makefile and we are using python3, import awxkit will work even if its not installed.
     # However, awxkit will not contain api whih causes a stack failure down on line 170 when we try to mock it.
     # So here we are importing awxkit.api to prevent that. Then you only get an error on tests for awxkit functionality.
-    import awxkit.api
+    import awxkit.api  # noqa
 
     HAS_AWX_KIT = True
 except ImportError:
@@ -184,7 +186,7 @@ def run_module(request, collection_import):
         try:
             result = json.loads(module_stdout)
         except Exception as e:
-            raise Exception('Module did not write valid JSON, error: {0}, stdout:\n{1}'.format(str(e), module_stdout)) from e
+            raise_from(Exception('Module did not write valid JSON, error: {0}, stdout:\n{1}'.format(str(e), module_stdout)), e)
         # A module exception should never be a test expectation
         if 'exception' in result:
             if "ModuleNotFoundError: No module named 'tower_cli'" in result['exception']:
@@ -245,6 +247,15 @@ def vault_credential(organization):
     ct = CredentialType.defaults['vault']()
     ct.save()
     return Credential.objects.create(credential_type=ct, name='vault-cred', inputs={'vault_id': 'foo', 'vault_password': 'pas4word'})
+
+
+@pytest.fixture
+def kube_credential():
+    ct = CredentialType.defaults['kubernetes_bearer_token']()
+    ct.save()
+    return Credential.objects.create(
+        credential_type=ct, name='kube-cred', inputs={'host': 'my.cluster', 'bearer_token': 'my-token', 'verify_ssl': False}
+    )
 
 
 @pytest.fixture

@@ -19,7 +19,6 @@ description:
       the path in the command would be /path/to/controller_inventory.(yml|yaml). If some arguments in the config file
       are missing, this plugin will try to fill in missing arguments by reading from environment variables.
     - If reading configurations from environment variables, the path in the command must be @controller_inventory.
-extends_documentation_fragment: ansible.controller.auth_plugin
 options:
     inventory_id:
         description:
@@ -35,6 +34,7 @@ options:
         description: Make extra requests to provide all group vars with metadata about the source host.
         type: bool
         default: False
+extends_documentation_fragment: ansible.controller.auth_plugin
 '''
 
 EXAMPLES = '''
@@ -72,6 +72,7 @@ from ansible.errors import AnsibleParserError, AnsibleOptionsError
 from ansible.plugins.inventory import BaseInventoryPlugin
 from ansible.config.manager import ensure_type
 
+from ansible.module_utils.six import raise_from
 from ..module_utils.controller_api import ControllerAPIModule
 
 
@@ -130,9 +131,9 @@ class InventoryModule(BaseInventoryPlugin):
             try:
                 inventory_id = ensure_type(inventory_id, 'str')
             except ValueError as e:
-                raise AnsibleOptionsError(
+                raise_from(AnsibleOptionsError(
                     'Invalid type for configuration option inventory_id, ' 'not integer, and cannot convert to string: {err}'.format(err=to_native(e))
-                ) from e
+                ), e)
         inventory_id = inventory_id.replace('/', '')
         inventory_url = '/api/v2/inventories/{inv_id}/script/'.format(inv_id=inventory_id)
 

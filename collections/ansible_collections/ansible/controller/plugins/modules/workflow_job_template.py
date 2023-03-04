@@ -110,6 +110,7 @@ options:
     labels:
       description:
         - The labels applied to this job template
+        - Must be created with the labels module first. This will error if the label has not been created.
       type: list
       elements: str
     state:
@@ -482,20 +483,17 @@ def create_schema_nodes(module, response, schema, workflow_id):
 
         # Lookup Job Template ID
         if workflow_node['unified_job_template']['name']:
-            search_fields = {'name': workflow_node['unified_job_template']['name']}
             if workflow_node['unified_job_template']['type'] is None:
                 module.fail_json(msg='Could not find unified job template type in schema {1}'.format(workflow_node))
             if workflow_node['unified_job_template']['type'] == 'inventory_source':
-                # workflow_node['unified_job_template']['inventory']:
                 organization_id = module.resolve_name_to_id('organizations', workflow_node['unified_job_template']['inventory']['organization']['name'])
                 search_fields['organization'] = organization_id
             elif workflow_node['unified_job_template']['type'] == 'workflow_approval':
                 pass
             else:
-                # workflow_node['unified_job_template']['organization']:
                 organization_id = module.resolve_name_to_id('organizations', workflow_node['unified_job_template']['organization']['name'])
                 search_fields['organization'] = organization_id
-            unified_job_template = module.get_one('unified_job_templates', **{'data': search_fields})
+            unified_job_template = module.get_one('unified_job_templates', name_or_id=workflow_node['unified_job_template']['name'], **{'data': search_fields})
             if unified_job_template:
                 workflow_node_fields['unified_job_template'] = unified_job_template['id']
             else:
@@ -555,8 +553,6 @@ def create_schema_nodes(module, response, schema, workflow_id):
 
         # Start Approval Node creation process
         if workflow_node['unified_job_template']['type'] == 'workflow_approval':
-            new_fields = {}
-
             for field_name in (
                 'name',
                 'description',
@@ -627,7 +623,6 @@ def create_schema_nodes_association(module, response, schema, workflow_id):
                         if sub_obj is None:
                             module.fail_json(msg='Could not find {0} entry with name {1}'.format(association, sub_name))
                         id_list.append(sub_obj['id'])
-                        temp = sub_obj['id']
                     if id_list:
                         association_fields[association] = id_list
 
@@ -751,7 +746,7 @@ def main():
         'webhook_service',
     ):
         field_val = module.params.get(field_name)
-        if field_val:
+        if field_val is not None:
             new_fields[field_name] = field_val
 
     if 'extra_vars' in new_fields:
@@ -788,7 +783,10 @@ def main():
         association_fields['labels'] = []
         for item in labels:
             label_id = module.get_one('labels', name_or_id=item, **{'data': search_fields})
-            association_fields['labels'].append(label_id['id'])
+            if label_id is None:
+                module.fail_json(msg='Could not find label entry with name {0}'.format(item))
+            else:
+                association_fields['labels'].append(label_id['id'])
 
     on_change = None
     new_spec = module.params.get('survey_spec')
@@ -816,7 +814,7 @@ def main():
     )
 
     # Get Workflow information in case one was just created.
-    existing_item = module.get_one('workflow_job_templates', name_or_id=name, **{'data': search_fields})
+    existing_item = module.get_one('workflow_job_templates', name_or_id=new_name if new_name else name, **{'data': search_fields})
     workflow_job_template_id = existing_item['id']
     # Destroy current nodes if selected.
     if destroy_current_schema:

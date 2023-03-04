@@ -2,26 +2,303 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-from .controller_module import ControllerModule
+from ansible.module_utils.basic import AnsibleModule, env_fallback
 from ansible.module_utils.urls import Request, SSLValidationError, ConnectionError
 from ansible.module_utils.six import PY2
+from ansible.module_utils.six import raise_from, string_types
+from ansible.module_utils.six.moves import StringIO
 from ansible.module_utils.six.moves.urllib.error import HTTPError
 from ansible.module_utils.six.moves.http_cookiejar import CookieJar
+from ansible.module_utils.six.moves.urllib.parse import urlparse, urlencode
+from ansible.module_utils.six.moves.configparser import ConfigParser, NoOptionError
 from distutils.version import LooseVersion as Version
+from socket import gethostbyname
 import time
+import re
 from json import loads, dumps
+from os.path import isfile, expanduser, split, join, exists, isdir
+from os import access, R_OK, getcwd
+from distutils.util import strtobool
+
+try:
+    import yaml
+
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+
+
+class ConfigFileException(Exception):
+    pass
+
+
+class ItemNotDefined(Exception):
+    pass
+
+
+class ControllerModule(AnsibleModule):
+    url = None
+    AUTH_ARGSPEC = dict(
+        controller_host=dict(
+            required=False,
+            aliases=['tower_host'],
+            fallback=(env_fallback, ['CONTROLLER_HOST', 'TOWER_HOST'])),
+        controller_username=dict(
+            required=False,
+            aliases=['tower_username'],
+            fallback=(env_fallback, ['CONTROLLER_USERNAME', 'TOWER_USERNAME'])),
+        controller_password=dict(
+            no_log=True,
+            aliases=['tower_password'],
+            required=False,
+            fallback=(env_fallback, ['CONTROLLER_PASSWORD', 'TOWER_PASSWORD'])),
+        validate_certs=dict(
+            type='bool',
+            aliases=['tower_verify_ssl'],
+            required=False,
+            fallback=(env_fallback, ['CONTROLLER_VERIFY_SSL', 'TOWER_VERIFY_SSL'])),
+        controller_oauthtoken=dict(
+            type='raw',
+            no_log=True,
+            aliases=['tower_oauthtoken'],
+            required=False,
+            fallback=(env_fallback, ['CONTROLLER_OAUTH_TOKEN', 'TOWER_OAUTH_TOKEN'])),
+        controller_config_file=dict(
+            type='path',
+            aliases=['tower_config_file'],
+            required=False,
+            default=None),
+    )
+    short_params = {
+        'host': 'controller_host',
+        'username': 'controller_username',
+        'password': 'controller_password',
+        'verify_ssl': 'validate_certs',
+        'oauth_token': 'controller_oauthtoken',
+    }
+    host = '127.0.0.1'
+    username = None
+    password = None
+    verify_ssl = True
+    oauth_token = None
+    oauth_token_id = None
+    authenticated = False
+    config_name = 'tower_cli.cfg'
+    version_checked = False
+    error_callback = None
+    warn_callback = None
+
+    def __init__(self, argument_spec=None, direct_params=None, error_callback=None, warn_callback=None, **kwargs):
+        full_argspec = {}
+        full_argspec.update(ControllerModule.AUTH_ARGSPEC)
+        full_argspec.update(argument_spec)
+        kwargs['supports_check_mode'] = True
+
+        self.error_callback = error_callback
+        self.warn_callback = warn_callback
+
+        self.json_output = {'changed': False}
+
+        if direct_params is not None:
+            self.params = direct_params
+        else:
+            super().__init__(argument_spec=full_argspec, **kwargs)
+
+        self.load_config_files()
+
+        # Parameters specified on command line will override settings in any config
+        for short_param, long_param in self.short_params.items():
+            direct_value = self.params.get(long_param)
+            if direct_value is not None:
+                setattr(self, short_param, direct_value)
+
+        # Perform magic depending on whether controller_oauthtoken is a string or a dict
+        if self.params.get('controller_oauthtoken'):
+            token_param = self.params.get('controller_oauthtoken')
+            if type(token_param) is dict:
+                if 'token' in token_param:
+                    self.oauth_token = self.params.get('controller_oauthtoken')['token']
+                else:
+                    self.fail_json(msg="The provided dict in controller_oauthtoken did not properly contain the token entry")
+            elif isinstance(token_param, string_types):
+                self.oauth_token = self.params.get('controller_oauthtoken')
+            else:
+                error_msg = "The provided controller_oauthtoken type was not valid ({0}). Valid options are str or dict.".format(type(token_param).__name__)
+                self.fail_json(msg=error_msg)
+
+        # Perform some basic validation
+        if not re.match('^https{0,1}://', self.host):
+            self.host = "https://{0}".format(self.host)
+
+        # Try to parse the hostname as a url
+        try:
+            self.url = urlparse(self.host)
+            # Store URL prefix for later use in build_url
+            self.url_prefix = self.url.path
+        except Exception as e:
+            self.fail_json(msg="Unable to parse controller_host as a URL ({1}): {0}".format(self.host, e))
+
+        # Try to resolve the hostname
+        hostname = self.url.netloc.split(':')[0]
+        try:
+            gethostbyname(hostname)
+        except Exception as e:
+            self.fail_json(msg="Unable to resolve controller_host ({1}): {0}".format(hostname, e))
+
+    def build_url(self, endpoint, query_params=None):
+        # Make sure we start with /api/vX
+        if not endpoint.startswith("/"):
+            endpoint = "/{0}".format(endpoint)
+        prefix = self.url_prefix.rstrip("/")
+        if not endpoint.startswith(prefix + "/api/"):
+            endpoint = prefix + "/api/v2{0}".format(endpoint)
+        if not endpoint.endswith('/') and '?' not in endpoint:
+            endpoint = "{0}/".format(endpoint)
+
+        # Update the URL path with the endpoint
+        url = self.url._replace(path=endpoint)
+
+        if query_params:
+            url = url._replace(query=urlencode(query_params))
+
+        return url
+
+    def load_config_files(self):
+        # Load configs like TowerCLI would have from least import to most
+        config_files = ['/etc/tower/tower_cli.cfg', join(expanduser("~"), ".{0}".format(self.config_name))]
+        local_dir = getcwd()
+        config_files.append(join(local_dir, self.config_name))
+        while split(local_dir)[1]:
+            local_dir = split(local_dir)[0]
+            config_files.insert(2, join(local_dir, ".{0}".format(self.config_name)))
+
+        # If we have a specified  tower config, load it
+        if self.params.get('controller_config_file'):
+            duplicated_params = [fn for fn in self.AUTH_ARGSPEC if fn != 'controller_config_file' and self.params.get(fn) is not None]
+            if duplicated_params:
+                self.warn(
+                    (
+                        'The parameter(s) {0} were provided at the same time as controller_config_file. '
+                        'Precedence may be unstable, we suggest either using config file or params.'
+                    ).format(', '.join(duplicated_params))
+                )
+            try:
+                # TODO: warn if there are conflicts with other params
+                self.load_config(self.params.get('controller_config_file'))
+            except ConfigFileException as cfe:
+                # Since we were told specifically to load this we want it to fail if we have an error
+                self.fail_json(msg=cfe)
+        else:
+            for config_file in config_files:
+                if exists(config_file) and not isdir(config_file):
+                    # Only throw a formatting error if the file exists and is not a directory
+                    try:
+                        self.load_config(config_file)
+                    except ConfigFileException:
+                        self.fail_json(msg='The config file {0} is not properly formatted'.format(config_file))
+
+    def load_config(self, config_path):
+        # Validate the config file is an actual file
+        if not isfile(config_path):
+            raise ConfigFileException('The specified config file does not exist')
+
+        if not access(config_path, R_OK):
+            raise ConfigFileException("The specified config file cannot be read")
+
+        # Read in the file contents:
+        with open(config_path, 'r') as f:
+            config_string = f.read()
+
+        # First try to yaml load the content (which will also load json)
+        try:
+            try_config_parsing = True
+            if HAS_YAML:
+                try:
+                    config_data = yaml.load(config_string, Loader=yaml.SafeLoader)
+                    # If this is an actual ini file, yaml will return the whole thing as a string instead of a dict
+                    if type(config_data) is not dict:
+                        raise AssertionError("The yaml config file is not properly formatted as a dict.")
+                    try_config_parsing = False
+
+                except (AttributeError, yaml.YAMLError, AssertionError):
+                    try_config_parsing = True
+
+            if try_config_parsing:
+                # TowerCLI used to support a config file with a missing [general] section by prepending it if missing
+                if '[general]' not in config_string:
+                    config_string = '[general]\n{0}'.format(config_string)
+
+                config = ConfigParser()
+
+                try:
+                    placeholder_file = StringIO(config_string)
+                    # py2 ConfigParser has readfp, that has been deprecated in favor of read_file in py3
+                    # This "if" removes the deprecation warning
+                    if hasattr(config, 'read_file'):
+                        config.read_file(placeholder_file)
+                    else:
+                        config.readfp(placeholder_file)
+
+                    # If we made it here then we have values from reading the ini file, so let's pull them out into a dict
+                    config_data = {}
+                    for honorred_setting in self.short_params:
+                        try:
+                            config_data[honorred_setting] = config.get('general', honorred_setting)
+                        except NoOptionError:
+                            pass
+
+                except Exception as e:
+                    raise_from(ConfigFileException("An unknown exception occured trying to ini load config file: {0}".format(e)), e)
+
+        except Exception as e:
+            raise_from(ConfigFileException("An unknown exception occured trying to load config file: {0}".format(e)), e)
+
+        # If we made it here, we have a dict which has values in it from our config, any final settings logic can be performed here
+        for honorred_setting in self.short_params:
+            if honorred_setting in config_data:
+                # Veriffy SSL must be a boolean
+                if honorred_setting == 'verify_ssl':
+                    if type(config_data[honorred_setting]) is str:
+                        setattr(self, honorred_setting, strtobool(config_data[honorred_setting]))
+                    else:
+                        setattr(self, honorred_setting, bool(config_data[honorred_setting]))
+                else:
+                    setattr(self, honorred_setting, config_data[honorred_setting])
+
+    def logout(self):
+        # This method is intended to be overridden
+        pass
+
+    def fail_json(self, **kwargs):
+        # Try to log out if we are authenticated
+        self.logout()
+        if self.error_callback:
+            self.error_callback(**kwargs)
+        else:
+            super().fail_json(**kwargs)
+
+    def exit_json(self, **kwargs):
+        # Try to log out if we are authenticated
+        self.logout()
+        super().exit_json(**kwargs)
+
+    def warn(self, warning):
+        if self.warn_callback is not None:
+            self.warn_callback(warning)
+        else:
+            super().warn(warning)
 
 
 class ControllerAPIModule(ControllerModule):
     # TODO: Move the collection version check into controller_module.py
     # This gets set by the make process so whatever is in here is irrelevant
-    _COLLECTION_VERSION = "4.0.0"
+    _COLLECTION_VERSION = "4.2.0"
     _COLLECTION_TYPE = "controller"
     # This maps the collections type (awx/tower) to the values returned by the API
     # Those values can be found in awx/api/generics.py line 204
     collection_to_version = {
         'awx': 'AWX',
-        'controller': 'Red Hat Automation Platform Controller',
+        'controller': 'Red Hat Ansible Automation Platform',
     }
     session = None
     IDENTITY_FIELDS = {'users': 'username', 'workflow_job_template_nodes': 'identifier', 'instances': 'hostname'}
@@ -261,22 +538,29 @@ class ControllerAPIModule(ControllerModule):
                 controller_version = response.info().getheader('X-API-Product-Version', None)
 
             parsed_collection_version = Version(self._COLLECTION_VERSION).version
-            parsed_controller_version = Version(controller_version).version
-            if controller_type == 'AWX':
-                collection_compare_ver = parsed_collection_version[0]
-                controller_compare_ver = parsed_controller_version[0]
-            else:
-                collection_compare_ver = "{0}.{1}".format(parsed_collection_version[0], parsed_collection_version[1])
-                controller_compare_ver = '{0}.{1}'.format(parsed_controller_version[0], parsed_controller_version[1])
-
-            if self._COLLECTION_TYPE not in self.collection_to_version or self.collection_to_version[self._COLLECTION_TYPE] != controller_type:
-                self.warn("You are using the {0} version of this collection but connecting to {1}".format(self._COLLECTION_TYPE, controller_type))
-            elif collection_compare_ver != controller_compare_ver:
+            if not controller_version:
                 self.warn(
-                    "You are running collection version {0} but connecting to {2} version {1}".format(
-                        self._COLLECTION_VERSION, controller_version, controller_type
+                    "You are using the {0} version of this collection but connecting to a controller that did not return a version".format(
+                        self._COLLECTION_VERSION
                     )
                 )
+            else:
+                parsed_controller_version = Version(controller_version).version
+                if controller_type == 'AWX':
+                    collection_compare_ver = parsed_collection_version[0]
+                    controller_compare_ver = parsed_controller_version[0]
+                else:
+                    collection_compare_ver = "{0}.{1}".format(parsed_collection_version[0], parsed_collection_version[1])
+                    controller_compare_ver = '{0}.{1}'.format(parsed_controller_version[0], parsed_controller_version[1])
+
+                if self._COLLECTION_TYPE not in self.collection_to_version or self.collection_to_version[self._COLLECTION_TYPE] != controller_type:
+                    self.warn("You are using the {0} version of this collection but connecting to {1}".format(self._COLLECTION_TYPE, controller_type))
+                elif collection_compare_ver != controller_compare_ver:
+                    self.warn(
+                        "You are running collection version {0} but connecting to {2} version {1}".format(
+                            self._COLLECTION_VERSION, controller_version, controller_type
+                        )
+                    )
 
             self.version_checked = True
 
@@ -308,8 +592,10 @@ class ControllerAPIModule(ControllerModule):
                 "application": None,
                 "scope": "write",
             }
+            # Preserve URL prefix
+            endpoint = self.url_prefix.rstrip('/') + '/api/v2/tokens/'
             # Post to the tokens endpoint with baisc auth to try and get a token
-            api_token_url = (self.url._replace(path='/api/v2/tokens/')).geturl()
+            api_token_url = (self.url._replace(path=endpoint)).geturl()
 
             try:
                 response = self.session.open(
@@ -421,7 +707,7 @@ class ControllerAPIModule(ControllerModule):
     def copy_item(self, existing_item, copy_from_name_or_id, new_item_name, endpoint=None, item_type='unknown', copy_lookup_data=None):
 
         if existing_item is not None:
-            self.warn(msg="A {0} with the name {1} already exists.".format(item_type, new_item_name))
+            self.warn("A {0} with the name {1} already exists.".format(item_type, new_item_name))
             self.json_output['changed'] = False
             self.json_output['copied'] = False
             return existing_item
@@ -628,7 +914,7 @@ class ControllerAPIModule(ControllerModule):
                 if response['status_code'] == 200:
                     # compare apples-to-apples, old API data to new API data
                     # but do so considering the fields given in parameters
-                    self.json_output['changed'] = self.objects_could_be_different(existing_item, response['json'], field_set=new_item.keys(), warning=True)
+                    self.json_output['changed'] |= self.objects_could_be_different(existing_item, response['json'], field_set=new_item.keys(), warning=True)
                 elif 'json' in response and '__all__' in response['json']:
                     self.fail_json(msg=response['json']['__all__'])
                 else:
@@ -673,9 +959,10 @@ class ControllerAPIModule(ControllerModule):
         if self.authenticated and self.oauth_token_id:
             # Attempt to delete our current token from /api/v2/tokens/
             # Post to the tokens endpoint with baisc auth to try and get a token
+            endpoint = self.url_prefix.rstrip('/') + '/api/v2/tokens/{0}/'.format(self.oauth_token_id)
             api_token_url = (
                 self.url._replace(
-                    path='/api/v2/tokens/{0}/'.format(self.oauth_token_id), query=None  # in error cases, fail_json exists before exception handling
+                    path=endpoint, query=None  # in error cases, fail_json exists before exception handling
                 )
             ).geturl()
 
@@ -735,6 +1022,7 @@ class ControllerAPIModule(ControllerModule):
                 self.json_output['msg'] = 'Job with id {0} failed'.format(object_name)
             else:
                 self.json_output['msg'] = 'The {0} - {1}, failed'.format(object_type, object_name)
+                self.json_output["job_data"] = result["json"]
             self.wait_output(result)
             self.fail_json(**self.json_output)
 

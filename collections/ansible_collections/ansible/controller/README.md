@@ -15,7 +15,7 @@
 This Ansible collection allows for easy interaction with an Red Hat Ansible Automation Platform server via Ansible playbooks.
 
 This source for this collection lives in the `awx_collection` folder inside of the
-AWX source.
+AWX GitHub repository.
 The previous home for this collection was inside the folder [lib/ansible/modules/web_infrastructure/ansible_tower](https://github.com/ansible/ansible/tree/stable-2.9/lib/ansible/modules/web_infrastructure/ansible_tower) in the Ansible repo,
 as well as other places for the inventory plugin, module utils, and
 doc fragment.
@@ -66,7 +66,11 @@ Notable releases of the `ansible.controller` collection:
 
 The following notes are changes that may require changes to playbooks:
 
- - The module tower_notification was renamed tower_notification_template. In ansible >= 2.10 there is a seamless redirect. Ansible 2.9 does not respect the redirect.
+ - The `credential` module no longer allows `kind` as a parameter; additionally, `inputs` must now be used with a variety of key/value parameters to go with it (e.g., `become_method`)
+ - The `job_wait` module no longer allows `min_interval`/ `max_interval` parameters; use `interval` instead
+ - The `notification_template` requires various notification configuration information to be listed as a dictionary under the `notification_configuration` parameter (e.g., `use_ssl`)
+ - In the `inventory_source` module, the `source_project` (when provided) lookup defaults to the specified organization in the same way the inventory is looked up
+ - The module `tower_notification` was renamed `tower_notification_template`. In `ansible >= 2.10` there is a seamless redirect. Ansible 2.9 does not respect the redirect.
  - When a project is created, it will wait for the update/sync to finish by default; this can be turned off with the `wait` parameter, if desired.
  - Creating a "scan" type job template is no longer supported.
  - Specifying a custom certificate via the `TOWER_CERTIFICATE` environment variable no longer works.
@@ -88,12 +92,12 @@ The following notes are changes that may require changes to playbooks:
  - Some return values (e.g., `credential_type`) have been removed. Use of `id` is recommended.
  - `tower_job_template` no longer supports the deprecated `extra_vars_path` parameter, please use `extra_vars` with the lookup plugin to replace this functionality.
  - The `notification_configuration` parameter of `tower_notification_template` has changed from a string to a dict. Please use the `lookup` plugin to read an existing file into a dict.
- - `tower_credential` no longer supports passing a file name to ssh_key_data.
+ - `tower_credential` no longer supports passing a file name to `ssh_key_data`.
  - The HipChat `notification_type` has been removed and can no longer be created using the `tower_notification_template` module.
 
 
 ## Licensing
 
 All content in this folder is licensed under the same license as Ansible,
-which is the same as license that applied before the split into an
+which is the same as the license that applied before the split into an
 independent collection.
