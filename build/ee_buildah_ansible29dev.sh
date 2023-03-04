@@ -27,16 +27,12 @@ buildah copy $ctr 'roles/scap_client' '/usr/share/ansible/roles/scap_client'
 buildah run $ctr /bin/sh -c 'mkdir /usr/share/ansible/collections/ansible_collections'
 buildah copy $ctr 'collections/ansible_collections/amazon' \
 	'/usr/share/ansible/collections/ansible_collections/amazon'
-buildah copy $ctr 'collections/ansible_collections/awx' \
-	'/usr/share/ansible/collections/ansible_collections/awx'
-buildah copy $ctr 'collections/ansible_collections/community' \
-	'/usr/share/ansible/collections/ansible_collections/community'
+buildah copy $ctr 'collections/ansible_collections/ansible' \
+	'/usr/share/ansible/collections/ansible_collections/ansible'
 buildah copy $ctr 'collections/ansible_collections/redhat_cop' \
 	'/usr/share/ansible/collections/ansible_collections/redhat_cop'
 buildah copy $ctr 'collections/ansible_collections/redhat' \
 	'/usr/share/ansible/collections/ansible_collections/redhat'
-buildah copy $ctr 'collections/ansible_collections/theforeman' \
-	'/usr/share/ansible/collections/ansible_collections/theforeman'
 #buildah config --label name=${IMAGE} $ctr
 cd $START_DIR
 rm -rf $TMP_WRKDIR
