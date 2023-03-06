@@ -13,7 +13,7 @@ START_DIR=$(pwd)
 TMP_WRKDIR=$(mktemp -d /tmp/XXXXXXXX)
 ctr=$(buildah from registry.redhat.io/$BASEIMAGEOWNER/$BASEIMAGENAME:$BIVERSION)
 scratchmnt=$(buildah mount ${ctr})
-buildah run $ctr /bin/sh -c 'python3 -m pip install jinja2==2.11.3'
+buildah run $ctr /bin/sh -c 'python3 -m pip install jinja2==3.1.1'
 buildah run $ctr /bin/sh -c 'python3 -m pip install apypie'
 buildah run $ctr /bin/sh -c 'python3 -m pip install psycopg2-binary'
 cd $TMP_WRKDIR
@@ -24,7 +24,7 @@ buildah copy $ctr 'roles/content_views' '/usr/share/ansible/roles/content_views'
 buildah copy $ctr 'roles/ec2_node_tools' '/usr/share/ansible/roles/ec2_node_tools'
 buildah copy $ctr 'roles/rhsm_register' '/usr/share/ansible/roles/rhsm_register'
 buildah copy $ctr 'roles/scap_client' '/usr/share/ansible/roles/scap_client'
-buildah run $ctr /bin/sh -c 'mkdir /usr/share/ansible/collections/ansible_collections'
+buildah run $ctr /bin/sh -c '[ -d /usr/share/ansible/collections/ansible_collections ] || mkdir /usr/share/ansible/collections/ansible_collections'
 buildah copy $ctr 'collections/ansible_collections/amazon' \
 	'/usr/share/ansible/collections/ansible_collections/amazon'
 buildah copy $ctr 'collections/ansible_collections/ansible' \
