@@ -37,5 +37,6 @@
     - debug:
         msg: "{{ dynamic_development_source_vars }}"
   
-    - redhat_cop.controller_configuration.dispatch:
-
+    - name: Call dispatch role
+      ansible.builtin.include_role:
+        name: redhat_cop.controller_configuration.dispatch
