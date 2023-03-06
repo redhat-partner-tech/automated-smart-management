@@ -16,6 +16,7 @@ scratchmnt=$(buildah mount ${ctr})
 buildah run $ctr /bin/sh -c 'python3 -m pip install jinja2==3.1.1'
 buildah run $ctr /bin/sh -c 'python3 -m pip install apypie'
 buildah run $ctr /bin/sh -c 'python3 -m pip install psycopg2-binary'
+buildah run $ctr /bin/sh -c 'python3 -m pip install requests==2.28.1'
 cd $TMP_WRKDIR
 git clone https://github.com/redhat-partner-tech/automated-smart-management.git
 cd automated-smart-management
