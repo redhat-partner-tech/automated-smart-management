@@ -5,7 +5,7 @@
     env: Dev
     activation_key: undef
     sat_url: satellite.example.com
-    insights: false
+#    insights: false
   roles:
     - rhsm_register
 
