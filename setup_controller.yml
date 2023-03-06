@@ -35,7 +35,7 @@
         workshop_ec2_region: "{{ ansible_ec2_instance_identity_document_region }}"
 
     - debug:
-        msg: "{{ dynamic_development_source_vars }}"   
-    - name: deploy controller_infra workloads
-      ansible.builtin.include_role:
-        name: redhat_cop.controller_configuration.dispatch
+        msg: "{{ dynamic_development_source_vars }}"
+  
+    - redhat_cop.controller_configuration.dispatch:
+
