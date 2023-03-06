@@ -10,8 +10,6 @@
     controller_hostname: "{{ lookup('env', 'TOWER_HOST') }}"
     #controller_hostname: "{{ hostvars[inventory_hostname].ansible_fqdn }}"
     controller_validate_certs: false
-  roles:
-    - redhat_cop.controller_configuration.dispatch
 
   tasks:
     - name: Controller deployment instrumentation
@@ -37,8 +35,5 @@
     - debug:
         msg: "{{ dynamic_development_source_vars }}"   
     - name: deploy controller_infra workloads
-      include_role:
-        name: "{{ controller_infra_vars }}"
-      loop: "{{ controller_infra_workloads }}"
-      loop_control:
-        loop_var: controller_infra_vars
+      ansible.builtin.include_role:
+        name: infra.controller_configuration.dispatc
