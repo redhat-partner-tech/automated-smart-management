@@ -1,5 +1,5 @@
 ---
-lifecycle_environments:
+satellite_lifecycle_environments:
   # Red Hat Enterprise Linux 7
   - name: "RHEL7_Dev"
     prior: "Library"

@@ -1,7 +1,7 @@
 ---
-products:
+satellite_products:
   - name: Community Enterprise OS 7
-    repositories:
+    repository_sets:
       - name: CentOS-7 - Base RPMs x86_64
         content_type: yum
         url: http://mirror.centos.org/centos/7/os/x86_64/
@@ -13,7 +13,7 @@ products:
         content_type: yum
         url: http://mirror.centos.org/centos/7/extras/x86_64/
   - name: Community Enterprise OS 8
-    repositories:
+    repository_sets:
       - name: CentOS-8 for x86_64 - BaseOS RPMs
         content_type: yum
         url: http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
@@ -22,17 +22,17 @@ products:
         content_type: yum
         url: http://mirror.centos.org/centos/8/AppStream/x86_64/os/
   - name: Extra Packages for Enterprise Linux 7
-    repositories:
+    repository_sets:
       - name:  Extra Packages for Enterprise Linux 7 x86_64
         content_type: yum
         url: https://download.fedoraproject.org/pub/epel/7/x86_64/
   - name: Extra Packages for Enterprise Linux 8
-    repositories:
+    repository_sets:
       - name: Extra Packages for Enterprise Linux 8 x86_64
         content_type: yum
         url: https://download.fedoraproject.org/pub/epel/8/Everything/x86_64/
   - name: Foreman Client
-    repositories:
+    repository_sets:
       - name: Foreman Client CentOS 7
         url: https://yum.theforeman.org/client/latest/el7/x86_64/
         content_type: yum

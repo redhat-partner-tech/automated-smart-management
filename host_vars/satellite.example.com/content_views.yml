@@ -1,5 +1,5 @@
 ---
-foreman_content_views:
+satellite_lifecycle_environments:
   # Red Hat Enterprise Linux 7
   - name: RHEL7
     content_view: RHEL7
@@ -8,7 +8,7 @@ foreman_content_views:
       - "RHEL7_Dev"
       - "RHEL7_QA"
       - "RHEL7_Prod"
-    repos:
+    repositories:
     - name: Red Hat Enterprise Linux 7 Server (RPMs)
       basearch: x86_64
       releasever: 7Server
@@ -26,7 +26,7 @@ foreman_content_views:
       - "RHEL8_Dev"
       - "RHEL8_QA"
       - "RHEL8_Prod"
-    repos:
+    repositories:
     - name: Red Hat Enterprise Linux 8 for x86_64 - BaseOS (RPMs)
       releasever: 8
       product: Red Hat Enterprise Linux for x86_64
@@ -41,7 +41,7 @@ foreman_content_views:
       - "CentOS7_Dev"
       - "CentOS7_QA"
       - "CentOS7_Prod"
-    repos:
+    repositories:
     # name provided here is parsed by role and appends basearch to the name submitted to Satellite
     # ...so for actual repo named 'CentOS-7 - Base RPMs x86_64' set name to 'CentOS-7 - Base RPMs' here
     - name: CentOS-7 - Base RPMs
@@ -63,7 +63,7 @@ foreman_content_views:
       - "CentOS8_Dev"
       - "CentOS8_QA"
       - "CentOS8_Prod"
-    repos:
+    repositories:
     - name: CentOS-8 for x86_64 - BaseOS RPMs
       #releasever: 8
       product: Community Enterprise OS 8
