@@ -1,5 +1,5 @@
 ---
-activation_keys:
+satellite_activation_keys:
   # Red Hat Enterprise Linux 7
   - name: "RHEL7_Dev"
     lifecycle_environment: "RHEL7_Dev"
