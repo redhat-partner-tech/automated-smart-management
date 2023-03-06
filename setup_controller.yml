@@ -36,4 +36,4 @@
         msg: "{{ dynamic_development_source_vars }}"   
     - name: deploy controller_infra workloads
       ansible.builtin.include_role:
-        name: infra.controller_configuration.dispatc
+        name: redhat_cop.controller_configuration.dispatch
