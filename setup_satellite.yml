@@ -67,10 +67,10 @@
   gather_facts: no
   vars:
     satellite_infra_workloads:
-      - theforeman.foreman.repositories
-      - theforeman.foreman.lifecycle_environments
+      - redhat.satellite.repositories
+      - redhat.satellite.lifecycle_environments
       - content_views
-      - theforeman.foreman.activation_keys
+      - redhat.satellite.activation_keys
 
   tasks:
 

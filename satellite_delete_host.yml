@@ -6,7 +6,7 @@
     validate_certs: false
   tasks:
   - name: Remove all hosts in inventory group "{{ node_group }}" from Satellite org "Default Organization"
-    theforeman.foreman.host:
+    redhat.satellite.host:
       name: "{{ item }}"
       state: absent
     with_items: "{{ groups[node_group] }}"

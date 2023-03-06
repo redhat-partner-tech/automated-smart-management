@@ -16,7 +16,7 @@
   - set_fact:
       node_group: "env_{{ centos_lifecycle_environment }}"
   - name: Transfer hosts in Satellite LE "{{ centos_lifecycle_environment }}" to LE "{{ rhel_lifecycle_environment }}"
-    theforeman.foreman.host:
+    redhat.satellite.host:
       name: "{{ item }}"
       lifecycle_environment: "{{ rhel_lifecycle_environment }}"
       content_view: "{{ rhel_lifecycle_environment.split('_')[0] }}"
