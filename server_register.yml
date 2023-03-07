@@ -8,5 +8,4 @@
 #    insights: false
   roles:
     - rhsm_register
-
-
+    
