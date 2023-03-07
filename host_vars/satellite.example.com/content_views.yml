@@ -36,15 +36,11 @@ satellite_content_views:
       - "CentOS7_QA"
       - "CentOS7_Prod"
     repositories:
-    # name provided here is parsed by role and appends basearch to the name submitted to Satellite
-    # ...so for actual repo named 'CentOS-7 - Base RPMs x86_64' set name to 'CentOS-7 - Base RPMs' here
-    - name: CentOS-7 - Base RPMs
+    - name: CentOS-7 - Base RPMs x86_64
       product: 'Community Enterprise OS 7'
-    #- name: Community Enterprise OS 7 - Extras RPMs x86_64
-    #  basearch: x86_64
-    - name: CentOS-7 - Extras RPMs
+    - name: CentOS-7 - Extras RPMs x86_64
       product: 'Community Enterprise OS 7'
-    - name: CentOS-7 - Updates RPMs
+    - name: CentOS-7 - Updates RPMs x86_64
       product: 'Community Enterprise OS 7'
   # Community Enterprise Linux 8
   - name: CentOS8
