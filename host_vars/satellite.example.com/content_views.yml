@@ -1,5 +1,5 @@
 ---
-satellite_lifecycle_environments:
+satellite_content_views:
   # Red Hat Enterprise Linux 7
   - name: RHEL7
     content_view: RHEL7
