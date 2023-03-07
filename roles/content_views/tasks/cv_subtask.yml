@@ -1,6 +1,6 @@
 ---
 - name: "Ensure content view version is in all environments"
-  theforeman.foreman.content_view_version:
+  redhat.satellite.content_view_version:
     username: "{{ username | default(omit) }}"
     password: "{{ password | default(omit) }}"
     server_url: "{{ server_url | default(omit) }}"

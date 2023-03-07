@@ -14,16 +14,17 @@
     content_temp_repositories: "{{ content_temp_repositories + [{ 'name': content_temp_names[item.0], 'product': item.1.product}] }}"
   with_indexed_items: "{{ content.repos }}"
 
-- theforeman.foreman.content_view:
+- redhat.satellite.content_view:
     username: "{{ username | default(omit) }}"
     password: "{{ password | default(omit) }}"
     server_url: "{{ server_url | default(omit) }}"
     validate_certs: "{{ validate_certs | default(omit) }}"
     name: "{{ content.content_view }}"
     organization: "{{ organization }}"
-    repositories: "{{ content_temp_repositories }}"
+    repositories: "{{ content.repos }}"
+    #repositories: "{{ content_temp_repositories }}"
 
-- theforeman.foreman.content_view_filter:
+- redhat.satellite.content_view_filter:
     username: "{{ username | default(omit) }}"
     password: "{{ password | default(omit) }}"
     server_url: "{{ server_url | default(omit) }}"
@@ -31,7 +32,8 @@
     name: "{{ item.name }}"
     organization: "{{ organization }}"
     content_view: "{{ content.content_view }}"
-    repositories: "{{ content_temp_repositories }}"
+    repositories: "{{ content.repos }}"
+    #repositories: "{{ content_temp_repositories }}"
     filter_type: "{{ item.type }}"
     start_date: "{{ item.start_date | d(omit) }}"
     end_date: "{{ item.end_date | d(omit) }}"
