@@ -1,4 +1,4 @@
-theforeman.foreman.lifecycle_environments
+theforeman.foreman.content_views
 =========================================
 
 This role creates and manages Content Views.
