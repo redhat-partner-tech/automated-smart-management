@@ -9,11 +9,11 @@ satellite_content_views:
       - "RHEL7_QA"
       - "RHEL7_Prod"
     repositories:
-    - name: Red Hat Enterprise Linux 7 Server (RPMs)
+    - name: Red Hat Enterprise Linux 7 Server RPMs x86_64 7Server
       product: 'Red Hat Enterprise Linux Server'
-    - name: Red Hat Enterprise Linux 7 Server - Extras (RPMs)
+    - name: Red Hat Enterprise Linux 7 Server - Extras RPMs x86_64
       product: 'Red Hat Enterprise Linux Server'
-    - name: Red Hat Satellite Tools 6.10 (for RHEL 7 Server) (RPMs)
+    - name: Red Hat Satellite Utils 6.11 for RHEL 7 Server RPMs x86_64
       product: 'Red Hat Enterprise Linux Server'
   - name: RHEL8
     content_view: RHEL8
@@ -23,9 +23,9 @@ satellite_content_views:
       - "RHEL8_QA"
       - "RHEL8_Prod"
     repositories:
-    - name: Red Hat Enterprise Linux 8 for x86_64 - BaseOS (RPMs)
+    - name: Red Hat Enterprise Linux 8 for x86_64 - BaseOS RPMs 8
       product: Red Hat Enterprise Linux for x86_64
-    - name: Red Hat Enterprise Linux 8 for x86_64 - AppStream (RPMs)
+    - name: Red Hat Enterprise Linux 8 for x86_64 - AppStream RPMs 8
       product: Red Hat Enterprise Linux for x86_64
   # Community Enterprise Linux 7
   - name: CentOS7
