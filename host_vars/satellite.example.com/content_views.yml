@@ -10,14 +10,10 @@ satellite_content_views:
       - "RHEL7_Prod"
     repositories:
     - name: Red Hat Enterprise Linux 7 Server (RPMs)
-      basearch: x86_64
-      releasever: 7Server
       product: 'Red Hat Enterprise Linux Server'
     - name: Red Hat Enterprise Linux 7 Server - Extras (RPMs)
-      basearch: x86_64
       product: 'Red Hat Enterprise Linux Server'
     - name: Red Hat Satellite Tools 6.10 (for RHEL 7 Server) (RPMs)
-      basearch: x86_64
       product: 'Red Hat Enterprise Linux Server'
   - name: RHEL8
     content_view: RHEL8
@@ -28,10 +24,8 @@ satellite_content_views:
       - "RHEL8_Prod"
     repositories:
     - name: Red Hat Enterprise Linux 8 for x86_64 - BaseOS (RPMs)
-      releasever: 8
       product: Red Hat Enterprise Linux for x86_64
     - name: Red Hat Enterprise Linux 8 for x86_64 - AppStream (RPMs)
-      releasever: 8
       product: Red Hat Enterprise Linux for x86_64
   # Community Enterprise Linux 7
   - name: CentOS7
@@ -45,15 +39,12 @@ satellite_content_views:
     # name provided here is parsed by role and appends basearch to the name submitted to Satellite
     # ...so for actual repo named 'CentOS-7 - Base RPMs x86_64' set name to 'CentOS-7 - Base RPMs' here
     - name: CentOS-7 - Base RPMs
-      basearch: x86_64
       product: 'Community Enterprise OS 7'
     #- name: Community Enterprise OS 7 - Extras RPMs x86_64
     #  basearch: x86_64
     - name: CentOS-7 - Extras RPMs
-      basearch: x86_64
       product: 'Community Enterprise OS 7'
     - name: CentOS-7 - Updates RPMs
-      basearch: x86_64
       product: 'Community Enterprise OS 7'
   # Community Enterprise Linux 8
   - name: CentOS8
@@ -65,8 +56,6 @@ satellite_content_views:
       - "CentOS8_Prod"
     repositories:
     - name: CentOS-8 for x86_64 - BaseOS RPMs
-      #releasever: 8
       product: Community Enterprise OS 8
     - name: CentOS-8 for x86_64 - AppStream RPMs
-      #releasever: 8
       product: Community Enterprise OS 8
