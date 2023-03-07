@@ -5,7 +5,7 @@
     server_url: "{{ server_url | default(omit) }}"
     validate_certs: "{{ validate_certs | default(omit) }}"
     name: "{{ content.content_view }}"
-    organization: "{{ organization }}"
+    organization: "{{ satellite_organization }}"
     repositories: "{{ content.repositories }}"
     #repositories: "{{ content_temp_repositories }}"
 
@@ -15,7 +15,7 @@
     server_url: "{{ server_url | default(omit) }}"
     validate_certs: "{{ validate_certs | default(omit) }}"
     name: "{{ item.name }}"
-    organization: "{{ organization }}"
+    organization: "{{ satellite_organization }}"
     content_view: "{{ content.content_view }}"
     repositories: "{{ content.repositories }}"
     #repositories: "{{ content_temp_repositories }}"
