@@ -3,26 +3,26 @@
 
 # Gather info
 - name: Get instance details
-  include: get_instance_details.yml
+  include_tasks: get_instance_details.yml
   when: ec2_instance_action != "snapshot_delete"
 
 # Actions
 - name: Start instance
-  include: instance/start_instances.yml
+  include_tasks: instance/start_instances.yml
   when: ec2_instance_action == "start"
 
 - name: Stop instance
-  include: instance/stop_instances.yml
+  include_tasks: instance/stop_instances.yml
   when: ec2_instance_action == "stop"
 
 - name: Create instance snapshot
-  include: snapshot/create.yml
+  include_tasks: snapshot/create.yml
   when: ec2_instance_action == "snapshot_create"
 
 - name: Delete instance snapshot
-  include: snapshot/delete.yml
+  include_tasks: snapshot/delete.yml
   when: ec2_instance_action == "snapshot_delete"
 
 - name: Revert instance snapshot
-  include: snapshot/revert.yml
+  include_tasks: snapshot/revert.yml
   when: ec2_instance_action == "snapshot_revert"
