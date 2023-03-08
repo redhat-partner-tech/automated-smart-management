@@ -11,7 +11,6 @@ IMAGE=ee-automated-smart-mgmt-aap2-dev
 VERSION=1.0.3
 START_DIR=$(pwd)
 TMP_WRKDIR=$(mktemp -d /tmp/XXXXXXXX)
-COLLECTIONS_DIR=/usr/share/ansible/collections/ansible_collections
 ctr=$(buildah from registry.redhat.io/$BASEIMAGEOWNER/$BASEIMAGENAME:$BIVERSION)
 scratchmnt=$(buildah mount ${ctr})
 buildah run $ctr /bin/sh -c 'python3 -m pip install jinja2==3.1.1'
@@ -28,18 +27,18 @@ buildah copy $ctr 'roles/content_views' '/usr/share/ansible/roles/content_views'
 buildah copy $ctr 'roles/ec2_node_tools' '/usr/share/ansible/roles/ec2_node_tools'
 buildah copy $ctr 'roles/rhsm_register' '/usr/share/ansible/roles/rhsm_register'
 buildah copy $ctr 'roles/scap_client' '/usr/share/ansible/roles/scap_client'
-buildah run $ctr /bin/sh -c '[ ! -d $COLLECTIONS_DIR/amazon/aws ] || rm -rf $COLLECTIONS_DIR/amazon/aws'
-buildah run $ctr /bin/sh -c '[ ! -d $COLLECTIONS_DIR/ansible/controller ] || rm -rf $COLLECTIONS_DIR/ansible/controller'
-buildah run $ctr /bin/sh -c '[ ! -d $COLLECTIONS_DIR/redhat_cop/controller_configuration ] || rm -rf $COLLECTIONS_DIR/redhat_cop/controller_configuration'
-buildah run $ctr /bin/sh -c '[ ! -d $COLLECTIONS_DIR/redhat/satellite ] || rm -rf $COLLECTIONS_DIR/redhat/satellite'
+buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/amazon/aws ] || rm -rf /usr/share/ansible/collections/ansible_collections/amazon/aws'
+buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/ansible/controller ] || rm -rf /usr/share/ansible/collections/ansible_collections/ansible/controller'
+buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/redhat_cop/controller_configuration ] || rm -rf /usr/share/ansible/collections/ansible_collections/redhat_cop/controller_configuration'
+buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/redhat/satellite ] || rm -rf /usr/share/ansible/collections/ansible_collections/redhat/satellite'
 buildah copy $ctr 'collections/ansible_collections/amazon/aws' \
-	'$COLLECTIONS_DIR/amazon/'
+	'/usr/share/ansible/collections/ansible_collections/amazon/'
 buildah copy $ctr 'collections/ansible_collections/ansible/controller' \
-	'$COLLECTIONS_DIR/ansible/'
+	'/usr/share/ansible/collections/ansible_collections/ansible/'
 buildah copy $ctr 'collections/ansible_collections/redhat_cop/controller_configuration' \
-	'$COLLECTIONS_DIR/redhat_cop/'
+	'/usr/share/ansible/collections/ansible_collections/redhat_cop/'
 buildah copy $ctr 'collections/ansible_collections/redhat/satellite' \
-	'$COLLECTIONS_DIR/redhat/'
+	'/usr/share/ansible/collections/ansible_collections/redhat/'
 #buildah config --label name=${IMAGE} $ctr
 cd $START_DIR
 rm -rf $TMP_WRKDIR
