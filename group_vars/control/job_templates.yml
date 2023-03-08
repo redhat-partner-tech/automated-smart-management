@@ -112,12 +112,12 @@ controller_templates:
         - question_name: Current Lifecycle Environment
           variable: current_lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Next Lifecycle Environment
           variable: lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
 
   - name: SATELLITE / CentOS - Promote Content View
@@ -139,12 +139,12 @@ controller_templates:
         - question_name: Current Lifecycle Environment
           variable: current_lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Next Lifecycle Environment
           variable: lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true  
 
   - name: SATELLITE / Delete host(s) in "node_group"
@@ -170,12 +170,12 @@ controller_templates:
         - question_name: Select CentOS Lifecycle Environment to transfer nodes from
           variable: centos_lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Select target RHEL Lifecycle Environment
           variable: rhel_lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
 
   - name: SERVER / RHEL7 - Patch
@@ -194,7 +194,7 @@ controller_templates:
         - question_name: Select Environment
           type: multiplechoice
           variable: lifecycle_stage
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Check
           type: multiplechoice
@@ -220,7 +220,7 @@ controller_templates:
         - question_name: Select Environment
           type: multiplechoice
           variable: lifecycle_stage
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Check
           type: multiplechoice
@@ -320,12 +320,12 @@ controller_templates:
         - question_name: Select CentOS Group to convert
           variable: centos_lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^CentOS.*$') | map(attribute='name') | list}}"
           required: true
         - question_name: Select target RHEL Group to convert to
           variable: rhel_lifecycle_environment
           type: multiplechoice
-          choices: "{{ hostvars['satellite.example.com']['lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
+          choices: "{{ hostvars['satellite.example.com']['satellite_lifecycle_environments'] | selectattr('name', 'match', '^RHEL.*$') | map(attribute='name') | list}}"
           required: true
 
   - name: CONVERT2RHEL / 96 - Three Tier App deployment
