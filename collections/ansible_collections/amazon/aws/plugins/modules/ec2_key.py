@@ -11,7 +11,7 @@ DOCUMENTATION = '''
 ---
 module: ec2_key
 version_added: 1.0.0
-short_description: Create or delete an ec2 key pair
+short_description: create or delete an ec2 key pair
 description:
     - create or delete an ec2 key pair.
 options:
@@ -38,6 +38,26 @@ options:
     choices: [ present, absent ]
     default: 'present'
     type: str
+  wait:
+    description:
+      - This option has no effect since version 2.5 and will be removed after 2022-06-01.
+    type: bool
+  wait_timeout:
+    description:
+      - This option has no effect since version 2.5 and will be removed after 2022-06-01.
+    type: int
+    required: false
+  tags:
+    description:
+      - A dictionary of tags to set on the key pair.
+    type: dict
+    version_added: 2.1.0
+  purge_tags:
+    description:
+      - Delete any tags not specified in I(tags).
+    default: false
+    type: bool
+    version_added: 2.1.0
   key_type:
     description:
       - The type of key pair to create.
@@ -51,12 +71,10 @@ options:
       - rsa
       - ed25519
     version_added: 3.1.0
-notes:
-- Support for I(tags) and I(purge_tags) was added in release 2.1.0.
+
 extends_documentation_fragment:
 - amazon.aws.aws
 - amazon.aws.ec2
-- amazon.aws.tags.deprecated_purge
 
 author:
   - "Vincent Viallet (@zbal)"
@@ -159,12 +177,12 @@ except ImportError:
 
 from ansible.module_utils._text import to_bytes
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ensure_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_specifications
-from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_list_to_ansible_dict
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.core import is_boto3_error_code
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import ensure_ec2_tags
+from ..module_utils.tagging import boto3_tag_specifications
+from ..module_utils.tagging import boto3_tag_list_to_ansible_dict
 
 
 def extract_key_data(key, key_type=None):
@@ -304,9 +322,11 @@ def main():
         key_material=dict(no_log=False),
         force=dict(type='bool', default=True),
         state=dict(default='present', choices=['present', 'absent']),
-        tags=dict(type='dict', aliases=['resource_tags']),
-        purge_tags=dict(type='bool'),
+        tags=dict(type='dict'),
+        purge_tags=dict(type='bool', default=False),
         key_type=dict(type='str', choices=['rsa', 'ed25519']),
+        wait=dict(type='bool', removed_at_date='2022-06-01', removed_from_collection='amazon.aws'),
+        wait_timeout=dict(type='int', removed_at_date='2022-06-01', removed_from_collection='amazon.aws')
     )
 
     module = AnsibleAWSModule(
@@ -316,14 +336,6 @@ def main():
         ],
         supports_check_mode=True
     )
-
-    if module.params.get('purge_tags') is None:
-        module.deprecate(
-            'The purge_tags parameter currently defaults to False.'
-            ' For consistency across the collection, this default value'
-            ' will change to True in release 5.0.0.',
-            version='5.0.0', collection_name='amazon.aws')
-        module.params['purge_tags'] = False
 
     ec2_client = module.client('ec2', retry_decorator=AWSRetry.jittered_backoff())
 

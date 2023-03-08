@@ -10,7 +10,7 @@ DOCUMENTATION = '''
 ---
 module: ec2_tag_info
 version_added: 1.0.0
-short_description: List tags on ec2 resources
+short_description: list tags on ec2 resources
 description:
     - Lists tags for any EC2 resource.
     - Resources are referenced by their resource id (e.g. an instance being i-XXXXXXX, a vpc being vpc-XXXXXX).
@@ -51,8 +51,8 @@ tags:
   type: dict
 '''
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import describe_ec2_tags
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.ec2 import describe_ec2_tags
 
 
 def main():

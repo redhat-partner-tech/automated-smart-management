@@ -23,8 +23,6 @@ options:
   dhcp_options_ids:
     description:
       - Get details of specific DHCP Option IDs.
-      - The C(DhcpOptionIds) alias has been deprecated and will be removed in
-        release 5.0.0.
     aliases: ['DhcpOptionIds']
     type: list
     elements: str
@@ -32,8 +30,6 @@ options:
     description:
       - Checks whether you have the required permissions to view the DHCP
         Options.
-      - The C(DryRun) alias has been deprecated and will be removed in
-        release 5.0.0.
     aliases: ['DryRun']
     type: bool
     default: false
@@ -71,35 +67,19 @@ EXAMPLES = '''
 
 RETURN = '''
 dhcp_options:
-    description: The DHCP options created, associated or found.
+    description: The DHCP options created, associated or found
     returned: always
     type: list
     elements: dict
     contains:
         dhcp_configurations:
-            description: The DHCP configuration for the option set.
+            description: The DHCP configuration for the option set
             type: list
-            elements: dict
-            contains:
-                key:
-                    description: The name of a DHCP option.
-                    returned: always
-                    type: str
-                values:
-                    description: List of values for the DHCP option.
-                    returned: always
-                    type: list
-                    elements: dict
-                    contains:
-                        value:
-                            description: The attribute value. This value is case-sensitive.
-                            returned: always
-                            type: str
             sample:
               - '{"key": "ntp-servers", "values": [{"value": "10.0.0.2" , "value": "10.0.1.2"}]}'
               - '{"key": "netbios-name-servers", "values": [{value": "10.0.0.1"}, {"value": "10.0.1.1" }]}'
         dhcp_options_id:
-            description: The aws resource id of the primary DHCP options set created or found.
+            description: The aws resource id of the primary DCHP options set created or found
             type: str
             sample: "dopt-0955331de6a20dd07"
         owner_id:
@@ -107,17 +87,15 @@ dhcp_options:
             type: str
             sample: 012345678912
         tags:
-            description: The tags to be applied to a DHCP options set.
+            description: The tags to be applied to a DHCP options set
             type: list
-            elements: dict
             sample:
               - '{"Key": "CreatedBy", "Value": "ansible-test"}'
               - '{"Key": "Collection", "Value": "amazon.aws"}'
 dhcp_config:
-    description: The boto2-style DHCP options created, associated or found. Provided for consistency with ec2_vpc_dhcp_option's C(dhcp_config).
+    description: The boto2-style DHCP options created, associated or found. Provided for consistency with ec2_vpc_dhcp_option's `new_config`.
     returned: always
     type: list
-    elements: dict
     contains:
       domain-name-servers:
         description: The IP addresses of up to four domain name servers, or AmazonProvidedDNS.
@@ -127,7 +105,7 @@ dhcp_config:
           - 10.0.0.1
           - 10.0.1.1
       domain-name:
-        description: The domain name for hosts in the DHCP option sets.
+        description: The domain name for hosts in the DHCP option sets
         returned: when available
         type: list
         sample:
@@ -152,7 +130,7 @@ dhcp_config:
         type: str
         sample: 2
 changed:
-    description: True if listing the dhcp options succeeds.
+    description: True if listing the dhcp options succeeds
     type: bool
     returned: always
 '''
@@ -164,11 +142,11 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import normalize_ec2_vpc_dhcp_config
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ..module_utils.ec2 import normalize_ec2_vpc_dhcp_config
 
 
 def get_dhcp_options_info(dhcp_option):
@@ -200,12 +178,8 @@ def list_dhcp_options(client, module):
 def main():
     argument_spec = dict(
         filters=dict(type='dict', default={}),
-        dry_run=dict(
-            type='bool', default=False, aliases=['DryRun'],
-            deprecated_aliases=[dict(name='DryRun', version='5.0.0', collection_name='amazon.aws')]),
-        dhcp_options_ids=dict(
-            type='list', elements='str', aliases=['DhcpOptionIds'],
-            deprecated_aliases=[dict(name='DhcpOptionIds', version='5.0.0', collection_name='amazon.aws')]),
+        dry_run=dict(type='bool', default=False, aliases=['DryRun']),
+        dhcp_options_ids=dict(type='list', elements='str', aliases=['DhcpOptionIds'])
     )
 
     module = AnsibleAWSModule(

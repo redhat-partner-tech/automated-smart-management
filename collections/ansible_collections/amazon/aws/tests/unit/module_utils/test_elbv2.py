@@ -8,6 +8,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 from ansible_collections.amazon.aws.plugins.module_utils import elbv2
+from ansible_collections.amazon.aws.tests.unit.compat import unittest
 from ansible_collections.amazon.aws.tests.unit.compat.mock import MagicMock
 
 one_action = [
@@ -26,25 +27,6 @@ one_action = [
     }
 ]
 
-one_action_two_tg = [
-    {
-        "ForwardConfig": {
-            "TargetGroupStickinessConfig": {"Enabled": False},
-            "TargetGroups": [
-                {
-                    "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:966509639900:targetgroup/my-tg-58045486/5b231e04f663ae21",
-                    "Weight": 1,
-                },
-                {
-                    "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:966509639900:targetgroup/my-tg-dadf7b62/be2f50b4041f11ed",
-                    "Weight": 1,
-                }
-            ],
-        },
-        "Type": "forward",
-    }
-]
-
 
 def test__prune_ForwardConfig():
     expectation = {
@@ -52,8 +34,6 @@ def test__prune_ForwardConfig():
         "Type": "forward",
     }
     assert elbv2._prune_ForwardConfig(one_action[0]) == expectation
-    # https://github.com/ansible-collections/community.aws/issues/1089
-    assert elbv2._prune_ForwardConfig(one_action_two_tg[0]) == one_action_two_tg[0]
 
 
 def _prune_secret():
@@ -64,9 +44,9 @@ def _sort_actions_one_entry():
     assert elbv2._sort_actions(one_action) == one_action
 
 
-class TestElBV2Utils():
+class ElBV2UtilsTestSuite(unittest.TestCase):
 
-    def setup_method(self):
+    def setUp(self):
         self.connection = MagicMock(name="connection")
         self.module = MagicMock(name="module")
 
@@ -186,25 +166,25 @@ class TestElBV2Utils():
         self.connection.describe_tags.assert_called_once()
         self.conn_paginator.paginate.assert_called_once()
         # assert we got the expected value
-        assert return_value == 'ipv4'
+        self.assertEqual(return_value, 'ipv4')
 
     # Test modify_ip_address_type idempotency
     def test_modify_ip_address_type_idempotency(self):
         # Run module
-        self.elbv2obj.modify_ip_address_type("ipv4")
+        return_value = self.elbv2obj.modify_ip_address_type("ipv4")
         # check that no method was called and this has been retrieved from elb attributes
         self.connection.set_ip_address_type.assert_not_called()
         # assert we got the expected value
-        assert self.elbv2obj.changed is False
+        self.assertEqual(self.elbv2obj.changed, False)
 
     # Test modify_ip_address_type
     def test_modify_ip_address_type_update(self):
         # Run module
-        self.elbv2obj.modify_ip_address_type("dualstack")
+        return_value = self.elbv2obj.modify_ip_address_type("dualstack")
         # check that no method was called and this has been retrieved from elb attributes
         self.connection.set_ip_address_type.assert_called_once()
         # assert we got the expected value
-        assert self.elbv2obj.changed is True
+        self.assertEqual(self.elbv2obj.changed, True)
 
     # Test get_elb_attributes
     def test_get_elb_attributes(self):
@@ -225,4 +205,4 @@ class TestElBV2Utils():
         # Run module
         actual_elb_attributes = self.elbv2obj.get_elb_attributes()
         # Assert we got the expected result
-        assert actual_elb_attributes == expected_elb_attributes
+        self.assertEqual(actual_elb_attributes, expected_elb_attributes)

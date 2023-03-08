@@ -8,14 +8,10 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import pytest
-
-try:
-    import botocore
-except ImportError:
-    # Handled by HAS_BOTO3
-    pass
+import botocore
 
 from ansible_collections.amazon.aws.tests.unit.compat.mock import MagicMock
+from ansible_collections.amazon.aws.tests.unit.compat import unittest
 
 import ansible_collections.amazon.aws.plugins.module_utils.iam as utils_iam
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import HAS_BOTO3
@@ -24,7 +20,7 @@ if not HAS_BOTO3:
     pytestmark = pytest.mark.skip("test_iam.py requires the python modules 'boto3' and 'botocore'")
 
 
-class TestIamUtils():
+class IamUtilsTestSuite(unittest.TestCase):
 
     def _make_denied_exception(self, partition):
         return botocore.exceptions.ClientError(
@@ -75,7 +71,7 @@ class TestIamUtils():
     def _make_botocore_exception(self):
         return botocore.exceptions.EndpointConnectionError(endpoint_url='junk.endpoint')
 
-    def setup_method(self):
+    def setUp(self):
         self.sts_client = MagicMock()
         self.iam_client = MagicMock()
         self.module = MagicMock()
@@ -104,7 +100,7 @@ class TestIamUtils():
         self.module.client.assert_called_once()
         self.sts_client.get_caller_identity.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == '123456789012'
+        self.assertEqual(return_value, '123456789012')
 
     # Test the simplest case - We're permitted to call GetCallerIdentity
     # (China partition)
@@ -119,7 +115,7 @@ class TestIamUtils():
         self.module.client.assert_called_once()
         self.sts_client.get_caller_identity.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == '123456789012'
+        self.assertEqual(return_value, '123456789012')
 
     # ========== get_aws_account_info ============
     # Test the simplest case - We're permitted to call GetCallerIdentity
@@ -134,7 +130,7 @@ class TestIamUtils():
         self.module.client.assert_called_once()
         self.sts_client.get_caller_identity.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == ('123456789012', 'aws',)
+        self.assertEqual(return_value, ('123456789012', 'aws',))
 
     # (China partition)
     def test_get_aws_account_info__caller_success_cn(self):
@@ -148,7 +144,7 @@ class TestIamUtils():
         self.module.client.assert_called_once()
         self.sts_client.get_caller_identity.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == ('123456789012', 'aws-cn',)
+        self.assertEqual(return_value, ('123456789012', 'aws-cn',))
 
     # (US-Gov partition)
     def test_get_aws_account_info__caller_success_gov(self):
@@ -162,7 +158,7 @@ class TestIamUtils():
         self.module.client.assert_called_once()
         self.sts_client.get_caller_identity.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == ('123456789012', 'aws-us-gov',)
+        self.assertEqual(return_value, ('123456789012', 'aws-us-gov',))
 
     # If sts:get_caller_identity fails (most likely something wierd on the
     # client side), then try a few extra options.
@@ -175,11 +171,11 @@ class TestIamUtils():
         # Run module
         return_value = utils_iam.get_aws_account_info(self.module)
         # Check we only saw the calls we mocked out
-        assert self.module.client.call_count == 2
+        self.assertEqual(self.module.client.call_count, 2)
         self.sts_client.get_caller_identity.assert_called_once()
         self.iam_client.get_user.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == ('123456789012', 'aws',)
+        self.assertEqual(return_value, ('123456789012', 'aws',))
 
     # (China partition)
     def test_get_aws_account_info__user_success_cn(self):
@@ -190,11 +186,11 @@ class TestIamUtils():
         # Run module
         return_value = utils_iam.get_aws_account_info(self.module)
         # Check we only saw the calls we mocked out
-        assert self.module.client.call_count == 2
+        self.assertEqual(self.module.client.call_count, 2)
         self.sts_client.get_caller_identity.assert_called_once()
         self.iam_client.get_user.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == ('123456789012', 'aws-cn',)
+        self.assertEqual(return_value, ('123456789012', 'aws-cn',))
 
     # (US-Gov partition)
     def test_get_aws_account_info__user_success_gov(self):
@@ -205,11 +201,11 @@ class TestIamUtils():
         # Run module
         return_value = utils_iam.get_aws_account_info(self.module)
         # Check we only saw the calls we mocked out
-        assert self.module.client.call_count == 2
+        self.assertEqual(self.module.client.call_count, 2)
         self.sts_client.get_caller_identity.assert_called_once()
         self.iam_client.get_user.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == ('123456789012', 'aws-us-gov',)
+        self.assertEqual(return_value, ('123456789012', 'aws-us-gov',))
 
     # Test response if STS and IAM fails and we need to fall back to the denial message
     def test_get_aws_account_info__user_denied(self):
@@ -219,11 +215,11 @@ class TestIamUtils():
         # Run module
         return_value = utils_iam.get_aws_account_info(self.module)
         # Check we only saw the calls we mocked out
-        assert self.module.client.call_count == 2
+        self.assertEqual(self.module.client.call_count, 2)
         self.sts_client.get_caller_identity.assert_called_once()
         self.iam_client.get_user.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == ('123456789012', 'aws',)
+        self.assertEqual(return_value, ('123456789012', 'aws',))
 
     # (China partition)
     def test_get_aws_account_info__user_denied_cn(self):
@@ -233,11 +229,11 @@ class TestIamUtils():
         # Run module
         return_value = utils_iam.get_aws_account_info(self.module)
         # Check we only saw the calls we mocked out
-        assert self.module.client.call_count == 2
+        self.assertEqual(self.module.client.call_count, 2)
         self.sts_client.get_caller_identity.assert_called_once()
         self.iam_client.get_user.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == ('123456789012', 'aws-cn',)
+        self.assertEqual(return_value, ('123456789012', 'aws-cn',))
 
     # (US-Gov partition)
     def test_get_aws_account_info__user_denied_gov(self):
@@ -247,11 +243,11 @@ class TestIamUtils():
         # Run module
         return_value = utils_iam.get_aws_account_info(self.module)
         # Check we only saw the calls we mocked out
-        assert self.module.client.call_count == 2
+        self.assertEqual(self.module.client.call_count, 2)
         self.sts_client.get_caller_identity.assert_called_once()
         self.iam_client.get_user.assert_called_once()
         # Check we got the values back we expected.
-        assert return_value == ('123456789012', 'aws-us-gov',)
+        self.assertEqual(return_value, ('123456789012', 'aws-us-gov',))
 
     # Test that we fail gracefully if Boto throws exceptions at us...
     def test_get_aws_account_info__boto_failures(self):
@@ -262,7 +258,7 @@ class TestIamUtils():
         with pytest.raises(SystemExit) as e:
             utils_iam.get_aws_account_info(self.module)
         # Check we only saw the calls we mocked out
-        assert self.module.client.call_count == 2
+        self.assertEqual(self.module.client.call_count, 2)
         self.sts_client.get_caller_identity.assert_called_once()
         self.iam_client.get_user.assert_called_once()
         # Check we got the values back we expected.
@@ -277,7 +273,7 @@ class TestIamUtils():
         with pytest.raises(SystemExit) as e:
             utils_iam.get_aws_account_info(self.module)
         # Check we only saw the calls we mocked out
-        assert self.module.client.call_count == 2
+        self.assertEqual(self.module.client.call_count, 2)
         self.sts_client.get_caller_identity.assert_called_once()
         self.iam_client.get_user.assert_called_once()
         # Check we got the values back we expected.
@@ -292,7 +288,7 @@ class TestIamUtils():
         with pytest.raises(SystemExit) as e:
             utils_iam.get_aws_account_info(self.module)
         # Check we only saw the calls we mocked out
-        assert self.module.client.call_count == 2
+        self.assertEqual(self.module.client.call_count, 2)
         self.sts_client.get_caller_identity.assert_called_once()
         self.iam_client.get_user.assert_called_once()
         # Check we got the values back we expected.

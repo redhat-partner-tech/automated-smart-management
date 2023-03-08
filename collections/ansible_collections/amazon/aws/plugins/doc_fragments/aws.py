@@ -29,25 +29,31 @@ options:
   aws_secret_key:
     description:
       - C(AWS secret key). If not set then the value of the C(AWS_SECRET_ACCESS_KEY), C(AWS_SECRET_KEY), or C(EC2_SECRET_KEY) environment variable is used.
-      - The I(aws_secret_key) and I(profile) options are mutually exclusive.
+      - If I(profile) is set this parameter is ignored.
+      - Passing the I(aws_secret_key) and I(profile) options at the same time has been deprecated
+        and the options will be made mutually exclusive after 2022-06-01.
     type: str
     aliases: [ ec2_secret_key, secret_key ]
   aws_access_key:
     description:
       - C(AWS access key). If not set then the value of the C(AWS_ACCESS_KEY_ID), C(AWS_ACCESS_KEY) or C(EC2_ACCESS_KEY) environment variable is used.
-      - The I(aws_access_key) and I(profile) options are mutually exclusive.
+      - If I(profile) is set this parameter is ignored.
+      - Passing the I(aws_access_key) and I(profile) options at the same time has been deprecated
+        and the options will be made mutually exclusive after 2022-06-01.
     type: str
     aliases: [ ec2_access_key, access_key ]
   security_token:
     description:
       - C(AWS STS security token). If not set then the value of the C(AWS_SECURITY_TOKEN) or C(EC2_SECURITY_TOKEN) environment variable is used.
-      - The I(security_token) and I(profile) options are mutually exclusive.
-      - Aliases I(aws_session_token) and I(session_token) have been added in version 3.2.0.
+      - If I(profile) is set this parameter is ignored.
+      - Passing the I(security_token) and I(profile) options at the same time has been deprecated
+        and the options will be made mutually exclusive after 2022-06-01.
     type: str
-    aliases: [ aws_session_token, session_token, aws_security_token, access_token ]
+    aliases: [ aws_security_token, access_token ]
   aws_ca_bundle:
     description:
       - "The location of a CA Bundle to use when validating SSL certificates."
+      - "Not used by boto 2 based modules."
       - "Note: The CA Bundle is read 'module' side and may need to be explicitly copied from the controller if not run locally."
     type: path
   validate_certs:
@@ -58,18 +64,21 @@ options:
     default: yes
   profile:
     description:
-      - The I(profile) option is mutually exclusive with the I(aws_access_key), I(aws_secret_key) and I(security_token) options.
+      - Using I(profile) will override I(aws_access_key), I(aws_secret_key) and I(security_token)
+        and support for passing them at the same time as I(profile) has been deprecated.
+      - I(aws_access_key), I(aws_secret_key) and I(security_token) will be made mutually exclusive with I(profile) after 2022-06-01.
     type: str
     aliases: [ aws_profile ]
   aws_config:
     description:
       - A dictionary to modify the botocore configuration.
       - Parameters can be found at U(https://botocore.amazonaws.com/v1/documentation/api/latest/reference/config.html#botocore.config.Config).
+      - Only the 'user_agent' key is used for boto modules. See U(http://boto.cloudhackers.com/en/latest/boto_config_tut.html#boto) for more boto configuration.
     type: dict
 requirements:
   - python >= 3.6
-  - boto3 >= 1.17.0
-  - botocore >= 1.20.0
+  - boto3 >= 1.16.0
+  - botocore >= 1.19.0
 notes:
   - If parameters are not set within the module, the following
     environment variables can be used in decreasing order of precedence
@@ -85,6 +94,10 @@ notes:
     C(~/.aws/credentials)).
     See U(https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html)
     for more information.
+  - Modules based on the original AWS SDK (boto) may read their default
+    configuration from different files.
+    See U(https://boto.readthedocs.io/en/latest/boto_config_tut.html) for more
+    information.
   - C(AWS_REGION) or C(EC2_REGION) can be typically be used to specify the
     AWS region, when required, but this can also be defined in the
     configuration files.

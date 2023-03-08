@@ -74,12 +74,22 @@ options:
   state:
     description:
       - Whether to ensure the volume is present or absent.
-      - I(state=list) was deprecated in release 1.1.0 and is no longer available
-        with release 4.0.0.  The 'list' functionality has been moved to a dedicated
-        module M(amazon.aws.ec2_vol_info).
+      - The use of I(state=list) to interrogate the volume has been deprecated
+        and will be removed after 2022-06-01.  The 'list' functionality
+        has been moved to a dedicated module M(amazon.aws.ec2_vol_info).
     default: present
-    choices: ['absent', 'present']
+    choices: ['absent', 'present', 'list']
     type: str
+  tags:
+    description:
+      - tag:value pairs to add to the volume after creation.
+    default: {}
+    type: dict
+  purge_tags:
+    description: Whether to remove existing tags that aren't passed in the I(tags) parameter
+    default: false
+    type: bool
+    version_added: 1.5.0
   modify_volume:
     description:
       - The volume won't be modified unless this key is C(true).
@@ -91,6 +101,7 @@ options:
       - Volume throughput in MB/s.
       - This parameter is only valid for gp3 volumes.
       - Valid range is from 125 to 1000.
+      - Requires at least botocore version 1.19.27.
     type: int
     version_added: 1.4.0
   multi_attach:
@@ -107,12 +118,9 @@ options:
     type: str
     version_added: 3.1.0
 author: "Lester Wade (@lwade)"
-notes:
-- Support for I(purge_tags) was added in release 1.5.0.
 extends_documentation_fragment:
 - amazon.aws.aws
 - amazon.aws.ec2
-- amazon.aws.tags.deprecated_purge
 '''
 
 EXAMPLES = '''
@@ -178,6 +186,12 @@ EXAMPLES = '''
 - amazon.aws.ec2_vol:
     id: vol-XXXXXXXX
     instance: None
+    region: us-west-2
+
+# List volumes for an instance
+- amazon.aws.ec2_vol:
+    instance: i-XXXXXX
+    state: list
     region: us-west-2
 
 # Create new volume using SSD storage
@@ -248,16 +262,16 @@ volume:
 
 import time
 
-from ansible_collections.amazon.aws.plugins.module_utils.arn import is_outpost_arn
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import camel_dict_to_snake_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import describe_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ensure_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
-from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_specifications
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.ec2 import camel_dict_to_snake_dict
+from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ..module_utils.ec2 import describe_ec2_tags
+from ..module_utils.ec2 import ensure_ec2_tags
+from ..module_utils.ec2 import is_outposts_arn
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.core import is_boto3_error_code
+from ..module_utils.tagging import boto3_tag_specifications
 
 
 try:
@@ -436,7 +450,8 @@ def update_volume(module, ec2_conn, volume):
             volume['volume_type'] = response.get('VolumeModification').get('TargetVolumeType')
             volume['iops'] = response.get('VolumeModification').get('TargetIops')
             volume['multi_attach_enabled'] = response.get('VolumeModification').get('TargetMultiAttachEnabled')
-            volume['throughput'] = response.get('VolumeModification').get('TargetThroughput')
+            if module.botocore_at_least("1.19.27"):
+                volume['throughput'] = response.get('VolumeModification').get('TargetThroughput')
 
     return volume, changed
 
@@ -452,7 +467,7 @@ def create_volume(module, ec2_conn, zone):
     throughput = module.params.get('throughput')
     multi_attach = module.params.get('multi_attach')
     outpost_arn = module.params.get('outpost_arn')
-    tags = module.params.get('tags') or {}
+    tags = module.params.get('tags')
     name = module.params.get('name')
 
     volume = get_volume(module, ec2_conn)
@@ -489,7 +504,7 @@ def create_volume(module, ec2_conn, zone):
                 additional_params['MultiAttachEnabled'] = True
 
             if outpost_arn:
-                if is_outpost_arn(outpost_arn):
+                if is_outposts_arn(outpost_arn):
                     additional_params['OutpostArn'] = outpost_arn
                 else:
                     module.fail_json('OutpostArn does not match the pattern specified in API specifications.')
@@ -664,7 +679,8 @@ def get_volume_info(module, volume, tags=None):
         'tags': tags
     }
 
-    volume_info['throughput'] = volume.get('throughput')
+    if module.botocore_at_least("1.19.27"):
+        volume_info['throughput'] = volume.get('throughput')
 
     return volume_info
 
@@ -707,12 +723,12 @@ def main():
         delete_on_termination=dict(default=False, type='bool'),
         zone=dict(aliases=['availability_zone', 'aws_zone', 'ec2_zone']),
         snapshot=dict(),
-        state=dict(default='present', choices=['absent', 'present']),
-        tags=dict(type='dict', aliases=['resource_tags']),
+        state=dict(default='present', choices=['absent', 'present', 'list']),
+        tags=dict(default={}, type='dict'),
         modify_volume=dict(default=False, type='bool'),
         throughput=dict(type='int'),
         outpost_arn=dict(type='str'),
-        purge_tags=dict(type='bool'),
+        purge_tags=dict(type='bool', default=False),
         multi_attach=dict(type='bool'),
     )
 
@@ -739,13 +755,12 @@ def main():
     throughput = module.params.get('throughput')
     multi_attach = module.params.get('multi_attach')
 
-    if module.params.get('purge_tags') is None:
+    if state == 'list':
         module.deprecate(
-            'The purge_tags parameter currently defaults to False.'
-            ' For consistency across the collection, this default value'
-            ' will change to True in release 5.0.0.',
-            version='5.0.0', collection_name='amazon.aws')
-        module.params['purge_tags'] = False
+            'Using the "list" state has been deprecated.  Please use the ec2_vol_info module instead', date='2022-06-01', collection_name='amazon.aws')
+
+    if module.params.get('throughput'):
+        module.require_botocore_at_least('1.19.27', reason='to set the throughput for a volume')
 
     # Ensure we have the zone or can get the zone
     if instance is None and zone is None and state == 'present':
@@ -781,6 +796,15 @@ def main():
     changed = False
 
     ec2_conn = module.client('ec2', AWSRetry.jittered_backoff())
+
+    if state == 'list':
+        returned_volumes = []
+        vols = get_volumes(module, ec2_conn)
+
+        for v in vols:
+            returned_volumes.append(get_volume_info(module, v))
+
+        module.exit_json(changed=False, volumes=returned_volumes)
 
     # Here we need to get the zone info for the instance. This covers situation where
     # instance is specified but zone isn't.

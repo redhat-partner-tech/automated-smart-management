@@ -28,8 +28,7 @@ options:
   convert_tags:
     description:
       - Convert tags from boto3 format (list of dictionaries) to the standard dictionary format.
-      - Prior to release 4.0.0 this defaulted to C(False).
-    default: True
+      - This currently defaults to C(False).  The default will be changed to C(True) after 2022-06-22.
     type: bool
     version_added: 1.3.0
 extends_documentation_fragment:
@@ -75,12 +74,12 @@ internet_gateways:
     type: complex
     contains:
         attachments:
-            description: Any VPCs attached to the internet gateway.
+            description: Any VPCs attached to the internet gateway
             returned: I(state=present)
             type: complex
             contains:
                 state:
-                    description: The current state of the attachment.
+                    description: The current state of the attachment
                     returned: I(state=present)
                     type: str
                     sample: available
@@ -90,12 +89,12 @@ internet_gateways:
                     type: str
                     sample: vpc-02123b67
         internet_gateway_id:
-            description: The ID of the internet gateway.
+            description: The ID of the internet gateway
             returned: I(state=present)
             type: str
             sample: igw-2123634d
         tags:
-            description: Any tags assigned to the internet gateway.
+            description: Any tags assigned to the internet gateway
             returned: I(state=present)
             type: dict
             sample:
@@ -155,10 +154,16 @@ def main():
     argument_spec = dict(
         filters=dict(type='dict', default=dict()),
         internet_gateway_ids=dict(type='list', default=None, elements='str'),
-        convert_tags=dict(type='bool', default=True),
+        convert_tags=dict(type='bool'),
     )
 
     module = AnsibleAWSModule(argument_spec=argument_spec, supports_check_mode=True)
+
+    if module.params.get('convert_tags') is None:
+        module.deprecate('This module currently returns boto3 style tags by default.  '
+                         'This default has been deprecated and the module will return a simple dictionary in future.  '
+                         'This behaviour can be controlled through the convert_tags parameter.',
+                         date='2021-12-01', collection_name='amazon.aws')
 
     # Validate Requirements
     try:

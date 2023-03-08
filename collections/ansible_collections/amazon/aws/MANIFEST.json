@@ -2,7 +2,7 @@
  "collection_info": {
   "namespace": "amazon",
   "name": "aws",
-  "version": "4.4.0",
+  "version": "3.2.0",
   "authors": [
    "Ansible (https://github.com/ansible)"
   ],
@@ -17,7 +17,7 @@
   "license_file": "COPYING",
   "dependencies": {},
   "repository": "https://github.com/ansible-collections/amazon.aws",
-  "documentation": "https://ansible-collections.github.io/amazon.aws/branch/stable-4/collections/amazon/aws/index.html",
+  "documentation": "https://github.com/ansible-collections/amazon.aws/tree/main/docs",
   "homepage": "https://github.com/ansible-collections/amazon.aws",
   "issues": "https://github.com/ansible-collections/amazon.aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"
  },
@@ -25,7 +25,7 @@
   "name": "FILES.json",
   "ftype": "file",
   "chksum_type": "sha256",
-  "chksum_sha256": "03a5c775e6b6971f2d732525776ff8e620764ae5d2eeae73484ea9b0d3415ba6",
+  "chksum_sha256": "b7394ebc5d7a10b9c1e3b820e7b61866dedbd668bc384e3159f74114fc6bbddc",
   "format": 1
  },
  "format": 1

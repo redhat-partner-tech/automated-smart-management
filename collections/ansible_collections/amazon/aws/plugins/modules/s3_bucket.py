@@ -23,10 +23,10 @@ module: s3_bucket
 version_added: 1.0.0
 short_description: Manage S3 buckets in AWS, DigitalOcean, Ceph, Walrus, FakeS3 and StorageGRID
 description:
-  - Manage S3 buckets in AWS, DigitalOcean, Ceph, Walrus, FakeS3 and StorageGRID.
+    - Manage S3 buckets in AWS, DigitalOcean, Ceph, Walrus, FakeS3 and StorageGRID.
 author:
-  - Rob White (@wimnat)
-  - Aubin Bikouo (@abikouo)
+    - Rob White (@wimnat)
+    - Aubin Bikouo (@abikouo)
 options:
   force:
     description:
@@ -48,8 +48,6 @@ options:
       - S3 URL endpoint for usage with DigitalOcean, Ceph, Eucalyptus and FakeS3 etc.
       - Assumes AWS if not specified.
       - For Walrus, use FQDN of the endpoint without scheme nor path.
-      - The S3_URL alias for this option has been deprecated and will be removed
-        in release 5.0.0.
     aliases: [ S3_URL ]
     type: str
   ceph:
@@ -70,6 +68,15 @@ options:
     default: present
     choices: [ 'present', 'absent' ]
     type: str
+  tags:
+    description:
+      - Tags dict to apply to bucket.
+    type: dict
+  purge_tags:
+    description:
+      - Whether to remove tags that aren't present in the I(tags) parameter.
+    type: bool
+    default: True
   versioning:
     description:
       - Whether versioning is enabled or disabled (note that once versioning is enabled, it can only be suspended).
@@ -84,15 +91,6 @@ options:
     description: KMS master key ID to use for the default encryption. This parameter is allowed if I(encryption) is C(aws:kms). If
                  not specified then it will default to the AWS provided KMS key.
     type: str
-  bucket_key_enabled:
-    description:
-      - Enable S3 Bucket Keys for SSE-KMS on new objects.
-      - See the AWS documentation for more information
-        U(https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-key.html).
-      - Bucket Key encryption is only supported if I(encryption=aws:kms).
-    required: false
-    type: bool
-    version_added: 4.1.0
   public_access:
     description:
       - Configure public access block for S3 bucket.
@@ -164,15 +162,14 @@ options:
     default: True
 
 extends_documentation_fragment:
-  - amazon.aws.aws
-  - amazon.aws.ec2
-  - amazon.aws.tags
+- amazon.aws.aws
+- amazon.aws.ec2
 
 notes:
-  - If C(requestPayment), C(policy), C(tagging) or C(versioning)
-    operations/API aren't implemented by the endpoint, module doesn't fail
-    if each parameter satisfies the following condition.
-    I(requester_pays) is C(False), I(policy), I(tags), and I(versioning) are C(None).
+    - If C(requestPayment), C(policy), C(tagging) or C(versioning)
+      operations/API aren't implemented by the endpoint, module doesn't fail
+      if each parameter satisfies the following condition.
+      I(requester_pays) is C(False), I(policy), I(tags), and I(versioning) are C(None).
 '''
 
 EXAMPLES = r'''
@@ -222,12 +219,6 @@ EXAMPLES = r'''
     state: present
     encryption: "aws:kms"
     encryption_key_id: "arn:aws:kms:us-east-1:1234/5678example"
-
-# Create a bucket with aws:kms encryption, Bucket key
-- amazon.aws.s3_bucket:
-    name: mys3bucket
-    bucket_key_enabled: true
-    encryption: "aws:kms"
 
 # Create a bucket with aws:kms encryption, default key
 - amazon.aws.s3_bucket:
@@ -352,16 +343,16 @@ from ansible.module_utils.basic import to_text
 from ansible.module_utils.six import string_types
 from ansible.module_utils.six.moves.urllib.parse import urlparse
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_tag_list
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_conn
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import compare_policies
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_aws_connection_info
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import snake_dict_to_camel_dict
-from ansible_collections.amazon.aws.plugins.module_utils.s3 import validate_bucket_name
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.core import is_boto3_error_code
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import ansible_dict_to_boto3_tag_list
+from ..module_utils.ec2 import boto3_conn
+from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ..module_utils.ec2 import compare_policies
+from ..module_utils.ec2 import get_aws_connection_info
+from ..module_utils.ec2 import snake_dict_to_camel_dict
+from ..module_utils.s3 import validate_bucket_name
 
 
 def create_or_update_bucket(s3_client, module, location):
@@ -374,7 +365,6 @@ def create_or_update_bucket(s3_client, module, location):
     versioning = module.params.get("versioning")
     encryption = module.params.get("encryption")
     encryption_key_id = module.params.get("encryption_key_id")
-    bucket_key_enabled = module.params.get("bucket_key_enabled")
     public_access = module.params.get("public_access")
     delete_public_access = module.params.get("delete_public_access")
     delete_object_ownership = module.params.get("delete_object_ownership")
@@ -551,17 +541,8 @@ def create_or_update_bucket(s3_client, module, location):
                     current_encryption = put_bucket_encryption_with_retry(module, s3_client, name, expected_encryption)
                     changed = True
 
-        if bucket_key_enabled is not None:
-            current_encryption_algorithm = current_encryption.get('SSEAlgorithm') if current_encryption else None
-            if current_encryption_algorithm == 'aws:kms':
-                if get_bucket_key(s3_client, name) != bucket_key_enabled:
-                    if bucket_key_enabled:
-                        expected_encryption = True
-                    else:
-                        expected_encryption = False
-                    current_encryption = put_bucket_key_with_retry(module, s3_client, name, expected_encryption)
-                    changed = True
         result['encryption'] = current_encryption
+
     # Public access clock configuration
     current_public_access = {}
 
@@ -726,17 +707,6 @@ def get_bucket_encryption(s3_client, bucket_name):
         return None
 
 
-@AWSRetry.exponential_backoff(max_delay=120, catch_extra_error_codes=['NoSuchBucket', 'OperationAborted'])
-def get_bucket_key(s3_client, bucket_name):
-    try:
-        result = s3_client.get_bucket_encryption(Bucket=bucket_name)
-        return result.get('ServerSideEncryptionConfiguration', {}).get('Rules', [])[0].get('BucketKeyEnabled')
-    except is_boto3_error_code('ServerSideEncryptionConfigurationNotFoundError'):
-        return None
-    except (IndexError, KeyError):
-        return None
-
-
 def put_bucket_encryption_with_retry(module, s3_client, name, expected_encryption):
     max_retries = 3
     for retries in range(1, max_retries + 1):
@@ -760,37 +730,6 @@ def put_bucket_encryption_with_retry(module, s3_client, name, expected_encryptio
 def put_bucket_encryption(s3_client, bucket_name, encryption):
     server_side_encryption_configuration = {'Rules': [{'ApplyServerSideEncryptionByDefault': encryption}]}
     s3_client.put_bucket_encryption(Bucket=bucket_name, ServerSideEncryptionConfiguration=server_side_encryption_configuration)
-
-
-def put_bucket_key_with_retry(module, s3_client, name, expected_encryption):
-    max_retries = 3
-    for retries in range(1, max_retries + 1):
-        try:
-            put_bucket_key(s3_client, name, expected_encryption)
-        except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:  # pylint: disable=duplicate-except
-            module.fail_json_aws(e, msg="Failed to set bucket Key")
-        current_encryption = wait_bucket_key_is_applied(module, s3_client, name, expected_encryption,
-                                                        should_fail=(retries == max_retries), retries=5)
-        if current_encryption == expected_encryption:
-            return current_encryption
-
-    # We shouldn't get here, the only time this should happen is if
-    # current_encryption != expected_encryption and retries == max_retries
-    # Which should use module.fail_json and fail out first.
-    module.fail_json(msg='Failed to set bucket key',
-                     current=current_encryption, expected=expected_encryption, retries=retries)
-
-
-@AWSRetry.exponential_backoff(max_delay=120, catch_extra_error_codes=['NoSuchBucket', 'OperationAborted'])
-def put_bucket_key(s3_client, bucket_name, encryption):
-    # server_side_encryption_configuration ={'Rules': [{'BucketKeyEnabled': encryption}]}
-    encryption_status = s3_client.get_bucket_encryption(Bucket=bucket_name)
-    encryption_status['ServerSideEncryptionConfiguration']['Rules'][0]['BucketKeyEnabled'] = encryption
-    s3_client.put_bucket_encryption(
-        Bucket=bucket_name,
-        ServerSideEncryptionConfiguration=encryption_status[
-            'ServerSideEncryptionConfiguration']
-    )
 
 
 @AWSRetry.exponential_backoff(max_delay=120, catch_extra_error_codes=['NoSuchBucket', 'OperationAborted'])
@@ -899,23 +838,6 @@ def wait_encryption_is_applied(module, s3_client, bucket_name, expected_encrypti
         module.fail_json(msg="Bucket encryption failed to apply in the expected time",
                          requested_encryption=expected_encryption, live_encryption=encryption)
 
-    return encryption
-
-
-def wait_bucket_key_is_applied(module, s3_client, bucket_name, expected_encryption, should_fail=True, retries=12):
-    for dummy in range(0, retries):
-        try:
-            encryption = get_bucket_key(s3_client, bucket_name)
-        except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
-            module.fail_json_aws(e, msg="Failed to get updated encryption for bucket")
-        if encryption != expected_encryption:
-            time.sleep(5)
-        else:
-            return encryption
-
-    if should_fail:
-        module.fail_json(msg="Bucket Key failed to apply in the expected time",
-                         requested_encryption=expected_encryption, live_encryption=encryption)
     return encryption
 
 
@@ -1085,15 +1007,14 @@ def main():
         policy=dict(type='json'),
         name=dict(required=True),
         requester_pays=dict(type='bool'),
-        s3_url=dict(aliases=['S3_URL'], deprecated_aliases=[dict(name='S3_URL', version='5.0.0', collection_name='amazon.aws')]),
+        s3_url=dict(aliases=['S3_URL']),
         state=dict(default='present', choices=['present', 'absent']),
-        tags=dict(type='dict', aliases=['resource_tags']),
+        tags=dict(type='dict'),
         purge_tags=dict(type='bool', default=True),
         versioning=dict(type='bool'),
         ceph=dict(default=False, type='bool'),
         encryption=dict(choices=['none', 'AES256', 'aws:kms']),
         encryption_key_id=dict(),
-        bucket_key_enabled=dict(type='bool'),
         public_access=dict(type='dict', options=dict(
             block_public_acls=dict(type='bool', default=False),
             ignore_public_acls=dict(type='bool', default=False),
@@ -1119,7 +1040,7 @@ def main():
         argument_spec=argument_spec, required_by=required_by, mutually_exclusive=mutually_exclusive
     )
 
-    region, _ec2_url, aws_connect_kwargs = get_aws_connection_info(module, boto3=True)
+    region, ec2_url, aws_connect_kwargs = get_aws_connection_info(module, boto3=True)
 
     if module.params.get('validate_bucket_name'):
         validate_bucket_name(module, module.params["name"])
@@ -1155,6 +1076,8 @@ def main():
     state = module.params.get("state")
     encryption = module.params.get("encryption")
     encryption_key_id = module.params.get("encryption_key_id")
+    delete_object_ownership = module.params.get('delete_object_ownership')
+    object_ownership = module.params.get('object_ownership')
 
     # Parameter validation
     if encryption_key_id is not None and encryption != 'aws:kms':

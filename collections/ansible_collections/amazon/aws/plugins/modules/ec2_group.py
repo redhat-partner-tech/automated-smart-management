@@ -11,12 +11,10 @@ DOCUMENTATION = '''
 ---
 module: ec2_group
 version_added: 1.0.0
-author:
-  - "Andrew de Quincey (@adq)"
-  - "Razique Mahroua (@Razique)"
-short_description: Maintain an ec2 VPC security group
+author: "Andrew de Quincey (@adq)"
+short_description: maintain an ec2 VPC security group.
 description:
-  - Maintains EC2 security groups.
+    - Maintains ec2 security groups.
 options:
   name:
     description:
@@ -44,8 +42,11 @@ options:
   rules:
     description:
       - List of firewall inbound rules to enforce in this group (see example). If none are supplied,
-        no inbound rules will be enabled. Rules list may include its own name in I(group_name).
+        no inbound rules will be enabled. Rules list may include its own name in `group_name`.
         This allows idempotent loopback additions (e.g. allow group to access itself).
+        Rule sources list support was added in version 2.4. This allows to define multiple sources per
+        source type as well as multiple source types per rule. Prior to 2.4 an individual source is allowed.
+        In version 2.5 support for rule descriptions was added.
     required: false
     type: list
     elements: dict
@@ -76,13 +77,11 @@ options:
             - You can specify only one of I(cidr_ip), I(cidr_ipv6), I(ip_prefix), I(group_id)
               and I(group_name).
         group_name:
-            type: list
-            elements: str
+            type: str
             description:
             - Name of the Security Group that traffic is coming from.
             - If the Security Group doesn't exist a new Security Group will be
               created with I(group_desc) as the description.
-            - I(group_name) can accept values of type str and list.
             - You can specify only one of I(cidr_ip), I(cidr_ipv6), I(ip_prefix), I(group_id)
               and I(group_name).
         group_desc:
@@ -93,11 +92,7 @@ options:
         proto:
             type: str
             description:
-            - The IP protocol name (C(tcp), C(udp), C(icmp), C(icmpv6)) or
-            - number (U(https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers))
-            - When using C(icmp) or C(icmpv6) as the protocol, you can pass
-            - the C(icmp_type) and C(icmp_code) parameters instead of
-            - C(from_port) and C(to_port).
+            - The IP protocol name (C(tcp), C(udp), C(icmp), C(icmpv6)) or number (U(https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers))
         from_port:
             type: int
             description:
@@ -110,20 +105,6 @@ options:
             - The end of the range of ports that traffic is coming from.
             - A value can be between C(0) to C(65535).
             - A value of C(-1) indicates all ports (only supported when I(proto=icmp)).
-        icmp_type:
-          version_added: 3.3.0
-          type: int
-          description:
-          - When using C(icmp) or C(icmpv6) as the protocol, allows you to
-          - specify the ICMP type to use. The option is mutually exclusive with C(from_port).
-          - A value of C(-1) indicates all ICMP types.
-        icmp_code:
-          version_added: 3.3.0
-          type: int
-          description:
-          - When using C(icmp) or C(icmpv6) as the protocol, allows you to specify
-          - the ICMP code to use. The option is mutually exclusive with C(to_port).
-          - A value of C(-1) indicates all ICMP codes.
         rule_desc:
             type: str
             description: A description for the rule.
@@ -131,10 +112,11 @@ options:
     description:
       - List of firewall outbound rules to enforce in this group (see example). If none are supplied,
         a default all-out rule is assumed. If an empty list is supplied, no outbound rules will be enabled.
+        Rule Egress sources list support was added in version 2.4. In version 2.5 support for rule descriptions
+        was added.
     required: false
     type: list
     elements: dict
-    aliases: ['egress_rules']
     suboptions:
         cidr_ip:
             type: str
@@ -177,10 +159,7 @@ options:
         proto:
             type: str
             description:
-            - The IP protocol name (C(tcp), C(udp), C(icmp), C(icmpv6)) or
-            - number (U(https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers))
-            - When using C(icmp) or C(icmpv6) as the protocol, you can pass the
-            - C(icmp_type) and C(icmp_code) parameters instead of C(from_port) and C(to_port).
+            - The IP protocol name (C(tcp), C(udp), C(icmp), C(icmpv6)) or number (U(https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers))
         from_port:
             type: int
             description:
@@ -193,20 +172,6 @@ options:
             - The end of the range of ports that traffic is going to.
             - A value can be between C(0) to C(65535).
             - A value of C(-1) indicates all ports (only supported when I(proto=icmp)).
-        icmp_type:
-          version_added: 3.3.0
-          type: int
-          description:
-          - When using C(icmp) or C(icmpv6) as the protocol, allows you to specify
-          - the ICMP type to use. The option is mutually exclusive with C(from_port).
-          - A value of C(-1) indicates all ICMP types.
-        icmp_code:
-          version_added: 3.3.0
-          type: int
-          description:
-          - When using C(icmp) or C(icmpv6) as the protocol, allows you to specify
-          - the ICMP code to use. The option is mutually exclusive with C(to_port).
-          - A value of C(-1) indicates all ICMP codes.
         rule_desc:
             type: str
             description: A description for the rule.
@@ -230,13 +195,25 @@ options:
       - Purge existing rules_egress on security group that are not found in rules_egress.
     required: false
     default: 'true'
-    aliases: ['purge_egress_rules']
+    aliases: []
+    type: bool
+  tags:
+    description:
+      - A dictionary of one or more tags to assign to the security group.
+    required: false
+    type: dict
+    aliases: ['resource_tags']
+  purge_tags:
+    description:
+      - If yes, existing tags will be purged from the resource to match exactly what is defined by I(tags) parameter. If the I(tags) parameter is not set then
+        tags will not be modified.
+    required: false
+    default: yes
     type: bool
 
 extends_documentation_fragment:
-  - amazon.aws.aws
-  - amazon.aws.ec2
-  - amazon.aws.tags
+- amazon.aws.aws
+- amazon.aws.ec2
 
 
 notes:
@@ -260,19 +237,6 @@ EXAMPLES = '''
         - 80
         cidr_ip: 0.0.0.0/0
         rule_desc: allow all on port 80
-
-- name: example using ICMP types and codes
-  amazon.aws.ec2_group:
-    name: "{{ name }}"
-    description: sg for ICMP
-    vpc_id: vpc-xxxxxxxx
-    profile: "{{ aws_profile }}"
-    region: us-east-1
-    rules:
-      - proto: icmp
-        icmp_type: 3
-        icmp_code: 1
-        cidr_ip: 0.0.0.0/0
 
 - name: example ec2 group
   amazon.aws.ec2_group:
@@ -317,11 +281,10 @@ EXAMPLES = '''
         # the containing group name may be specified here
         group_name: example
       - proto: all
-        # in the 'proto' attribute, if you specify -1 (only supported when I(proto=icmp)), all, or a protocol number
-        # other than tcp, udp, icmp, or 58 (ICMPv6), traffic on all ports is allowed, regardless of any ports that
-        # you specify.
+        # in the 'proto' attribute, if you specify -1 (only supported when I(proto=icmp)), all, or a protocol number other than tcp, udp, icmp, or 58 (ICMPv6),
+        # traffic on all ports is allowed, regardless of any ports you specify
         from_port: 10050 # this value is ignored
-        to_port: 10050   # this value is ignored
+        to_port: 10050 # this value is ignored
         cidr_ip: 10.0.0.0/8
 
     rules_egress:
@@ -341,8 +304,7 @@ EXAMPLES = '''
     vpc_id: 12345
     region: eu-west-1
     rules:
-      # 'ports' rule keyword was introduced in version 2.4. It accepts a single
-      # port value or a list of values including ranges (from_port-to_port).
+      # 'ports' rule keyword was introduced in version 2.4. It accepts a single port value or a list of values including ranges (from_port-to_port).
       - proto: tcp
         ports: 22
         group_name: example-vpn
@@ -352,8 +314,7 @@ EXAMPLES = '''
           - 443
           - 8080-8099
         cidr_ip: 0.0.0.0/0
-      # Rule sources list support was added in version 2.4. This allows to
-      # define multiple sources per source type as well as multiple source types per rule.
+      # Rule sources list support was added in version 2.4. This allows to define multiple sources per source type as well as multiple source types per rule.
       - proto: tcp
         ports:
           - 6379
@@ -460,15 +421,15 @@ from ansible.module_utils.common.network import to_ipv6_subnet
 from ansible.module_utils.common.network import to_subnet
 from ansible.module_utils.six import string_types
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_tag_list
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import compare_aws_tags
-from ansible_collections.amazon.aws.plugins.module_utils.iam import get_aws_account_id
-from ansible_collections.amazon.aws.plugins.module_utils.waiters import get_waiter
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.core import is_boto3_error_code
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ..module_utils.ec2 import ansible_dict_to_boto3_tag_list
+from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ..module_utils.ec2 import compare_aws_tags
+from ..module_utils.iam import get_aws_account_id
+from ..module_utils.waiters import get_waiter
 
 
 Rule = namedtuple('Rule', ['port_range', 'protocol', 'target', 'target_type', 'description'])
@@ -630,21 +591,9 @@ def deduplicate_rules_args(rules):
 
 
 def validate_rule(module, rule):
-    VALID_PARAMS = (
-        'cidr_ip',
-        'cidr_ipv6',
-        'ip_prefix',
-        'group_id',
-        'group_name',
-        'group_desc',
-        'proto',
-        'from_port',
-        'to_port',
-        'icmp_type',
-        'icmp_code',
-        'icmp_keys',
-        'rule_desc',
-    )
+    VALID_PARAMS = ('cidr_ip', 'cidr_ipv6', 'ip_prefix',
+                    'group_id', 'group_name', 'group_desc',
+                    'proto', 'from_port', 'to_port', 'rule_desc')
     if not isinstance(rule, dict):
         module.fail_json(msg='Invalid rule parameter type [%s].' % type(rule))
     for k in rule:
@@ -663,12 +612,6 @@ def validate_rule(module, rule):
         module.fail_json(msg="Specify cidr_ip OR cidr_ipv6, not both")
     elif 'group_id' in rule and 'group_name' in rule:
         module.fail_json(msg='Specify group_id OR group_name, not both')
-    elif ('icmp_type' in rule or 'icmp_code' in rule) and 'ports' in rule:
-        module.fail_json(msg='Specify icmp_code/icmp_type OR ports, not both')
-    elif ('from_port' in rule or 'to_port' in rule) and ('icmp_type' in rule or 'icmp_code' in rule) and 'icmp_keys' not in rule:
-        module.fail_json(msg='Specify from_port/to_port OR icmp_type/icmp_code, not both')
-    elif ('icmp_type' in rule or 'icmp_code' in rule) and ('icmp' not in rule['proto']):
-        module.fail_json(msg='Specify proto: icmp or icmpv6 when using icmp_type/icmp_code')
 
 
 def get_target_from_rule(module, client, rule, name, group, groups, vpc_id):
@@ -798,27 +741,11 @@ def ports_expand(ports):
 
 def rule_expand_ports(rule):
     # takes a rule dict and returns a list of expanded rule dicts
-    # uses icmp_code and icmp_type instead of from_ports and to_ports when
-    # available.
     if 'ports' not in rule:
-        non_icmp_params = any([
-            rule.get('icmp_type', None) is None, rule.get('icmp_code', None) is None])
-        conflict = not non_icmp_params and any([
-            rule.get('from_port', None), rule.get('to_port', None)])
-
-        if non_icmp_params:
-            if isinstance(rule.get('from_port'), string_types):
-                rule['from_port'] = int(rule.get('from_port'))
-            if isinstance(rule.get('to_port'), string_types):
-                rule['to_port'] = int(rule.get('to_port'))
-        else:
-            rule['from_port'] = int(rule.get('icmp_type')) if isinstance(rule.get('icmp_type'), string_types) else rule.get('icmp_type')
-            rule['to_port'] = int(rule.get('icmp_code')) if isinstance(rule.get('icmp_code'), string_types) else rule.get('icmp_code')
-            # Used temporarily to track the fact that icmp keys were converted
-            # to from_port/to_port
-            if not conflict:
-                rule['icmp_keys'] = True
-
+        if isinstance(rule.get('from_port'), string_types):
+            rule['from_port'] = int(rule.get('from_port'))
+        if isinstance(rule.get('to_port'), string_types):
+            rule['to_port'] = int(rule.get('to_port'))
         return [rule]
 
     ports = rule['ports'] if isinstance(rule['ports'], list) else [rule['ports']]
@@ -859,7 +786,7 @@ def rule_expand_source(rule, source_type):
 
 
 def rule_expand_sources(rule):
-    # takes a rule dict and returns a list of expanded rule dicts
+    # takes a rule dict and returns a list of expanded rule discts
     source_types = (stype for stype in ('cidr_ip', 'cidr_ipv6', 'group_id', 'group_name', 'ip_prefix') if stype in rule)
 
     return [r for stype in source_types
@@ -918,7 +845,8 @@ def revoke(client, module, ip_permissions, group_id, rule_type):
                     aws_retry=True, GroupId=group_id, IpPermissions=ip_permissions)
             elif rule_type == 'out':
                 client.revoke_security_group_egress(
-                    aws_retry=True, GroupId=group_id, IpPermissions=ip_permissions)
+                    aws_retry=True,
+                    GroupId=group_id, IpPermissions=ip_permissions)
         except (BotoCoreError, ClientError) as e:
             rules = 'ingress rules' if rule_type == 'in' else 'egress rules'
             module.fail_json_aws(e, "Unable to revoke {0}: {1}".format(rules, ip_permissions))
@@ -1051,7 +979,7 @@ def wait_for_rule_propagation(module, client, group, desired_ingress, desired_eg
     tries = 6
 
     def await_rules(group, desired_rules, purge, rule_key):
-        for _i in range(tries):
+        for i in range(tries):
             current_rules = set(sum([list(rule_from_group_permission(p)) for p in group[rule_key]], []))
             if purge and len(current_rules ^ set(desired_rules)) == 0:
                 return group
@@ -1161,28 +1089,16 @@ def get_diff_final_resource(client, module, security_group):
                             rule[source_type] = [rule[source_type]]
                         format_rule[rule_key] = [{source_type: target} for target in rule[source_type]]
             if rule.get('group_id') or rule.get('group_name'):
-                rule_sg = group_exists(client, module, module.params['vpc_id'], rule.get('group_id'), rule.get('group_name'))[0]
-                if rule_sg is None:
-                    # --diff during --check
-                    format_rule['user_id_group_pairs'] = [{
-                        'group_id': rule.get('group_id'),
-                        'group_name': rule.get('group_name'),
-                        'peering_status': None,
-                        'user_id': get_account_id(security_group, module),
-                        'vpc_id': module.params['vpc_id'],
-                        'vpc_peering_connection_id': None
-                    }]
-                else:
-                    rule_sg = camel_dict_to_snake_dict(rule_sg)
-                    format_rule['user_id_group_pairs'] = [{
-                        'description': rule_sg.get('description', rule_sg.get('group_desc')),
-                        'group_id': rule_sg.get('group_id', rule.get('group_id')),
-                        'group_name': rule_sg.get('group_name', rule.get('group_name')),
-                        'peering_status': rule_sg.get('peering_status'),
-                        'user_id': rule_sg.get('user_id', get_account_id(security_group, module)),
-                        'vpc_id': rule_sg.get('vpc_id', module.params['vpc_id']),
-                        'vpc_peering_connection_id': rule_sg.get('vpc_peering_connection_id')
-                    }]
+                rule_sg = camel_dict_to_snake_dict(group_exists(client, module, module.params['vpc_id'], rule.get('group_id'), rule.get('group_name'))[0])
+                format_rule['user_id_group_pairs'] = [{
+                    'description': rule_sg.get('description', rule_sg.get('group_desc')),
+                    'group_id': rule_sg.get('group_id', rule.get('group_id')),
+                    'group_name': rule_sg.get('group_name', rule.get('group_name')),
+                    'peering_status': rule_sg.get('peering_status'),
+                    'user_id': rule_sg.get('user_id', get_account_id(security_group, module)),
+                    'vpc_id': rule_sg.get('vpc_id', module.params['vpc_id']),
+                    'vpc_peering_connection_id': rule_sg.get('vpc_peering_connection_id')
+                }]
                 for k, v in list(format_rule['user_id_group_pairs'][0].items()):
                     if v is None:
                         format_rule['user_id_group_pairs'][0].pop(k)
@@ -1190,7 +1106,6 @@ def get_diff_final_resource(client, module, security_group):
             # Order final rules consistently
             final_rules.sort(key=get_ip_permissions_sort_key)
         return final_rules
-
     security_group_ingress = security_group.get('ip_permissions', [])
     specified_ingress = module.params['rules']
     purge_ingress = module.params['purge_rules']
@@ -1253,7 +1168,7 @@ def get_ip_permissions_sort_key(rule):
         return rule.get('prefix_list_ids')[0]['prefix_list_id']
     elif rule.get('user_id_group_pairs'):
         rule.get('user_id_group_pairs').sort(key=get_rule_sort_key)
-        return rule.get('user_id_group_pairs')[0].get('group_id', '')
+        return rule.get('user_id_group_pairs')[0]['group_id']
     return None
 
 
@@ -1264,10 +1179,10 @@ def main():
         description=dict(),
         vpc_id=dict(),
         rules=dict(type='list', elements='dict'),
-        rules_egress=dict(type='list', elements='dict', aliases=['egress_rules']),
+        rules_egress=dict(type='list', elements='dict'),
         state=dict(default='present', type='str', choices=['present', 'absent']),
         purge_rules=dict(default=True, required=False, type='bool'),
-        purge_rules_egress=dict(default=True, required=False, type='bool', aliases=['purge_egress_rules']),
+        purge_rules_egress=dict(default=True, required=False, type='bool'),
         tags=dict(required=False, type='dict', aliases=['resource_tags']),
         purge_tags=dict(default=True, required=False, type='bool')
     )
@@ -1349,8 +1264,8 @@ def main():
         current_ingress = sum([list(rule_from_group_permission(p)) for p in group['IpPermissions']], [])
         current_egress = sum([list(rule_from_group_permission(p)) for p in group['IpPermissionsEgress']], [])
 
-        for new_rules, _rule_type, named_tuple_rule_list in [(rules, 'in', named_tuple_ingress_list),
-                                                             (rules_egress, 'out', named_tuple_egress_list)]:
+        for new_rules, rule_type, named_tuple_rule_list in [(rules, 'in', named_tuple_ingress_list),
+                                                            (rules_egress, 'out', named_tuple_egress_list)]:
             if new_rules is None:
                 continue
             for rule in new_rules:
@@ -1358,15 +1273,10 @@ def main():
                     module, client, rule, name, group, groups, vpc_id)
                 changed |= target_group_created
 
-                rule.pop('icmp_type', None)
-                rule.pop('icmp_code', None)
-                rule.pop('icmp_keys', None)
-
                 if rule.get('proto', 'tcp') in ('all', '-1', -1):
                     rule['proto'] = '-1'
                     rule['from_port'] = None
                     rule['to_port'] = None
-
                 try:
                     int(rule.get('proto', 'tcp'))
                     rule['proto'] = to_text(rule.get('proto', 'tcp'))
@@ -1375,6 +1285,7 @@ def main():
                 except ValueError:
                     # rule does not use numeric protocol spec
                     pass
+
                 named_tuple_rule_list.append(
                     Rule(
                         port_range=(rule['from_port'], rule['to_port']),
@@ -1434,6 +1345,7 @@ def main():
 
         # Revoke old rules
         changed |= remove_old_permissions(client, module, revoke_ingress, revoke_egress, group['GroupId'])
+        rule_msg = 'Revoking {0}, and egress {1}'.format(revoke_ingress, revoke_egress)
 
         new_ingress_permissions = [to_permission(r) for r in (set(named_tuple_ingress_list) - set(current_ingress))]
         new_ingress_permissions = rules_to_permissions(set(named_tuple_ingress_list) - set(current_ingress))

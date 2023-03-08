@@ -10,7 +10,7 @@ DOCUMENTATION = r'''
 ---
 module: ec2_vpc_nat_gateway
 version_added: 1.0.0
-short_description: Manage AWS VPC NAT Gateways
+short_description: Manage AWS VPC NAT Gateways.
 description:
   - Ensure the state of AWS VPC NAT Gateways based on their id, allocation and subnet ids.
 options:
@@ -47,6 +47,19 @@ options:
     required: false
     default: false
     type: bool
+  tags:
+    description:
+      - A dict of tags to apply to the NAT gateway.
+      - To remove all tags set I(tags={}) and I(purge_tags=true).
+    aliases: [ 'resource_tags' ]
+    type: dict
+    version_added: 1.4.0
+  purge_tags:
+    description:
+      - Remove tags not listed in I(tags).
+    type: bool
+    default: true
+    version_added: 1.4.0
   release_eip:
     description:
       - Deallocate the EIP from the VPC.
@@ -75,12 +88,9 @@ author:
   - Jon Hadfield (@jonhadfield)
   - Karen Cheng (@Etherdaemon)
   - Alina Buzachis (@alinabuzachis)
-notes:
-  - Support for I(tags) and I(purge_tags) was added in release 1.4.0.
 extends_documentation_fragment:
-  - amazon.aws.aws
-  - amazon.aws.ec2
-  - amazon.aws.tags
+- amazon.aws.aws
+- amazon.aws.ec2
 '''
 
 EXAMPLES = r'''
@@ -233,14 +243,14 @@ try:
 except ImportError:
     pass  # Handled by AnsibleAWSModule
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
-from ansible_collections.amazon.aws.plugins.module_utils.waiters import get_waiter
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import camel_dict_to_snake_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import describe_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ensure_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_specifications
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.core import is_boto3_error_code
+from ..module_utils.waiters import get_waiter
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import camel_dict_to_snake_dict
+from ..module_utils.ec2 import describe_ec2_tags
+from ..module_utils.ec2 import ensure_ec2_tags
+from ..module_utils.tagging import boto3_tag_specifications
 
 
 @AWSRetry.jittered_backoff(retries=10)

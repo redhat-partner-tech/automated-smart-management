@@ -20,18 +20,27 @@ options:
       - The VPC ID for the VPC in which to manage the Internet Gateway.
     required: true
     type: str
+  tags:
+    description:
+      - A dict of tags to apply to the internet gateway.
+      - To remove all tags set I(tags={}) and I(purge_tags=true).
+    aliases: [ 'resource_tags' ]
+    type: dict
+  purge_tags:
+    description:
+      - Remove tags not listed in I(tags).
+    type: bool
+    default: true
+    version_added: 1.3.0
   state:
     description:
       - Create or terminate the IGW
     default: present
     choices: [ 'present', 'absent' ]
     type: str
-notes:
-- Support for I(purge_tags) was added in release 1.3.0.
 extends_documentation_fragment:
 - amazon.aws.aws
 - amazon.aws.ec2
-- amazon.aws.tags
 '''
 
 EXAMPLES = '''
@@ -94,13 +103,13 @@ try:
 except ImportError:
     pass  # caught by AnsibleAWSModule
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.waiters import get_waiter
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import camel_dict_to_snake_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ensure_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_list_to_ansible_dict
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.waiters import get_waiter
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import camel_dict_to_snake_dict
+from ..module_utils.ec2 import ensure_ec2_tags
+from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ..module_utils.tagging import boto3_tag_list_to_ansible_dict
 
 
 @AWSRetry.jittered_backoff(retries=10, delay=10)
@@ -130,23 +139,10 @@ class AnsibleEc2Igw():
         elif state == 'absent':
             self.ensure_igw_absent(vpc_id)
 
-    def get_matching_igw(self, vpc_id, gateway_id=None):
-        '''
-        Returns the internet gateway found.
-            Parameters:
-                vpc_id (str): VPC ID
-                gateway_id (str): Internet Gateway ID, if specified
-            Returns:
-                igw (dict): dict of igw found, None if none found
-        '''
+    def get_matching_igw(self, vpc_id):
         filters = ansible_dict_to_boto3_filter_list({'attachment.vpc-id': vpc_id})
         try:
-            # If we know the gateway_id, use it to avoid bugs with using filters
-            # See https://github.com/ansible-collections/amazon.aws/pull/766
-            if not gateway_id:
-                igws = describe_igws_with_backoff(self._connection, Filters=filters)
-            else:
-                igws = describe_igws_with_backoff(self._connection, InternetGatewayIds=[gateway_id])
+            igws = describe_igws_with_backoff(self._connection, Filters=filters)
         except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError) as e:
             self._module.fail_json_aws(e)
 
@@ -233,7 +229,7 @@ class AnsibleEc2Igw():
         )
 
         # Update igw
-        igw = self.get_matching_igw(vpc_id, gateway_id=igw['internet_gateway_id'])
+        igw = self.get_matching_igw(vpc_id)
         igw_info = self.get_igw_info(igw, vpc_id)
         self._results.update(igw_info)
 

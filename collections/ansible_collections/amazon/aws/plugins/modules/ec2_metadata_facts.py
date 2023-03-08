@@ -11,7 +11,7 @@ DOCUMENTATION = '''
 ---
 module: ec2_metadata_facts
 version_added: 1.0.0
-short_description: Gathers facts (instance metadata) about remote hosts within EC2
+short_description: gathers facts (instance metadata) about remote hosts within EC2
 author:
     - Silviu Dicu (@silviud)
     - Vinay Dandekar (@roadmapper)
@@ -477,7 +477,7 @@ class Ec2Metadata(object):
             if info.get('status') not in (200, 404):
                 # fail out now
                 self.module.fail_json(msg='Failed to retrieve metadata from AWS: {0}'.format(info['msg']), response=info)
-        if response and info['status'] < 400:
+        if response:
             data = response.read()
         else:
             data = None

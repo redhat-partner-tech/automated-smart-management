@@ -27,8 +27,6 @@ def test_validate_bucket_name():
     assert not module.fail_json.called
     assert s3.validate_bucket_name(module, "my.example.s3.bucket") is True
     assert not module.fail_json.called
-    assert s3.validate_bucket_name(module, "doc") is True
-    assert not module.fail_json.called
 
     module.fail_json.reset_mock()
     s3.validate_bucket_name(module, "doc_example_bucket")
@@ -39,6 +37,4 @@ def test_validate_bucket_name():
     assert module.fail_json.called
     module.fail_json.reset_mock()
     s3.validate_bucket_name(module, "doc-example-bucket-")
-    assert module.fail_json.called
-    s3.validate_bucket_name(module, "my")
     assert module.fail_json.called

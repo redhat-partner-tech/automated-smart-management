@@ -6,15 +6,17 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+import unittest
+
 from ansible_collections.amazon.aws.plugins.module_utils.policy import compare_policies
 
 
-class TestComparePolicy():
+class PolicyUtils(unittest.TestCase):
 
     # ========================================================
     # Setup some initial data that we can use within our tests
     # ========================================================
-    def setup_method(self):
+    def setUp(self):
         # A pair of simple IAM Trust relationships using bools, the first a
         # native bool the second a quoted string
         self.bool_policy_bool = {
@@ -273,7 +275,7 @@ class TestComparePolicy():
                 * The contents of the statement are in different orders
                 * The second policy contains a list of length one whereas in the first it is a string
         """
-        assert compare_policies(self.small_policy_one, self.small_policy_two) is False
+        self.assertFalse(compare_policies(self.small_policy_one, self.small_policy_two))
 
     def test_compare_large_policies_without_differences(self):
         """ Testing two larger policies which are identical except for:
@@ -281,59 +283,59 @@ class TestComparePolicy():
                 * The contents of the statements are also in different orders
                 * The second contains a list of length one for the Principal whereas in the first it is a string
         """
-        assert compare_policies(self.larger_policy_one, self.larger_policy_two) is False
+        self.assertFalse(compare_policies(self.larger_policy_one, self.larger_policy_two))
 
     def test_compare_larger_policies_with_difference(self):
         """ Testing two larger policies which are identical except for:
                 * one different principal
         """
-        assert compare_policies(self.larger_policy_two, self.larger_policy_three) is True
+        self.assertTrue(compare_policies(self.larger_policy_two, self.larger_policy_three))
 
     def test_compare_smaller_policy_with_larger(self):
         """ Testing two policies of different sizes """
-        assert compare_policies(self.larger_policy_one, self.small_policy_one) is True
+        self.assertTrue(compare_policies(self.larger_policy_one, self.small_policy_one))
 
     def test_compare_boolean_policy_bool_and_string_are_equal(self):
         """ Testing two policies one using a quoted boolean, the other a bool """
-        assert compare_policies(self.bool_policy_string, self.bool_policy_bool) is False
+        self.assertFalse(compare_policies(self.bool_policy_string, self.bool_policy_bool))
 
     def test_compare_numeric_policy_number_and_string_are_equal(self):
         """ Testing two policies one using a quoted number, the other an int """
-        assert compare_policies(self.numeric_policy_string, self.numeric_policy_number) is False
+        self.assertFalse(compare_policies(self.numeric_policy_string, self.numeric_policy_number))
 
     def test_compare_version_policies_defaults_old(self):
         """ Testing that a policy without Version is considered identical to one
         with the 'old' Version (by default)
         """
-        assert compare_policies(self.version_policy_old, self.version_policy_missing) is False
-        assert compare_policies(self.version_policy_new, self.version_policy_missing) is True
+        self.assertFalse(compare_policies(self.version_policy_old, self.version_policy_missing))
+        self.assertTrue(compare_policies(self.version_policy_new, self.version_policy_missing))
 
     def test_compare_version_policies_default_disabled(self):
         """ Testing that a policy without Version not considered identical when default_version=None
         """
-        assert compare_policies(self.version_policy_missing, self.version_policy_missing, default_version=None) is False
-        assert compare_policies(self.version_policy_old, self.version_policy_missing, default_version=None) is True
-        assert compare_policies(self.version_policy_new, self.version_policy_missing, default_version=None) is True
+        self.assertFalse(compare_policies(self.version_policy_missing, self.version_policy_missing, default_version=None))
+        self.assertTrue(compare_policies(self.version_policy_old, self.version_policy_missing, default_version=None))
+        self.assertTrue(compare_policies(self.version_policy_new, self.version_policy_missing, default_version=None))
 
     def test_compare_version_policies_default_set(self):
         """ Testing that a policy without Version is only considered identical
         when default_version="2008-10-17"
         """
-        assert compare_policies(self.version_policy_missing, self.version_policy_missing, default_version="2012-10-17") is False
-        assert compare_policies(self.version_policy_old, self.version_policy_missing, default_version="2012-10-17") is True
-        assert compare_policies(self.version_policy_old, self.version_policy_missing, default_version="2008-10-17") is False
-        assert compare_policies(self.version_policy_new, self.version_policy_missing, default_version="2012-10-17") is False
-        assert compare_policies(self.version_policy_new, self.version_policy_missing, default_version="2008-10-17") is True
+        self.assertFalse(compare_policies(self.version_policy_missing, self.version_policy_missing, default_version="2012-10-17"))
+        self.assertTrue(compare_policies(self.version_policy_old, self.version_policy_missing, default_version="2012-10-17"))
+        self.assertFalse(compare_policies(self.version_policy_old, self.version_policy_missing, default_version="2008-10-17"))
+        self.assertFalse(compare_policies(self.version_policy_new, self.version_policy_missing, default_version="2012-10-17"))
+        self.assertTrue(compare_policies(self.version_policy_new, self.version_policy_missing, default_version="2008-10-17"))
 
     def test_compare_version_policies_with_none(self):
         """ Testing that comparing with no policy works
         """
-        assert compare_policies(self.small_policy_one, None) is True
-        assert compare_policies(None, self.small_policy_one) is True
-        assert compare_policies(None, None) is False
+        self.assertTrue(compare_policies(self.small_policy_one, None))
+        self.assertTrue(compare_policies(None, self.small_policy_one))
+        self.assertFalse(compare_policies(None, None))
 
     def test_compare_wildcard_policies_without_differences(self):
         """ Testing two small wildcard policies which are identical except for:
                 * Principal: "*" vs Principal: ["AWS": "*"]
         """
-        assert compare_policies(self.wildcard_policy_one, self.wildcard_policy_two) is False
+        self.assertFalse(compare_policies(self.wildcard_policy_one, self.wildcard_policy_two))

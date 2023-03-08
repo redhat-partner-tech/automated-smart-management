@@ -4,7 +4,7 @@
 Amazon Web Services Guide
 *************************
 
-The ``amazon.aws`` collection contains a number of modules and plugins for controlling Amazon Web Services (AWS). This guide explains how to use the modules and inventory scripts to automate your AWS resources with Ansible.
+Then ``amazon.aws`` collection contains a number of modules and plugins for controlling Amazon Web Services (AWS). This guide explains how to use the modules and inventory scripts to automate your AWS resources with Ansible.
 
 .. contents::
    :local:
@@ -202,7 +202,7 @@ When using the inventory plugin, you can configure extra inventory structure bas
 
 For instance, you might use ``keyed_groups`` to create groups from instance tags::
 
-    plugin: amazon.aws.aws_ec2
+    plugin: aws_ec2
     keyed_groups:
       - prefix: tag
         key: tags
@@ -214,7 +214,7 @@ You can then target all instances with a "class" tag where the value is "webserv
      tasks:
        - ping
 
-You can also use these groups with 'group_vars' to set variables that are automatically applied to matching instances.
+You can also use these groups with 'group_vars' to set variables that are automatically applied to matching instances.  See :ref:`splitting_out_vars`.
 
 .. _ansible_collections.amazon.aws.docsite.aws_pull:
 
@@ -235,15 +235,14 @@ Read :ref:`ansible-pull` for more information on pull-mode playbooks.
 
 .. _ansible_collections.amazon.aws.docsite.aws_autoscale:
 
-Autoscaling with Ansible Automation Platform
-````````````````````````````````````````````
+Autoscaling with Ansible Tower
+``````````````````````````````
 
-`Ansible Automation Platform (AAP) <https://access.redhat.com/documentation/en-us/red_hat_ansible_automation_platform/>`_
-also contains a very nice feature for auto-scaling use cases.  In this mode, a simple curl script can call
+:ref:`ansible_tower` also contains a very nice feature for auto-scaling use cases.  In this mode, a simple curl script can call
 a defined URL and the server will "dial out" to the requester and configure an instance that is spinning up.  This can be a great way
-to reconfigure ephemeral nodes.  See the install and product documentation for more details.
+to reconfigure ephemeral nodes.  See the Tower install and product documentation for more details.
 
-A benefit of using the callback in AAP over pull mode is that job results are still centrally recorded and less information has to be shared
+A benefit of using the callback in Tower over pull mode is that job results are still centrally recorded and less information has to be shared
 with remote hosts.
 
 .. _ansible_collections.amazon.aws.docsite.aws_cloudformation_example:

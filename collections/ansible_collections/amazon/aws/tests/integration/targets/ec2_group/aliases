@@ -1,6 +1,9 @@
-# duration: 15
+# reason: broken
+# Tests frequently failing
+# https://github.com/ansible-collections/amazon.aws/issues/440
+disabled
+
 slow
 
 cloud/aws
-
 ec2_group_info

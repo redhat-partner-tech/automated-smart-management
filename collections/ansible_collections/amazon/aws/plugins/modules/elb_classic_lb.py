@@ -14,7 +14,7 @@ description:
   - Creates, updates or destroys an Amazon Elastic Load Balancer (ELB).
   - This module was renamed from C(amazon.aws.ec2_elb_lb) to M(amazon.aws.elb_classic_lb) in version
     2.1.0 of the amazon.aws collection.
-short_description: Creates, updates or destroys an Amazon ELB
+short_description: creates, updates or destroys an Amazon ELB.
 author:
   - "Jim Dalton (@jsdalton)"
   - "Mark Chappell (@tremble)"
@@ -275,16 +275,26 @@ options:
       - A maximum of 600 seconds (10 minutes) is allowed.
     type: int
     default: 180
+  tags:
+    description:
+      - A dictionary of tags to apply to the ELB.
+      - To delete all tags supply an empty dict (C({})) and set
+        I(purge_tags=true).
+    type: dict
+  purge_tags:
+    description:
+      - Whether to remove existing tags that aren't passed in the I(tags) parameter.
+    type: bool
+    default: true
+    version_added: 2.1.0
 
 notes:
-  - The ec2_elb fact previously set by this module was deprecated in release 2.1.0 and since release
-    4.0.0 is no longer set.
-  - Support for I(purge_tags) was added in release 2.1.0.
+- The ec2_elb fact currently set by this module has been deprecated and will no
+  longer be set after release 4.0.0 of the collection.
 
 extends_documentation_fragment:
-  - amazon.aws.aws
-  - amazon.aws.ec2
-  - amazon.aws.tags
+- amazon.aws.aws
+- amazon.aws.ec2
 '''
 
 EXAMPLES = """
@@ -676,19 +686,19 @@ try:
 except ImportError:
     pass  # Taken care of by AnsibleAWSModule
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
-from ansible_collections.amazon.aws.plugins.module_utils.core import scrub_none_parameters
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_tag_list
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import camel_dict_to_snake_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import compare_aws_tags
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import snake_dict_to_camel_dict
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.core import is_boto3_error_code
+from ..module_utils.core import scrub_none_parameters
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ..module_utils.ec2 import ansible_dict_to_boto3_tag_list
+from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ..module_utils.ec2 import camel_dict_to_snake_dict
+from ..module_utils.ec2 import compare_aws_tags
+from ..module_utils.ec2 import snake_dict_to_camel_dict
 
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_ec2_security_group_ids_from_names
-from ansible_collections.amazon.aws.plugins.module_utils.waiters import get_waiter
+from ..module_utils.ec2 import get_ec2_security_group_ids_from_names
+from ..module_utils.waiters import get_waiter
 
 
 class ElbManager(object):
@@ -734,7 +744,7 @@ class ElbManager(object):
         if security_group_names:
             # Use the subnets attached to the VPC to find which VPC we're in and
             # limit the search
-            if self.elb and self.elb.get('Subnets', None):
+            if self.elb.get('Subnets', None):
                 subnets = set(self.elb.get('Subnets') + list(self.subnets or []))
             else:
                 subnets = set(self.subnets)
@@ -890,7 +900,7 @@ class ElbManager(object):
         if ssl_id:
             formatted_listener['SSLCertificateId'] = ssl_id
 
-        return formatted_listener
+        return snake_dict_to_camel_dict(listener, True)
 
     def _format_healthcheck_target(self):
         """Compose target string from healthcheck parameters"""
@@ -972,11 +982,11 @@ class ElbManager(object):
         if not wait and not self.wait:
             return
         try:
-            self._wait_for_elb_removed()
+            elb_removed = self._wait_for_elb_removed()
             # Unfortunately even though the ELB itself is removed quickly
             # the interfaces take longer so reliant security groups cannot
             # be deleted until the interface has registered as removed.
-            self._wait_for_elb_interface_removed()
+            elb_interface_removed = self._wait_for_elb_interface_removed()
         except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError) as e:
             self.module.fail_json_aws(e, msg="Failed while waiting for load balancer deletion")
 
@@ -1430,7 +1440,7 @@ class ElbManager(object):
         """Set health check values on ELB as needed"""
         health_check_config = self._format_healthcheck()
 
-        if self.elb and health_check_config == self.elb['HealthCheck']:
+        if health_check_config == self.elb['HealthCheck']:
             return False
 
         self.changed = True
@@ -1719,6 +1729,7 @@ class ElbManager(object):
         if not self.listeners:
             return False
 
+        ensure_proxy_protocol = False
         backend_policies = self._get_backend_policies()
         proxy_policies = set(self._get_proxy_policies())
 
@@ -2101,7 +2112,7 @@ def main():
         access_logs=dict(type='dict', options=access_log_spec),
         wait=dict(default=False, type='bool'),
         wait_timeout=dict(default=180, type='int'),
-        tags=dict(type='dict', aliases=['resource_tags']),
+        tags=dict(type='dict'),
         purge_tags=dict(default=True, type='bool'),
     )
 
@@ -2136,7 +2147,10 @@ def main():
         elb = elb_man.get_info()
         ec2_result = dict(elb=elb)
 
+    ansible_facts = {'ec2_elb': 'info'}
+
     module.exit_json(
+        ansible_facts=ansible_facts,
         changed=elb_man.changed,
         **ec2_result,
     )

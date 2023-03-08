@@ -1,12 +1,17 @@
 requires_ansible: '>=2.9.10'
 action_groups:
   aws:
+  - aws_az_facts
   - aws_az_info
   - aws_caller_info
+  - aws_s3
   - aws_s3
   - aws_secret
   - cloudformation
   - cloudformation_info
+  - ec2
+  - ec2
+  - ec2
   - ec2_ami
   - ec2_ami_info
   - ec2_elb_lb
@@ -44,11 +49,7 @@ action_groups:
   - iam
   - rds
   - s3_bucket
-  - s3_object
 plugin_routing:
-  action:
-    aws_s3:
-      redirect: amazon.aws.s3_object
   modules:
     aws_az_facts:
       deprecation:
@@ -56,8 +57,13 @@ plugin_routing:
         warning_text: >-
           aws_az_facts was renamed in Ansible 2.9 to aws_az_info.
           Please update your tasks.
-    aws_s3:
-      redirect: amazon.aws.s3_object
+    ec2:
+      deprecation:
+        removal_version: 4.0.0
+        warning_text: >-
+          The ec2 module is based upon a deprecated version of the AWS SDKs
+          and is deprecated in favor of the ec2_instance module.
+          Please update your tasks.
     ec2_elb_lb:
       redirect: amazon.aws.elb_classic_lb
     ec2_eni_facts:

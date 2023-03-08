@@ -12,70 +12,70 @@ module: ec2_vpc_subnet
 version_added: 1.0.0
 short_description: Manage subnets in AWS virtual private clouds
 description:
-  - Manage subnets in AWS virtual private clouds.
+    - Manage subnets in AWS virtual private clouds.
 author:
-  - Robert Estelle (@erydo)
-  - Brad Davidson (@brandond)
+- Robert Estelle (@erydo)
+- Brad Davidson (@brandond)
 options:
   az:
     description:
-      - The availability zone for the subnet.
-      - Required if I(outpost_arn) is set.
+      - "The availability zone for the subnet."
     type: str
   cidr:
     description:
-      - The CIDR block for the subnet. E.g. C(192.0.2.0/24).
+      - "The CIDR block for the subnet. E.g. 192.0.2.0/24."
     type: str
     required: true
   ipv6_cidr:
     description:
-      - The IPv6 CIDR block for the subnet.
-      - The VPC must have a /56 block assigned and this value must be a valid IPv6 /64 that falls in the VPC range.
-      - Required if I(assign_instances_ipv6=true)
+      - "The IPv6 CIDR block for the subnet. The VPC must have a /56 block assigned and this value must be a valid IPv6 /64 that falls in the VPC range."
+      - "Required if I(assign_instances_ipv6=true)"
     type: str
-  outpost_arn:
+  tags:
     description:
-      - The Amazon Resource Name (ARN) of the Outpost.
-      - If set, allows to create subnet in an Outpost.
-      - If I(outpost_arn) is set, I(az) must also be specified.
-    type: str
+      - "A dict of tags to apply to the subnet. Any tags currently applied to the subnet and not present here will be removed."
+    aliases: [ 'resource_tags' ]
+    type: dict
   state:
     description:
-      - Create or remove the subnet.
+      - "Create or remove the subnet."
     default: present
     choices: [ 'present', 'absent' ]
     type: str
   vpc_id:
     description:
-      -"VPC ID of the VPC in which to create or delete the subnet.
+      - "VPC ID of the VPC in which to create or delete the subnet."
     required: true
     type: str
   map_public:
     description:
-      - Whether instances launched into the subnet should default to being assigned public IP address.
+      - "Specify C(yes) to indicate that instances launched into the subnet should be assigned public IP address by default."
     type: bool
-    default: false
+    default: 'no'
   assign_instances_ipv6:
     description:
-      - Whether instances launched into the subnet should default to being automatically assigned an IPv6 address.
-      - If I(assign_instances_ipv6=true), I(ipv6_cidr) must also be specified.
+      - "Specify C(yes) to indicate that instances launched into the subnet should be automatically assigned an IPv6 address."
     type: bool
     default: false
   wait:
     description:
-      - Whether to wait for changes to complete.
+      - "When I(wait=true) and I(state=present), module will wait for subnet to be in available state before continuing."
     type: bool
     default: true
   wait_timeout:
     description:
-      - Number of seconds to wait for changes to complete
-      - Ignored unless I(wait=True).
+      - "Number of seconds to wait for subnet to become available I(wait=True)."
     default: 300
     type: int
+  purge_tags:
+    description:
+      - Whether or not to remove tags that do not appear in the I(tags) list.
+    type: bool
+    default: true
 extends_documentation_fragment:
-  - amazon.aws.aws
-  - amazon.aws.ec2
-  - amazon.aws.tags
+- amazon.aws.aws
+- amazon.aws.ec2
+
 '''
 
 EXAMPLES = '''
@@ -212,13 +212,12 @@ except ImportError:
 from ansible.module_utils._text import to_text
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_filter_list
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto3_tag_list_to_ansible_dict
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ensure_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.arn import is_outpost_arn
-from ansible_collections.amazon.aws.plugins.module_utils.waiters import get_waiter
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import ansible_dict_to_boto3_filter_list
+from ..module_utils.ec2 import boto3_tag_list_to_ansible_dict
+from ..module_utils.ec2 import ensure_ec2_tags
+from ..module_utils.waiters import get_waiter
 
 
 def get_subnet_info(subnet):
@@ -267,8 +266,9 @@ def handle_waiter(conn, module, waiter_name, params, start_time):
         module.fail_json_aws(e, "An exception happened while trying to wait for updates")
 
 
-def create_subnet(conn, module, vpc_id, cidr, ipv6_cidr=None, outpost_arn=None, az=None, start_time=None):
+def create_subnet(conn, module, vpc_id, cidr, ipv6_cidr=None, az=None, start_time=None):
     wait = module.params['wait']
+    wait_timeout = module.params['wait_timeout']
 
     params = dict(VpcId=vpc_id,
                   CidrBlock=cidr)
@@ -278,12 +278,6 @@ def create_subnet(conn, module, vpc_id, cidr, ipv6_cidr=None, outpost_arn=None, 
 
     if az:
         params['AvailabilityZone'] = az
-
-    if outpost_arn:
-        if is_outpost_arn(outpost_arn):
-            params['OutpostArn'] = outpost_arn
-        else:
-            module.fail_json('OutpostArn does not match the pattern specified in API specifications.')
 
     try:
         subnet = get_subnet_info(conn.create_subnet(aws_retry=True, **params))
@@ -437,8 +431,7 @@ def ensure_subnet_present(conn, module):
     if subnet is None:
         if not module.check_mode:
             subnet = create_subnet(conn, module, module.params['vpc_id'], module.params['cidr'],
-                                   ipv6_cidr=module.params['ipv6_cidr'], outpost_arn=module.params['outpost_arn'],
-                                   az=module.params['az'], start_time=start_time)
+                                   ipv6_cidr=module.params['ipv6_cidr'], az=module.params['az'], start_time=start_time)
         changed = True
         # Subnet will be None when check_mode is true
         if subnet is None:
@@ -479,7 +472,7 @@ def ensure_subnet_present(conn, module):
 
 
 def ensure_final_subnet(conn, module, subnet, start_time):
-    for _rewait in range(0, 30):
+    for rewait in range(0, 30):
         map_public_correct = False
         assign_ipv6_correct = False
 
@@ -528,7 +521,6 @@ def main():
         az=dict(default=None, required=False),
         cidr=dict(required=True),
         ipv6_cidr=dict(default='', required=False),
-        outpost_arn=dict(default='', type='str', required=False),
         state=dict(default='present', choices=['present', 'absent']),
         tags=dict(default={}, required=False, type='dict', aliases=['resource_tags']),
         vpc_id=dict(required=True),
@@ -542,9 +534,6 @@ def main():
     required_if = [('assign_instances_ipv6', True, ['ipv6_cidr'])]
 
     module = AnsibleAWSModule(argument_spec=argument_spec, supports_check_mode=True, required_if=required_if)
-
-    if module.params.get('outpost_arn') and not module.params.get('az'):
-        module.fail_json(msg="To specify OutpostArn, you must specify the Availability Zone of the Outpost subnet.")
 
     if module.params.get('assign_instances_ipv6') and not module.params.get('ipv6_cidr'):
         module.fail_json(msg="assign_instances_ipv6 is True but ipv6_cidr is None or an empty string")

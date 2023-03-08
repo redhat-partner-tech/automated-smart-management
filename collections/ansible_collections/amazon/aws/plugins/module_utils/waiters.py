@@ -11,7 +11,7 @@ try:
 except ImportError:
     pass  # caught by HAS_BOTO3
 
-from ansible_collections.amazon.aws.plugins.module_utils.modules import _RetryingBotoClientWrapper
+import ansible_collections.amazon.aws.plugins.module_utils.core as aws_core
 
 
 ec2_data = {
@@ -499,42 +499,6 @@ eks_data = {
                     "expected": "ResourceNotFoundException"
                 }
             ]
-        },
-        "FargateProfileActive": {
-            "delay": 20,
-            "maxAttempts": 30,
-            "operation": "DescribeFargateProfile",
-            "acceptors": [
-                {
-                    "state": "success",
-                    "matcher": "path",
-                    "argument": "fargateProfile.status",
-                    "expected": "ACTIVE"
-                },
-                {
-                    "state": "retry",
-                    "matcher": "error",
-                    "expected": "ResourceNotFoundException"
-                }
-            ]
-        },
-        "FargateProfileDeleted": {
-            "delay": 20,
-            "maxAttempts": 30,
-            "operation": "DescribeFargateProfile",
-            "acceptors": [
-                {
-                    "state": "retry",
-                    "matcher": "path",
-                    "argument": "fargateProfile.status == 'DELETING'",
-                    "expected": True
-                },
-                {
-                    "state": "success",
-                    "matcher": "error",
-                    "expected": "ResourceNotFoundException"
-                }
-            ]
         }
     }
 }
@@ -684,69 +648,6 @@ rds_data = {
                 }
             ]
         },
-        "ReadReplicaPromoted": {
-            "delay": 5,
-            "maxAttempts": 40,
-            "operation": "DescribeDBInstances",
-            "acceptors": [
-                {
-                    "state": "success",
-                    "matcher": "path",
-                    "argument": "length(DBInstances[].StatusInfos) == `0`",
-                    "expected": True
-                },
-                {
-                    "state": "retry",
-                    "matcher": "pathAny",
-                    "argument": "DBInstances[].StatusInfos[].Status",
-                    "expected": "replicating"
-                }
-            ]
-        },
-        "RoleAssociated": {
-            "delay": 5,
-            "maxAttempts": 40,
-            "operation": "DescribeDBInstances",
-            "acceptors": [
-                {
-                    "state": "success",
-                    "matcher": "pathAll",
-                    "argument": "DBInstances[].AssociatedRoles[].Status",
-                    "expected": "ACTIVE"
-                },
-                {
-                    "state": "retry",
-                    "matcher": "pathAny",
-                    "argument": "DBInstances[].AssociatedRoles[].Status",
-                    "expected": "PENDING"
-                }
-            ]
-        },
-        "RoleDisassociated": {
-            "delay": 5,
-            "maxAttempts": 40,
-            "operation": "DescribeDBInstances",
-            "acceptors": [
-                {
-                    "state": "success",
-                    "matcher": "pathAll",
-                    "argument": "DBInstances[].AssociatedRoles[].Status",
-                    "expected": "ACTIVE"
-                },
-                {
-                    "state": "retry",
-                    "matcher": "pathAny",
-                    "argument": "DBInstances[].AssociatedRoles[].Status",
-                    "expected": "PENDING"
-                },
-                {
-                    "state": "success",
-                    "matcher": "path",
-                    "argument": "length(DBInstances[].AssociatedRoles[]) == `0`",
-                    "expected": True
-                },
-            ]
-        }
     }
 }
 
@@ -995,18 +896,6 @@ waiters_by_name = {
         core_waiter.NormalizedOperationMethod(
             eks.describe_cluster
         )),
-    ('EKS', 'fargate_profile_active'): lambda eks: core_waiter.Waiter(
-        'fargate_profile_active',
-        eks_model('FargateProfileActive'),
-        core_waiter.NormalizedOperationMethod(
-            eks.describe_fargate_profile
-        )),
-    ('EKS', 'fargate_profile_deleted'): lambda eks: core_waiter.Waiter(
-        'fargate_profile_deleted',
-        eks_model('FargateProfileDeleted'),
-        core_waiter.NormalizedOperationMethod(
-            eks.describe_fargate_profile
-        )),
     ('ElasticLoadBalancing', 'any_instance_in_service'): lambda elb: core_waiter.Waiter(
         'any_instance_in_service',
         elb_model('AnyInstanceInService'),
@@ -1055,24 +944,6 @@ waiters_by_name = {
         core_waiter.NormalizedOperationMethod(
             rds.describe_db_clusters
         )),
-    ('RDS', 'read_replica_promoted'): lambda rds: core_waiter.Waiter(
-        'read_replica_promoted',
-        rds_model('ReadReplicaPromoted'),
-        core_waiter.NormalizedOperationMethod(
-            rds.describe_db_instances
-        )),
-    ('RDS', 'role_associated'): lambda rds: core_waiter.Waiter(
-        'role_associated',
-        rds_model('RoleAssociated'),
-        core_waiter.NormalizedOperationMethod(
-            rds.describe_db_instances
-        )),
-    ('RDS', 'role_disassociated'): lambda rds: core_waiter.Waiter(
-        'role_disassociated',
-        rds_model('RoleDisassociated'),
-        core_waiter.NormalizedOperationMethod(
-            rds.describe_db_instances
-        )),
     ('Route53', 'resource_record_sets_changed'): lambda route53: core_waiter.Waiter(
         'resource_record_sets_changed',
         route53_model('ResourceRecordSetsChanged'),
@@ -1083,7 +954,7 @@ waiters_by_name = {
 
 
 def get_waiter(client, waiter_name):
-    if isinstance(client, _RetryingBotoClientWrapper):
+    if isinstance(client, aws_core._RetryingBotoClientWrapper):
         return get_waiter(client.client, waiter_name)
     try:
         return waiters_by_name[(client.__class__.__name__, waiter_name)](client)

@@ -4,14 +4,18 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = '''
-name: aws_account_attribute
+lookup: aws_account_attribute
 author:
-  - Sloane Hertel (@s-hertel) <shertel@redhat.com>
+  - Sloane Hertel <shertel@redhat.com>
+requirements:
+  - python >= 3.6
+  - boto3
+  - botocore >= 1.19.0
 extends_documentation_fragment:
-  - amazon.aws.aws_boto3
-  - amazon.aws.aws_credentials
-  - amazon.aws.aws_region
-short_description: Look up AWS account attributes
+- amazon.aws.aws_credentials
+- amazon.aws.aws_region
+
+short_description: Look up AWS account attributes.
 description:
   - Describes attributes of your AWS account. You can specify one of the listed
     attribute choices or omit it to see all attributes.
@@ -68,11 +72,11 @@ def _boto3_conn(region, credentials):
 
     try:
         connection = boto3.session.Session(profile_name=boto_profile).client('ec2', region, **credentials)
-    except (botocore.exceptions.ProfileNotFound, botocore.exceptions.PartialCredentialsError):
+    except (botocore.exceptions.ProfileNotFound, botocore.exceptions.PartialCredentialsError) as e:
         if boto_profile:
             try:
                 connection = boto3.session.Session(profile_name=boto_profile).client('ec2', region)
-            except (botocore.exceptions.ProfileNotFound, botocore.exceptions.PartialCredentialsError):
+            except (botocore.exceptions.ProfileNotFound, botocore.exceptions.PartialCredentialsError) as e:
                 raise AnsibleError("Insufficient credentials found.")
         else:
             raise AnsibleError("Insufficient credentials found.")

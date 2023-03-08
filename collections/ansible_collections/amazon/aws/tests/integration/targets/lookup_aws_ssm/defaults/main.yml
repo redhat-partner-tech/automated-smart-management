@@ -1,2 +1,0 @@
----
-ssm_key_prefix: '{{ resource_prefix }}'

@@ -10,7 +10,7 @@ DOCUMENTATION = '''
 ---
 module: aws_caller_info
 version_added: 1.0.0
-short_description: Get information about the user and account being used to make AWS calls
+short_description: Get information about the user and account being used to make AWS calls.
 description:
     - This module returns information about the account and user / role from which the AWS access tokens originate.
     - The primary use of this is to get the account id for templating into ARNs or similar to avoid needing to specify this information in inventory.
@@ -65,8 +65,8 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.ec2 import AWSRetry
 
 
 def main():

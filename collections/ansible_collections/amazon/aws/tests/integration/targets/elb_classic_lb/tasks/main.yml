@@ -20,9 +20,8 @@
       aws_secret_key: "{{ aws_secret_key }}"
       security_token: "{{ security_token | default(omit) }}"
   collections:
-    - amazon.aws
     - community.aws
-    - community.crypto
+    - amazon.aws
   block:
 
     - include_tasks: missing_params.yml
@@ -36,10 +35,7 @@
     - include_tasks: basic_internal.yml
     - include_tasks: schema_change.yml
 
-    - include_tasks: https_listeners.yml
-
     - include_tasks: simple_changes.yml
-    - include_tasks: complex_changes.yml
 
   always:
 

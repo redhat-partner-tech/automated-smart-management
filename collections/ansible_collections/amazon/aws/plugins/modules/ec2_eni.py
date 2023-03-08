@@ -12,21 +12,22 @@ module: ec2_eni
 version_added: 1.0.0
 short_description: Create and optionally attach an Elastic Network Interface (ENI) to an instance
 description:
-  - Create and optionally attach an Elastic Network Interface (ENI) to an instance.
-  - If I(eni_id) or I(private_ip) is provided, the existing ENI (if any) will be modified.
-  - The I(attached) parameter controls the attachment status of the network interface.
+    - Create and optionally attach an Elastic Network Interface (ENI) to an instance. If an ENI ID or private_ip is
+      provided, the existing ENI (if any) will be modified. The 'attached' parameter controls the attachment status
+      of the network interface.
 author:
-  - "Rob White (@wimnat)"
-  - "Mike Healey (@healem)"
+    - "Rob White (@wimnat)"
+    - "Mike Healey (@healem)"
 options:
   eni_id:
     description:
       - The ID of the ENI (to modify).
-      - If I(eni_id=None) and I(state=present), a new ENI will be created.
+      - If I(eni_id=None) and I(state=present), a new eni will be created.
     type: str
   instance_id:
     description:
       - Instance ID that you wish to attach ENI to.
+      - Since version 2.2, use the I(attached) parameter to attach or detach an ENI. Prior to 2.2, to detach an ENI from an instance, use C(None).
     type: str
   private_ip_address:
     description:
@@ -42,8 +43,8 @@ options:
     type: str
   security_groups:
     description:
-      - List of security groups associated with the interface.
-      - Ignored when I(state=absent).
+      - List of security groups associated with the interface. Only used when I(state=present).
+      - Since version 2.2, you can specify security groups by ID or by name or a combination of both. Prior to 2.2, you can specify only by ID.
     type: list
     elements: str
   state:
@@ -83,7 +84,7 @@ options:
   secondary_private_ip_addresses:
     description:
       - A list of IP addresses to assign as secondary IP addresses to the network interface.
-      - This option is mutually exclusive of I(secondary_private_ip_address_count).
+        This option is mutually exclusive of I(secondary_private_ip_address_count)
     required: false
     type: list
     elements: str
@@ -95,8 +96,7 @@ options:
     type: bool
   secondary_private_ip_address_count:
     description:
-      - The number of secondary IP addresses to assign to the network interface.
-      - This option is mutually exclusive of I(secondary_private_ip_addresses).
+      - The number of secondary IP addresses to assign to the network interface. This option is mutually exclusive of I(secondary_private_ip_addresses)
     required: false
     type: int
   allow_reassignment:
@@ -108,20 +108,37 @@ options:
     type: bool
   name:
     description:
-      - Name for the ENI. This will create a tag with the key C(Name) and the value assigned here.
+      - Name for the ENI. This will create a tag called "Name" with the value assigned here.
       - This can be used in conjunction with I(subnet_id) as another means of identifiying a network interface.
-      - AWS does not enforce unique C(Name) tags, so duplicate names are possible if you configure it that way.
+      - AWS does not enforce unique Name tags, so duplicate names are possible if you configure it that way.
         If that is the case, you will need to provide other identifying information such as I(private_ip_address) or I(eni_id).
     required: false
     type: str
+  tags:
+    description:
+      - A hash/dictionary of tags to add to the new ENI or to add/remove from an existing one. Please note that
+        the name field sets the "Name" tag.
+      - To clear all tags, set this option to an empty dictionary to use in conjunction with I(purge_tags).
+        If you provide I(name), that tag will not be removed.
+      - To prevent removing any tags set I(purge_tags) to false.
+    type: dict
+    required: false
+    version_added: 1.3.0
+  purge_tags:
+    description:
+      - Indicates whether to remove tags not specified in I(tags) or I(name). This means you have to specify all
+        the desired tags on each task affecting a network interface.
+      - If I(tags) is omitted or None this option is disregarded.
+    default: true
+    type: bool
+    version_added: 1.3.0
 extends_documentation_fragment:
-  - amazon.aws.aws
-  - amazon.aws.ec2
-  - amazon.aws.tags
+- amazon.aws.aws
+- amazon.aws.ec2
+
 notes:
-  - This module identifies and ENI based on either the I(eni_id), a combination of I(private_ip_address) and I(subnet_id),
-    or a combination of I(instance_id) and I(device_id). Any of these options will let you specify a particular ENI.
-  - Support for I(tags) and I(purge_tags) was added in release 1.3.0.
+    - This module identifies and ENI based on either the I(eni_id), a combination of I(private_ip_address) and I(subnet_id),
+      or a combination of I(instance_id) and I(device_id). Any of these options will let you specify a particular ENI.
 '''
 
 EXAMPLES = '''
@@ -284,14 +301,14 @@ try:
 except ImportError:
     pass  # Handled by AnsibleAWSModule
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_ec2_security_group_ids_from_names
-from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_list_to_ansible_dict
-from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_specifications
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ensure_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.waiters import get_waiter
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.core import is_boto3_error_code
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import get_ec2_security_group_ids_from_names
+from ..module_utils.tagging import boto3_tag_list_to_ansible_dict
+from ..module_utils.tagging import boto3_tag_specifications
+from ..module_utils.ec2 import ensure_ec2_tags
+from ..module_utils.waiters import get_waiter
 
 
 def get_eni_info(interface):
@@ -340,6 +357,7 @@ def get_eni_info(interface):
 
 
 def correct_ips(connection, ip_list, module, eni_id):
+    all_there = True
     eni = describe_eni(connection, module, eni_id)
     private_addresses = set()
     if "PrivateIpAddresses" in eni:
@@ -352,6 +370,7 @@ def correct_ips(connection, ip_list, module, eni_id):
 
 
 def absent_ips(connection, ip_list, module, eni_id):
+    all_there = True
     eni = describe_eni(connection, module, eni_id)
     private_addresses = set()
     if "PrivateIpAddresses" in eni:
@@ -495,6 +514,7 @@ def modify_eni(connection, module, eni):
     device_index = module.params.get("device_index")
     description = module.params.get('description')
     security_groups = module.params.get('security_groups')
+    force_detach = module.params.get("force_detach")
     source_dest_check = module.params.get("source_dest_check")
     delete_on_termination = module.params.get("delete_on_termination")
     secondary_private_ip_addresses = module.params.get("secondary_private_ip_addresses")
@@ -692,6 +712,7 @@ def detach_eni(connection, eni, module):
     if module.check_mode:
         module.exit_json(changed=True, msg="Would have detached ENI if not in check mode.")
 
+    attached = module.params.get("attached")
     eni_id = eni["NetworkInterfaceId"]
 
     force_detach = module.params.get("force_detach")
@@ -756,7 +777,7 @@ def uniquely_find_eni(connection, module, eni=None):
         filters.append({'Name': 'attachment.instance-id',
                         'Values': [instance_id]})
         filters.append({'Name': 'attachment.device-index',
-                        'Values': [str(device_index)]})
+                        'Values': [device_index]})
 
     if name and subnet_id and not filters:
         filters.append({'Name': 'tag:Name',
@@ -832,8 +853,8 @@ def main():
         allow_reassignment=dict(default=False, type='bool'),
         attached=dict(default=None, type='bool'),
         name=dict(default=None, type='str'),
-        tags=dict(type='dict', aliases=['resource_tags']),
-        purge_tags=dict(default=True, type='bool'),
+        tags=dict(type='dict'),
+        purge_tags=dict(default=True, type='bool')
     )
 
     module = AnsibleAWSModule(

@@ -13,7 +13,12 @@ module: cloudformation
 version_added: 1.0.0
 short_description: Create or delete an AWS CloudFormation stack
 description:
-  - Launches or updates an AWS CloudFormation stack and waits for it complete.
+     - Launches or updates an AWS CloudFormation stack and waits for it complete.
+notes:
+     - CloudFormation features change often, and this module tries to keep up. That means your botocore version should be fresh.
+       The version listed in the requirements is the oldest version that works with the module as a whole.
+       Some features may require recent versions, and we do not pinpoint a minimum version for each feature.
+       Instead of relying on the minimum version, keep botocore up to date. AWS is always releasing features and fixing bugs.
 options:
   stack_name:
     description:
@@ -111,14 +116,19 @@ options:
         See the AWS Change Sets docs for more information
         U(https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-changesets.html)
     type: str
+  template_format:
+    description:
+    - This parameter is ignored since Ansible 2.3 and will be removed after 2022-06-01.
+    - Templates are now passed raw to CloudFormation regardless of format.
+    type: str
   role_arn:
     description:
-      - The role that AWS CloudFormation assumes to create the stack. See the AWS CloudFormation Service Role
-        docs U(https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
+    - The role that AWS CloudFormation assumes to create the stack. See the AWS CloudFormation Service Role
+      docs U(https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     type: str
   termination_protection:
     description:
-      - Enable or disable termination protection on the stack.
+    - Enable or disable termination protection on the stack.
     type: bool
   template_body:
     description:
@@ -130,41 +140,40 @@ options:
     type: str
   events_limit:
     description:
-      - Maximum number of CloudFormation events to fetch from a stack when creating or updating it.
+    - Maximum number of CloudFormation events to fetch from a stack when creating or updating it.
     default: 200
     type: int
   backoff_delay:
     description:
-      - Number of seconds to wait for the next retry.
+    - Number of seconds to wait for the next retry.
     default: 3
     type: int
     required: False
   backoff_max_delay:
     description:
-      - Maximum amount of time to wait between retries.
+    - Maximum amount of time to wait between retries.
     default: 30
     type: int
     required: False
   backoff_retries:
     description:
-      - Number of times to retry operation.
-      - AWS API throttling mechanism fails CloudFormation module so we have to retry a couple of times.
+    - Number of times to retry operation.
+    - AWS API throttling mechanism fails CloudFormation module so we have to retry a couple of times.
     default: 10
     type: int
     required: False
   capabilities:
     description:
-      - Specify capabilities that stack template contains.
-      - Valid values are C(CAPABILITY_IAM), C(CAPABILITY_NAMED_IAM) and C(CAPABILITY_AUTO_EXPAND).
+    - Specify capabilities that stack template contains.
+    - Valid values are C(CAPABILITY_IAM), C(CAPABILITY_NAMED_IAM) and C(CAPABILITY_AUTO_EXPAND).
     type: list
     elements: str
     default: [ CAPABILITY_IAM, CAPABILITY_NAMED_IAM ]
 
-author:
-  - "James S. Martin (@jsmartin)"
+author: "James S. Martin (@jsmartin)"
 extends_documentation_fragment:
-  - amazon.aws.aws
-  - amazon.aws.ec2
+- amazon.aws.aws
+- amazon.aws.ec2
 '''
 
 EXAMPLES = '''
@@ -332,11 +341,11 @@ except ImportError:
 from ansible.module_utils._text import to_bytes
 from ansible.module_utils._text import to_native
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_message
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ansible_dict_to_boto3_tag_list
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import boto_exception
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.core import is_boto3_error_message
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import ansible_dict_to_boto3_tag_list
+from ..module_utils.ec2 import boto_exception
 
 # Set a default, mostly for our integration tests.  This will be overridden in
 # the main() loop to match the parameters we're passed
@@ -573,7 +582,7 @@ def check_mode_changeset(module, stack_params, cfn):
 
     try:
         change_set = cfn.create_change_set(aws_retry=True, **stack_params)
-        for _i in range(60):  # total time 5 min
+        for i in range(60):  # total time 5 min
             description = cfn.describe_change_set(aws_retry=True, ChangeSetName=change_set['Id'])
             if description['Status'] in ('CREATE_COMPLETE', 'FAILED'):
                 break
@@ -628,6 +637,7 @@ def main():
         create_timeout=dict(default=None, type='int'),
         template_url=dict(default=None, required=False),
         template_body=dict(default=None, required=False),
+        template_format=dict(removed_at_date='2022-06-01', removed_from_collection='amazon.aws'),
         create_changeset=dict(default=False, type='bool'),
         changeset_name=dict(default=None, required=False),
         role_arn=dict(default=None, required=False),

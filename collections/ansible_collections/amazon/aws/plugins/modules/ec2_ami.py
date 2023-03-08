@@ -80,8 +80,6 @@ options:
           type: str
           description:
           - The device name. For example C(/dev/sda).
-          - The C(DeviceName) alias had been deprecated and will be removed in
-            release 5.0.0.
           required: yes
           aliases: ['DeviceName']
         virtual_name:
@@ -89,15 +87,13 @@ options:
           description:
           - The virtual name for the device.
           - See the AWS documentation for more detail U(https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_BlockDeviceMapping.html).
-          - The C(VirtualName) alias has been deprecated and will be removed in
-            release 5.0.0.
+          - Alias C(VirtualName) has been deprecated and will be removed after 2022-06-01.
           aliases: ['VirtualName']
         no_device:
           type: bool
           description:
           - Suppresses the specified device included in the block device mapping of the AMI.
-          - The C(NoDevice) alias has been deprecated and will be removed in
-            release 5.0.0.
+          - Alias C(NoDevice) has been deprecated and will be removed after 2022-06-01.
           aliases: ['NoDevice']
         volume_type:
           type: str
@@ -121,6 +117,14 @@ options:
   delete_snapshot:
     description:
       - Delete snapshots when deregistering the AMI.
+    default: false
+    type: bool
+  tags:
+    description:
+      - A dictionary of tags to add to the new image; '{"key":"value"}' and '{"key":"value","key":"value"}'
+    type: dict
+  purge_tags:
+    description: Whether to remove existing tags that aren't passed in the C(tags) parameter
     default: false
     type: bool
   launch_permissions:
@@ -158,7 +162,7 @@ author:
 extends_documentation_fragment:
 - amazon.aws.aws
 - amazon.aws.ec2
-- amazon.aws.tags.deprecated_purge
+
 '''
 
 # Thank you to iAcquire for sponsoring development of this module.
@@ -365,14 +369,14 @@ except ImportError:
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import ensure_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import add_ec2_tags
-from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_list_to_ansible_dict
-from ansible_collections.amazon.aws.plugins.module_utils.tagging import boto3_tag_specifications
-from ansible_collections.amazon.aws.plugins.module_utils.waiters import get_waiter
+from ..module_utils.core import AnsibleAWSModule
+from ..module_utils.core import is_boto3_error_code
+from ..module_utils.ec2 import AWSRetry
+from ..module_utils.ec2 import ensure_ec2_tags
+from ..module_utils.ec2 import add_ec2_tags
+from ..module_utils.tagging import boto3_tag_list_to_ansible_dict
+from ..module_utils.tagging import boto3_tag_specifications
+from ..module_utils.waiters import get_waiter
 
 
 def get_block_device_mapping(image):
@@ -491,9 +495,8 @@ def create_image(module, connection):
         if instance_id:
             params['InstanceId'] = instance_id
             params['NoReboot'] = no_reboot
-            tag_spec = boto3_tag_specifications(tags, types=['image', 'snapshot'])
-            if tag_spec:
-                params['TagSpecifications'] = tag_spec
+            if tags and module.botocore_at_least('1.19.30'):
+                params['TagSpecifications'] = boto3_tag_specifications(tags, types=['image', 'snapshot'])
             image_id = connection.create_image(aws_retry=True, **params).get('ImageId')
         else:
             if architecture:
@@ -703,15 +706,13 @@ def rename_item_if_exists(dict_object, attribute, new_attribute, child_node=None
 
 def main():
     mapping_options = dict(
-        device_name=dict(
-            type='str', aliases=['DeviceName'], required=True,
-            deprecated_aliases=[dict(name='DeviceName', version='5.0.0', collection_name='amazon.aws')]),
+        device_name=dict(type='str', aliases=['DeviceName'], required=True),
         virtual_name=dict(
             type='str', aliases=['VirtualName'],
-            deprecated_aliases=[dict(name='VirtualName', version='5.0.0', collection_name='amazon.aws')]),
+            deprecated_aliases=[dict(name='VirtualName', date='2022-06-01', collection_name='amazon.aws')]),
         no_device=dict(
             type='bool', aliases=['NoDevice'],
-            deprecated_aliases=[dict(name='NoDevice', version='5.0.0', collection_name='amazon.aws')]),
+            deprecated_aliases=[dict(name='NoDevice', date='2022-06-01', collection_name='amazon.aws')]),
         volume_type=dict(type='str'),
         delete_on_termination=dict(type='bool'),
         snapshot_id=dict(type='str'),
@@ -734,14 +735,14 @@ def main():
         no_reboot=dict(default=False, type='bool'),
         state=dict(default='present', choices=['present', 'absent']),
         device_mapping=dict(type='list', elements='dict', options=mapping_options),
+        tags=dict(type='dict'),
         launch_permissions=dict(type='dict'),
         image_location=dict(),
         enhanced_networking=dict(type='bool'),
         billing_products=dict(type='list', elements='str',),
         ramdisk_id=dict(),
         sriov_net_support=dict(),
-        tags=dict(type='dict', aliases=['resource_tags']),
-        purge_tags=dict(type='bool'),
+        purge_tags=dict(type='bool', default=False)
     )
 
     module = AnsibleAWSModule(
@@ -756,14 +757,6 @@ def main():
     # the required_if for state=absent, so check manually instead
     if not any([module.params['image_id'], module.params['name']]):
         module.fail_json(msg="one of the following is required: name, image_id")
-
-    if module.params.get('purge_tags') is None:
-        module.deprecate(
-            'The purge_tags parameter currently defaults to False.'
-            ' For consistency across the collection, this default value'
-            ' will change to True in release 5.0.0.',
-            version='5.0.0', collection_name='amazon.aws')
-        module.params['purge_tags'] = False
 
     connection = module.client('ec2', retry_decorator=AWSRetry.jittered_backoff())
 

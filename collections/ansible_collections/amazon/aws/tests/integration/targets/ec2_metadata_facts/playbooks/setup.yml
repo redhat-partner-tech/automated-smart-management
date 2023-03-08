@@ -9,7 +9,6 @@
   hosts: localhost
 
   collections:
-  - amzon.aws
   - community.aws
 
   vars:

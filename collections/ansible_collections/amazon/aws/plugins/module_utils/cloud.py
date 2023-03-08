@@ -33,12 +33,6 @@ import time
 import functools
 import random
 
-try:
-    import ansible.module_utils.common.warnings as ansible_warnings
-    ANCIENT_ANSIBLE = False
-except ImportError:
-    ANCIENT_ANSIBLE = True
-
 
 class BackoffIterator:
     """iterate sleep value based on the exponential or jitter back-off algorithm.
@@ -72,7 +66,7 @@ def _retry_func(func, sleep_time_generator, retries, catch_extra_error_codes, fo
     for sleep_time in sleep_time_generator:
         try:
             return func()
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:
             counter += 1
             if counter == retries:
                 raise
@@ -106,7 +100,7 @@ class CloudRetry:
     def found(response_code, catch_extra_error_codes=None):
         def _is_iterable():
             try:
-                iter(catch_extra_error_codes)
+                it = iter(catch_extra_error_codes)
             except TypeError:
                 # not iterable
                 return False
@@ -190,7 +184,7 @@ class CloudRetry:
         """
         Wrap a callable with retry behavior.
         Developers should use CloudRetry.exponential_backoff instead.
-        This method has been deprecated and will be removed in release 6.0.0, consider using exponential_backoff method instead.
+        This method has been deprecated and will be removed in release 4.0.0, consider using exponential_backoff method instead.
         Args:
             retries (int): Number of times to retry a failed request before giving up
                 default=10
@@ -203,13 +197,6 @@ class CloudRetry:
         Returns:
             Callable: A generator that calls the decorated function using an exponential backoff.
         """
-        # This won't emit a warning (we don't have the context available to us), but will trigger
-        # sanity failures as we prepare for 6.0.0
-        if not ANCIENT_ANSIBLE:
-            ansible_warnings.deprecate(
-                'CloudRetry.backoff has been deprecated, please use CloudRetry.exponential_backoff instead',
-                version='6.0.0', collection_name='amazon.aws')
-
         return cls.exponential_backoff(
             retries=tries,
             delay=delay,
