@@ -6,7 +6,7 @@
   register: ec2_remote_tags
 
 - name: Get instance info
-  ec2_node_tools.ec2_instance_info:
+  amazon.aws.ec2_instance_info:
     filters: "{{ec2_remote_tags.stdout}}"
     region: "{{ ec2_region }}"
   delegate_to: localhost
