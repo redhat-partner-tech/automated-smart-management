@@ -5,24 +5,31 @@ set -ex
 # Username: {REGISTRY-SERVICE-ACCOUNT-USERNAME}
 # Password: {REGISTRY-SERVICE-ACCOUNT-PASSWORD}
 BASEIMAGEOWNER=ansible-automation-platform-22
-BASEIMAGENAME=ee-supported-rhel8
-BIVERSION=1.0.0-229
+#full EE
+#BASEIMAGENAME=ee-supported-rhel8
+#BIVERSION=1.0.0-229
+#minimal EE
+BASEIMAGENAME=ee-minimal-rhel8
+BIVERSION=1.0.0-264
+#smart-mgmt-ee
 IMAGE=ee-automated-smart-mgmt-aap2-dev
-VERSION=1.0.3
+VERSION=1.0.0
 START_DIR=$(pwd)
 TMP_WRKDIR=$(mktemp -d /tmp/XXXXXXXX)
 ctr=$(buildah from registry.redhat.io/$BASEIMAGEOWNER/$BASEIMAGENAME:$BIVERSION)
 scratchmnt=$(buildah mount ${ctr})
-buildah run $ctr /bin/sh -c 'python3 -m pip install jinja2==3.1.1'
+buildah run $ctr /bin/sh -c 'python3 -m pip install jinja2==3.0.3'
 buildah run $ctr /bin/sh -c 'python3 -m pip install apypie'
 buildah run $ctr /bin/sh -c 'python3 -m pip install psycopg2-binary'
-buildah run $ctr /bin/sh -c 'python3 -m pip install requests==2.28.1'
+buildah run $ctr /bin/sh -c 'python3 -m pip install requests==2.25.0'
+buildah run $ctr /bin/sh -c 'python3 -m pip install jmespath==0.10.0'
 buildah run $ctr /bin/sh -c 'rm /usr/libexec/platform-python3.6'
 buildah run $ctr /bin/sh -c 'ln -s /usr/bin/python3 /usr/libexec/platform-python3.6'
 cd $TMP_WRKDIR
 git clone https://github.com/redhat-partner-tech/automated-smart-management.git
 cd automated-smart-management
 git checkout ee-build-source-aap2-22-dev
+buildah run $ctr /bin/sh -c 'ansible-galaxy collection install community.general -p /usr/share/ansible/collections'
 buildah copy $ctr 'roles/content_views' '/usr/share/ansible/roles/content_views'
 buildah copy $ctr 'roles/ec2_node_tools' '/usr/share/ansible/roles/ec2_node_tools'
 buildah copy $ctr 'roles/rhsm_register' '/usr/share/ansible/roles/rhsm_register'
