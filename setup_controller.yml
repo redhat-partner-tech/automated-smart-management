@@ -22,7 +22,7 @@
       ignore_errors: true
 
     - name: Slurp dynamic_development_source_vars.yaml
-      slurp: src=files/dynamic_development_source_vars.yaml
+      ansible.builtin.slurp: src=files/dynamic_development_source_vars.yaml
       register: dynamic_development_source_vars_slurped
 
     - set_fact:
