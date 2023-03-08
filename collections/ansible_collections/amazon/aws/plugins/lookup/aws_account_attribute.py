@@ -4,14 +4,11 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = '''
-lookup: aws_account_attribute
+name: aws_account_attribute
 author:
-  - Sloane Hertel <shertel@redhat.com>
-requirements:
-  - python >= 3.6
-  - boto3
-  - botocore >= 1.19.0
+  - Sloane Hertel (@s-hertel) <shertel@redhat.com>
 extends_documentation_fragment:
+- amazon.aws.aws_boto3
 - amazon.aws.aws_credentials
 - amazon.aws.aws_region
 

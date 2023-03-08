@@ -6,14 +6,11 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
     name: aws_ec2
-    plugin_type: inventory
     short_description: EC2 inventory source
-    requirements:
-        - boto3
-        - botocore
     extends_documentation_fragment:
     - inventory_cache
     - constructed
+    - amazon.aws.aws_boto3
     - amazon.aws.aws_credentials
 
     description:
@@ -37,14 +34,36 @@ DOCUMENTATION = '''
               - A list of regions in which to describe EC2 instances.
               - If empty (the default) default this will include all regions, except possibly restricted ones like us-gov-west-1 and cn-north-1.
           type: list
+          elements: str
           default: []
         hostnames:
           description:
               - A list in order of precedence for hostname variables.
-              - You can use the options specified in U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
-              - To use tags as hostnames use the syntax tag:Name=Value to use the hostname Name_Value, or tag:Name to use the value of the Name tag.
           type: list
+          elements: dict
           default: []
+          suboptions:
+            name:
+                description:
+                    - Name of the host.
+                    - Can be one of the options specified in U(http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#options).
+                    - To use tags as hostnames use the syntax tag:Name=Value to use the hostname Name_Value, or tag:Name to use the value of the Name tag.
+                    - If value provided does not exist in the above options, it will be used as a literal string.
+                type: str
+                required: True
+            prefix:
+                description:
+                    - Prefix to prepend to I(name). Same options as I(name).
+                    - If I(prefix) is specified, final hostname will be I(prefix) +  I(separator) + I(name).
+                type: str
+                default: ''
+                required: False
+            separator:
+                description:
+                    - Value to separate I(prefix) and I(name) when I(prefix) is specified.
+                type: str
+                default: '_'
+                required: False
         filters:
           description:
               - A dictionary of filter value pairs.
@@ -58,7 +77,9 @@ DOCUMENTATION = '''
               - Every entry in this list triggers a search query. As such, from a performance point of view, it's better to
                 keep the list as short as possible.
           type: list
+          elements: dict
           default: []
+          version_added: 1.5.0
         exclude_filters:
           description:
               - A list of filters. Any instances matching one of the filters are excluded from the result.
@@ -67,7 +88,9 @@ DOCUMENTATION = '''
               - Every entry in this list triggers a search query. As such, from a performance point of view, it's better to
                 keep the list as short as possible.
           type: list
+          elements: dict
           default: []
+          version_added: 1.5.0
         include_extra_api_calls:
           description:
               - Add two additional API calls for every instance to include 'persistent' and 'events' host variables.
@@ -99,6 +122,7 @@ DOCUMENTATION = '''
             - The use of this feature is discouraged and we advise to migrate to the new ``tags`` structure.
           type: bool
           default: False
+          version_added: 1.5.0
         hostvars_prefix:
           description:
             - The prefix for host variables names coming from AWS.
@@ -148,6 +172,9 @@ hostnames:
   - name: 'private-ip-address'
     separator: '_'
     prefix: 'tag:Name'
+  - name: 'test_literal' # Using literal values for hostname
+    separator: '-'       # Hostname will be aws-test_literal
+    prefix: 'aws'
 
 # Example using constructed features to create groups and set ansible_host
 plugin: aws_ec2
@@ -386,9 +413,11 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             :param instance: instance dict returned by boto3 ec2 describe_instances()
         '''
         allowed_filters = sorted(list(instance_data_filter_to_boto_attr.keys()) + list(instance_meta_filter_to_boto_attr.keys()))
+
+        # If filter not in allow_filters -> use it as a literal string
         if filter_name not in allowed_filters:
-            raise AnsibleError("Invalid filter '%s' provided; filter must be one of %s." % (filter_name,
-                                                                                            allowed_filters))
+            return filter_name
+
         if filter_name in instance_data_filter_to_boto_attr:
             boto_attr_list = instance_data_filter_to_boto_attr[filter_name]
         else:

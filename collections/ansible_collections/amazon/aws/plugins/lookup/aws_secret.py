@@ -5,14 +5,11 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = r'''
-lookup: aws_secret
+name: aws_secret
 author:
-  - Aaron Smith <ajsmith10381@gmail.com>
-requirements:
-  - python >= 3.6
-  - boto3
-  - botocore >= 1.19.0
+  - Aaron Smith (!UNKNOWN) <ajsmith10381@gmail.com>
 extends_documentation_fragment:
+- amazon.aws.aws_boto3
 - amazon.aws.aws_credentials
 - amazon.aws.aws_region
 
