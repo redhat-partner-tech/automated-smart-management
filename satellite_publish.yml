@@ -7,7 +7,7 @@
       server_url: "{{ lookup('env', 'SATELLITE_SERVER_URL') }}"
       username: "{{ lookup('env', 'SATELLITE_USER') }}"
       password: "{{ lookup('env', 'SATELLITE_PASSWORD') }}"
-      validate_certs: no
+      validate_certs: "{{ lookup('env', 'SATELLITE_VALIDATE_CERTS') }}"
     organization: Default Organization
     lifecycle_environment: "{{ content_view }}_{{ env }}"
     content_view: undef
