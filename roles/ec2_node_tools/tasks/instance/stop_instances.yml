@@ -1,6 +1,6 @@
 ---
 - name: Stop instances
-  ec2_instance:
+  amazon.aws.ec2_instance:
     instance_ids: "{{ item.0 }}"
 #    vpc_subnet_id: "{{ item.1 }}"
     state: stopped
