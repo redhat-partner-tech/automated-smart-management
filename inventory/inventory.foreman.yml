@@ -3,6 +3,6 @@ plugin: redhat.satellite.foreman
 validate_certs: false
 keyed_groups:
   - prefix: env
-    key: foreman_content_facet_attributes.lifecycle_environment_name
+    key: satellite_content_facet_attributes.lifecycle_environment_name
 hostnames:
   - name.split('.')[0]

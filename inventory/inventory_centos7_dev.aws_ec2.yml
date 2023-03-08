@@ -18,4 +18,4 @@ keyed_groups:
   - prefix: env
     key: tags['ContentView'] ~ '_' ~ tags['Environment']
   - prefix: os
-    key: tags['foreman_operatingsystem_name']
+    key: tags['satellite_operatingsystem_name']

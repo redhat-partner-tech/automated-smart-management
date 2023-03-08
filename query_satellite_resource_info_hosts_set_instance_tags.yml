@@ -76,7 +76,7 @@
       tags:
         Environment: "{{ host_satellite_lifecycle_env[item].split('_')[1] }}"
         ContentView: "{{ host_satellite_content_view[item] }}"
-        foreman_operatingsystem_name: "{{ host_satellite_os[item] }}"
+        satellite_operatingsystem_name: "{{ host_satellite_os[item] }}"
         NodeName: "{{ item }}"
     with_items: "{{ resource_info_hosts_result | to_json | from_json | json_query(ansible_host_name_query) | list }}"
     when: instances_details is not none

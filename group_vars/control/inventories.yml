@@ -61,11 +61,11 @@ controller_inventory_sources:
     source_vars:
       keyed_groups:
         - prefix: env
-          key: foreman_content_facet_attributes.lifecycle_environment_name
+          key: satellite_content_facet_attributes.lifecycle_environment_name
         - prefix: cv
-          key: foreman_content_facet_attributes.content_view_name
+          key: satellite_content_facet_attributes.content_view_name
         - prefix: os
-          key: foreman_operatingsystem_name
+          key: satellite_operatingsystem_name
 
   - name: EC2 Dynamic Source - CentOS7 Development
     inventory: CentOS7 Development
@@ -86,7 +86,7 @@ controller_inventory_sources:
         - prefix: env
           key: tags['ContentView'] ~ '_' ~ tags['Environment']
         - prefix: os
-          key: tags['foreman_operatingsystem_name']
+          key: tags['satellite_operatingsystem_name']
         - prefix: AnsibleGroup
           key: tags['AnsibleGroup']
       compose:
@@ -116,7 +116,7 @@ controller_inventory_sources:
         - prefix: env
           key: tags['ContentView'] ~ '_' ~ tags['Environment']
         - prefix: os
-          key: tags['foreman_operatingsystem_name']
+          key: tags['satellite_operatingsystem_name']
         - prefix: AnsibleGroup
           key: tags['AnsibleGroup']
       compose:
@@ -148,7 +148,7 @@ controller_inventory_sources:
         - prefix: env
           key: tags['ContentView'] ~ '_' ~ tags['Environment']
         - prefix: os
-          key: tags['foreman_operatingsystem_name']
+          key: tags['satellite_operatingsystem_name']
         - prefix: AnsibleGroup
           key: tags['AnsibleGroup']
       compose:
@@ -178,7 +178,7 @@ controller_inventory_sources:
         - prefix: env
           key: tags['ContentView'] ~ '_' ~ tags['Environment']
         - prefix: os
-          key: tags['foreman_operatingsystem_name']
+          key: tags['satellite_operatingsystem_name']
         - prefix: AnsibleGroup
           key: tags['AnsibleGroup']
       compose:
@@ -207,7 +207,7 @@ controller_inventory_sources:
         - prefix: env
           key: tags['ContentView'] ~ '_' ~ tags['Environment']
         - prefix: os
-          key: tags['foreman_operatingsystem_name']
+          key: tags['satellite_operatingsystem_name']
         - prefix: AnsibleGroup
           key: tags['AnsibleGroup']
       compose:
@@ -238,7 +238,7 @@ controller_inventory_sources:
         - prefix: env
           key: tags['ContentView'] ~ '_' ~ tags['Environment']
         - prefix: os
-          key: tags['foreman_operatingsystem_name']
+          key: tags['satellite_operatingsystem_name']
         - prefix: AnsibleGroup
           key: tags['AnsibleGroup']
       compose:

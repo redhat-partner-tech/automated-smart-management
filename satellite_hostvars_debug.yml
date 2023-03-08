@@ -8,4 +8,4 @@
 
   - name: Debug Content View filter - RHEL
     debug:
-      msg: "{{ hostvars['satellite.example.com']['foreman_content_views'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
+      msg: "{{ hostvars['satellite.example.com']['satellite_content_views'] | selectattr('name', 'match', '^RHEL.*$') | list}}"
