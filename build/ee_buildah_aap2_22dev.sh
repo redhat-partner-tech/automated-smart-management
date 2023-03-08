@@ -29,16 +29,22 @@ buildah copy $ctr 'roles/rhsm_register' '/usr/share/ansible/roles/rhsm_register'
 buildah copy $ctr 'roles/scap_client' '/usr/share/ansible/roles/scap_client'
 buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/amazon/aws ] || rm -rf /usr/share/ansible/collections/ansible_collections/amazon/aws'
 buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/ansible/controller ] || rm -rf /usr/share/ansible/collections/ansible_collections/ansible/controller'
+buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/ansible/netcommon ] || rm -rf /usr/share/ansible/collections/ansible_collections/ansible/netcommon'
 buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/redhat_cop/controller_configuration ] || rm -rf /usr/share/ansible/collections/ansible_collections/redhat_cop/controller_configuration'
+buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/redhat/insights ] || rm -rf /usr/share/ansible/collections/ansible_collections/redhat/insights'
 buildah run $ctr /bin/sh -c '[ ! -d /usr/share/ansible/collections/ansible_collections/redhat/satellite ] || rm -rf /usr/share/ansible/collections/ansible_collections/redhat/satellite'
 buildah copy $ctr 'collections/ansible_collections/amazon/aws' \
-	'/usr/share/ansible/collections/ansible_collections/amazon/'
+	'/usr/share/ansible/collections/ansible_collections/amazon/aws'
 buildah copy $ctr 'collections/ansible_collections/ansible/controller' \
-	'/usr/share/ansible/collections/ansible_collections/ansible/'
+	'/usr/share/ansible/collections/ansible_collections/ansible/controller'
+buildah copy $ctr 'collections/ansible_collections/ansible/netcommon' \
+	'/usr/share/ansible/collections/ansible_collections/ansible/netcommon'
 buildah copy $ctr 'collections/ansible_collections/redhat_cop/controller_configuration' \
-	'/usr/share/ansible/collections/ansible_collections/redhat_cop/'
+	'/usr/share/ansible/collections/ansible_collections/redhat_cop/controller_configuration'
+buildah copy $ctr 'collections/ansible_collections/redhat/insights' \
+	'/usr/share/ansible/collections/ansible_collections/redhat/insights'
 buildah copy $ctr 'collections/ansible_collections/redhat/satellite' \
-	'/usr/share/ansible/collections/ansible_collections/redhat/'
+	'/usr/share/ansible/collections/ansible_collections/redhat/satellite'
 #buildah config --label name=${IMAGE} $ctr
 cd $START_DIR
 rm -rf $TMP_WRKDIR
