@@ -1,6 +1,6 @@
 ---
 - name: Create new EBS volume from snapshot and attach to instance
-  ec2_vol:
+  amazon.aws.ec2_vol:
     instance: "{{ item.2 }}"
     snapshot: "{{ item.3 }}"
     device_name: "{{ item.4 }}"

@@ -1,6 +1,6 @@
 ---
 - name: Detach current EBS volume from instance
-  ec2_vol:
+  amazon.aws.ec2_vol:
     id: "{{ item.1.ebs.volume_id }}"
     instance: None
     region: "{{ ec2_region }}"

@@ -1,6 +1,6 @@
 ---
 - name: Take snapshot
-  ec2_snapshot:
+  amazon.aws.ec2_snapshot:
     volume_id: "{{ item.1.ebs.volume_id }}"
     snapshot_tags:
       Name: "snap-{{ item.0 }}"

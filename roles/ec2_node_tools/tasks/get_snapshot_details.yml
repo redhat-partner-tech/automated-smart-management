@@ -6,7 +6,7 @@
   register: ec2_snapshot_tags
 
 - name: Get snapshot info
-  ec2_snapshot_info:
+  ec2_node_tools.ec2_snapshot_info:
     filters: "{{ec2_snapshot_tags.stdout}}"
     region: "{{ ec2_region }}"
   delegate_to: localhost
