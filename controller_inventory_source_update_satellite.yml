@@ -1,15 +1,13 @@
 ---
 - hosts: "{{ HOSTS | default('control[0]') }}"
   connection: local
-  collections:
-    - ansible.controller
   vars:
     controller_hostname: "{{ hostvars[inventory_hostname].ansible_host }}"
     controller_validate_certs: false
 
   tasks:
   - name: Update the "satellite_source" source inventory
-    controller_inventory_source_update:
+    ansible.controller.inventory_source_update:
       name: "satellite_source"
       inventory: "Workshop Inventory"
       organization: Default

@@ -1,8 +1,6 @@
 ---
 - hosts: "{{ HOSTS | default('control[0]') }}"
   connection: local
-  collections:
-    - ansible.controller
   vars:
     #controller_hostname: "{{ hostvars[inventory_hostname].ansible_host }}"
     controller_hostname: "{{ lookup('env', 'TOWER_HOST') }}"
@@ -22,13 +20,13 @@
     when: env == "Prod"
 
   - name: Update "{{ content_view }} {{ environment_name_expanded }}" inventory via source ==> "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
-    inventory_source_update:
+    ansible.controller.inventory_source_update:
       name: "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }}"
       inventory: "{{ content_view }} {{ environment_name_expanded }}"
       organization: Default
 
   - name: Update "ALL {{ environment_name_expanded }}" inventory via source ==> "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }} - ALL"
-    inventory_source_update:
+    ansible.controller.inventory_source_update:
       name: "EC2 Dynamic Source - {{ content_view }} {{ environment_name_expanded }} - ALL"
       inventory: "ALL {{ environment_name_expanded }}"
       organization: Default
