@@ -1,13 +1,13 @@
 ---
 - name: Install openscap client packages
-  yum:
+  ansible.builtin.yum:
     name:
      - openscap-scanner
      - rubygem-foreman_scap_client
     state: present
 
 - name: Get Policy parameters
-  uri:
+  ansible.builtin.uri:
     url: "{{ satellite_server_url }}/api/v2/compliance/policies"
     method: GET
     user: "{{ satellite_username }}"
@@ -29,7 +29,7 @@
   when: policy is not defined
 
 - name: Get scap content information
-  uri:
+  ansible.builtin.uri:
     url: "{{ satellite_server_url }}/api/v2/compliance/scap_contents/{{item.scap_content_id}}"
     method: GET
     user: "{{ satellite_username }}"
@@ -42,7 +42,7 @@
   no_log: "{{ satellite_operations_scap_client_secure_logging }}"
 
 - name: Get tailoring content information
-  uri:
+  ansible.builtin.uri:
     url: "{{ satellite_server_url }}/api/v2/compliance/tailoring_files/{{item.tailoring_file_id}}"
     method: GET
     user: "{{ satellite_username }}"
@@ -67,7 +67,7 @@
   loop: "{{ tailoringfiles.results }}"
 
 - name: Apply openscap client configuration template
-  template:
+  ansible.builtin.template:
     src: openscap_client_config.yaml.j2
     dest: /etc/foreman_scap_client/config.yaml
     mode: 0644
@@ -75,7 +75,7 @@
     group: root
 
 #- name: Configure execution crontab
-#  cron:
+#  ansible.builtin.cron:
 #    name: "Openscap Execution"
 #    cron_file: 'foreman_openscap_client'
 #    job: '/usr/bin/foreman_scap_client {{policy.id}} > /dev/null'
