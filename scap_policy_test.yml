@@ -58,7 +58,8 @@
       validate_certs: False
     register: scapcontents
     loop: "{{ policy | dict2items }}"
-    no_log: "{{ satellite_operations_scap_client_secure_logging }}"
+    #no_log: "{{ satellite_operations_scap_client_secure_logging }}"
+    no_log: False
 
   - name: Get tailoring content information
     ansible.builtin.uri:
