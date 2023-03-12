@@ -47,6 +47,11 @@
     debug:
       msg: "{{ policy }}"
 
+  - name: Display policy as passed to scap content information URI request
+    debug:
+      msg: "{{ item }}"
+    loop: "{{ policy | dict2items }}"
+
   - name: Get scap content information
     ansible.builtin.uri:
       url: "{{ satellite_server_url }}/api/v2/compliance/scap_contents/{{item.scap_content_id}}"
