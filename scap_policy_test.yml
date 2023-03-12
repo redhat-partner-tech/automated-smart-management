@@ -1,0 +1,88 @@
+---
+- hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
+  vars:
+    organization: "Default Organization"
+    validate_certs: no
+    satellite_server_url: "{{ lookup('env', 'SATELLITE_SERVER_URL') }}"
+    satellite_username: "{{ lookup('env', 'SATELLITE_USERNAME') }}"
+    satellite_password: "{{ lookup('env', 'SATELLITE_PASSWORD') }}"
+    satellite_validate_certs: "{{ lookup('env', 'SATELLITE_VALIDATE_CERTS') | default(true) }}"
+    capsule_server: "{{ satellite_server_url }}"
+    capsule_port: '9090'
+    policy_name: 'all'
+    policy_scan: "{{ policy_name }}"
+    crontab_hour: 2
+    crontab_minute: 0
+    crontab_weekdays: 0
+    satellite_operations_scap_client_secure_logging: true
+  tasks:
+  - name: Get Policy parameters
+    ansible.builtin.uri:
+      url: "{{ satellite_server_url }}/api/v2/compliance/policies"
+      method: GET
+      user: "{{ satellite_username }}"
+      password:  "{{ satellite_password }}"
+      force_basic_auth: yes
+      body_format: json
+      validate_certs: False
+    register: policies
+    no_log: "{{ satellite_operations_scap_client_secure_logging }}"
+
+  - name: Build policy {{ policy_name }} parameters
+    set_fact:
+      policy: "{{ policy | default([]) }} + {{ [item] }}"
+    loop: "{{policies.json.results}}"
+    when: item.name in policy_name or policy_name == 'all'
+
+  - name: Fail if no policy found with required name
+    fail:
+    when: policy is not defined
+
+  - name: Get scap content information
+    ansible.builtin.uri:
+      url: "{{ satellite_server_url }}/api/v2/compliance/scap_contents/{{item.scap_content_id}}"
+      method: GET
+      user: "{{ satellite_username }}"
+      password: "{{ satellite_password }}"
+      force_basic_auth: yes
+      body_format: json
+      validate_certs: False
+    register: scapcontents
+    loop: "{{ policy }}"
+    no_log: "{{ satellite_operations_scap_client_secure_logging }}"
+
+  - name: Get tailoring content information
+    ansible.builtin.uri:
+      url: "{{ satellite_server_url }}/api/v2/compliance/tailoring_files/{{item.tailoring_file_id}}"
+      method: GET
+      user: "{{ satellite_username }}"
+      password: "{{ satellite_password }}"
+      force_basic_auth: yes
+      body_format: json
+      validate_certs: False
+    register: tailoringfiles
+    when: item.tailoring_file_id | int > 0 | d(False)
+    loop: "{{ policy }}"
+    no_log: "{{ satellite_operations_scap_client_secure_logging }}"
+
+  - name: Build scap content parameters
+    set_fact:
+      scap_content: "{{ scap_content | default({}) | combine({item.json.id: item.json }) }}"
+    loop: "{{ scapcontents.results }}"
+
+  - name: Build tailoring content parameters
+    set_fact:
+      tailoring_files: "{{ tailoring_files | default({}) | combine({item.json.id: item.json }) }}"
+    when: item.json is defined
+    loop: "{{ tailoringfiles.results }}"
+
+  #- name: Configure execution crontab
+  #  ansible.builtin.cron:
+  #    name: "Openscap Execution"
+  #    cron_file: 'foreman_openscap_client'
+  #    job: '/usr/bin/foreman_scap_client {{policy.id}} > /dev/null'
+  #    weekday: "{{crontab_weekdays}}"
+  #    hour: "{{crontab_hour}}"
+  #    minute: "{{crontab_minute}}"
+  #    user: root
