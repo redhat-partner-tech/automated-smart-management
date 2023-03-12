@@ -29,15 +29,23 @@
     register: policies
     no_log: "{{ satellite_operations_scap_client_secure_logging }}"
 
+  - name: Display Policy parameters 
+    debug:
+      msg: "{{ policies }}"
+
   - name: Build policy {{ policy_name }} parameters
     set_fact:
-      policy: "{{ policy | default([]) }} + {{ [item] }}"
+      policy: "{{ policy | default([]) | combine ([item]) }}"
     loop: "{{policies.json.results}}"
     when: item.name in policy_name or policy_name == 'all'
 
   - name: Fail if no policy found with required name
     fail:
     when: policy is not defined
+
+  - name: Display Policy {{ policy_name }} parameters 
+    debug:
+      msg: "{{ policy }}"
 
   - name: Get scap content information
     ansible.builtin.uri:
