@@ -64,7 +64,7 @@
       validate_certs: False
     register: scapcontents
     loop: "{{ policy }}"
-    no_log: "{{ foreman_operations_scap_client_secure_logging }}"
+    no_log: False
 
   - name: Get tailoring content information
     uri:
@@ -78,7 +78,7 @@
     register: tailoringfiles
     when: item.tailoring_file_id | int > 0 | d(False)
     loop: "{{ policy }}"
-    no_log: "{{ foreman_operations_scap_client_secure_logging }}"
+    no_log: False
 
   - name: Build scap content parameters
     set_fact:
