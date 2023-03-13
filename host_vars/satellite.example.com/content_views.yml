@@ -16,7 +16,7 @@ foreman_content_views:
     - name: Red Hat Enterprise Linux 7 Server - Extras (RPMs)
       basearch: x86_64
       product: 'Red Hat Enterprise Linux Server'
-    - name: Red Hat Satellite Tools 6.10 (for RHEL 7 Server) (RPMs)
+    - name: Red Hat Satellite Tools 6.11 (for RHEL 7 Server) (RPMs)
       basearch: x86_64
       product: 'Red Hat Enterprise Linux Server'
   - name: RHEL8
@@ -32,6 +32,10 @@ foreman_content_views:
       product: Red Hat Enterprise Linux for x86_64
     - name: Red Hat Enterprise Linux 8 for x86_64 - AppStream (RPMs)
       releasever: 8
+      product: Red Hat Enterprise Linux for x86_64
+    - name: Red Hat Satellite Utils 6.12 for RHEL 8 x86_64 RPMs
+      product: Red Hat Enterprise Linux for x86_64
+    - name: Red Hat Satellite Client 6 for RHEL 8 x86_64 RPMs
       product: Red Hat Enterprise Linux for x86_64
   # Community Enterprise Linux 7
   - name: CentOS7
