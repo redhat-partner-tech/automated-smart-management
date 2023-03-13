@@ -53,54 +53,32 @@
     ansible.builtin.debug:
       msg: "{{ policy }}"
 
-  - name: Display policy via with_dict
-    ansible.builtin.debug:
-      msg: "{{item.key}}: {{item.value}}"
-    with_dict: "{{ policy }}"
-
-  - name: Display policy via with_dict and when item.key equals scap_content_id
-    ansible.builtin.debug:
-      msg: "{{ item.value }}"
-    with_dict: "{{ policy }}"
-    when: item.key == "scap_content_id"
-
-  - set_fact: 
-      scap_content_id_dict: "{{ scap_content_id_dict | default({}) | combine ({ item.key : item.value }) }}"
-    with_dict: "{{ policy }}"
-    when: item.key == "scap_content_id"
-
-  - set_fact: 
-      tailoring_file_id_dict: "{{ tailoring_file_id_dict | default({}) | combine ({ item.key : item.value }) }}"
-    with_dict: "{{ policy }}"
-    when: item.key == "tailoring_file_id"
-
   - name: Get scap content information
-    ansible.builtin.uri:
-      url: "{{ satellite_server_url }}/api/v2/compliance/scap_contents/{{item.value}}"
+    uri:
+      url: "{{ foreman_server_url }}/api/v2/compliance/scap_contents/{{item.scap_content_id}}"
       method: GET
-      user: "{{ satellite_username }}"
-      password: "{{ satellite_password }}"
+      user: "{{ foreman_username }}"
+      password: "{{ foreman_password }}"
       force_basic_auth: yes
       body_format: json
       validate_certs: False
     register: scapcontents
-    with_dict: "{{ scap_content_id_dict }}"
-    when: item.key == "scap_content_id"
-    no_log: "{{ satellite_operations_scap_client_secure_logging }}"
+    loop: "{{ policy }}"
+    no_log: "{{ foreman_operations_scap_client_secure_logging }}"
 
   - name: Get tailoring content information
-    ansible.builtin.uri:
-      url: "{{ satellite_server_url }}/api/v2/compliance/tailoring_files/{{item.value}}"
+    uri:
+      url: "{{ foreman_server_url }}/api/v2/compliance/tailoring_files/{{item.tailoring_file_id}}"
       method: GET
-      user: "{{ satellite_username }}"
-      password: "{{ satellite_password }}"
+      user: "{{ foreman_username }}"
+      password: "{{ foreman_password }}"
       force_basic_auth: yes
       body_format: json
       validate_certs: False
     register: tailoringfiles
-    when: item.key == "tailoring_file_id" and item.value | int > 0 | d(False)
-    with_dict: "{{ tailoring_file_id_dict }}"
-    no_log: "{{ satellite_operations_scap_client_secure_logging }}"
+    when: item.tailoring_file_id | int > 0 | d(False)
+    loop: "{{ policy }}"
+    no_log: "{{ foreman_operations_scap_client_secure_logging }}"
 
   - name: Build scap content parameters
     set_fact:
