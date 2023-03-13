@@ -90,4 +90,4 @@
 
   - name: show templating results
     debug:
-    msg: "{{ lookup('template', 'openscap_client_config.yaml.j2') }}"
+      msg: "{{ lookup('template', 'openscap_client_config.yaml.j2') }}"
