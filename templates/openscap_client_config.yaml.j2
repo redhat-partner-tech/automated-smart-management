@@ -17,9 +17,9 @@
 # Or (recommended for client reporting to Katello) consumer private key (e.g., '/etc/pki/consumer/key.pem')
 :host_private_key: '/etc/pki/consumer/key.pem'
 # policy (key is id as in Foreman)
-{% for item in policy %} 
-{{ item.id }}:
-{% if item.tailoring_file_id | int > 0 | d(False) %}
+{% for key, value in policy.iteritems() %}
+{{ value["id"] }}
+{% if value.["tailoring_file_id"] | int > 0 | d(False) %}
 {% for profile in tailoring_files[item.tailoring_file_id].tailoring_file_profiles %}
 {% if profile.id == item.tailoring_file_profile_id %}
   :profile: {{profile.profile_id}}
