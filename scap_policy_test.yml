@@ -29,10 +29,6 @@
     register: policies
     no_log: "{{ satellite_operations_scap_client_secure_logging }}"
 
-  - name: Display Policy parameters 
-    debug:
-      msg: "{{ policies }}"
-
   - name: Build policy {{ policy_name }} parameters
     set_fact:
       policy: "{{ policy | default([]) | combine ([item]) }}"
@@ -43,18 +39,19 @@
     fail:
     when: policy is not defined
 
-  - name: Display Policy {{ policy_name }} parameters 
-    debug:
-      msg: "{{ policy }}"
+  - set_fact: 
+      scap_content_id_dict: "{{ scap_content_id_dict | default({}) | combine ({ item.key : item.value }) }}"
+    with_dict: "{{ policy }}"
+    when: item.key == "scap_content_id"
 
-  - name: Display policy as passed to scap content information URI request
-    debug:
-      msg: "{{ item }}"
-    loop: "{{ policy | dict2items }}"
+  - set_fact: 
+      tailoring_file_id_dict: "{{ tailoring_file_id_dict | default({}) | combine ({ item.key : item.value }) }}"
+    with_dict: "{{ policy }}"
+    when: item.key == "tailoring_file_id"
 
   - name: Get scap content information
     ansible.builtin.uri:
-      url: "{{ satellite_server_url }}/api/v2/compliance/scap_contents/{{item.scap_content_id}}"
+      url: "{{ satellite_server_url }}/api/v2/compliance/scap_contents/{{item.value}}"
       method: GET
       user: "{{ satellite_username }}"
       password: "{{ satellite_password }}"
@@ -62,13 +59,13 @@
       body_format: json
       validate_certs: False
     register: scapcontents
-    loop: "{{ policy | dict2items }}"
-    #no_log: "{{ satellite_operations_scap_client_secure_logging }}"
-    no_log: False
+    with_dict: "{{ scap_content_id_dict }}"
+    when: item.key == "scap_content_id"
+    no_log: "{{ satellite_operations_scap_client_secure_logging }}"
 
   - name: Get tailoring content information
     ansible.builtin.uri:
-      url: "{{ satellite_server_url }}/api/v2/compliance/tailoring_files/{{item.tailoring_file_id}}"
+      url: "{{ satellite_server_url }}/api/v2/compliance/tailoring_files/{{item.value}}"
       method: GET
       user: "{{ satellite_username }}"
       password: "{{ satellite_password }}"
@@ -76,8 +73,8 @@
       body_format: json
       validate_certs: False
     register: tailoringfiles
-    when: item.tailoring_file_id | int > 0 | d(False)
-    loop: "{{ policy }}"
+    when: item.key == "tailoring_file_id" and item.value | int > 0 | d(False)
+    with_dict: "{{ tailoring_file_id_dict }}"
     no_log: "{{ satellite_operations_scap_client_secure_logging }}"
 
   - name: Build scap content parameters
@@ -91,12 +88,6 @@
     when: item.json is defined
     loop: "{{ tailoringfiles.results }}"
 
-  #- name: Configure execution crontab
-  #  ansible.builtin.cron:
-  #    name: "Openscap Execution"
-  #    cron_file: 'foreman_openscap_client'
-  #    job: '/usr/bin/foreman_scap_client {{policy.id}} > /dev/null'
-  #    weekday: "{{crontab_weekdays}}"
-  #    hour: "{{crontab_hour}}"
-  #    minute: "{{crontab_minute}}"
-  #    user: root
+  - name: show templating results
+    debug:
+    msg: "{{ lookup('template', 'openscap_client_config.yaml.j2') }}"
