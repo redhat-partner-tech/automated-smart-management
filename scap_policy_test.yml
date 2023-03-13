@@ -33,9 +33,15 @@
     ansible.builtin.debug:
       msg: "{{ policies }}"
 
+  - set_fact:
+      #policy: {}
+      policy: []
+
   - name: Build policy {{ policy_name }} parameters
     set_fact:
-      policy: "{{ policy | default([]) | combine ([item]) }}"
+      #Python2 version
+      #policy: "{{ policy | default([]) }} + {{ [item] }}"
+      policy: "{{ policy + [item] }}"
     loop: "{{policies.json.results}}"
     when: item.name in policy_name or policy_name == 'all'
 
