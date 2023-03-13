@@ -55,10 +55,10 @@
 
   - name: Get scap content information
     uri:
-      url: "{{ foreman_server_url }}/api/v2/compliance/scap_contents/{{item.scap_content_id}}"
+      url: "{{ satellite_server_url }}/api/v2/compliance/scap_contents/{{item.scap_content_id}}"
       method: GET
-      user: "{{ foreman_username }}"
-      password: "{{ foreman_password }}"
+      user: "{{ satellite_username }}"
+      password: "{{ satellite_password }}"
       force_basic_auth: yes
       body_format: json
       validate_certs: False
@@ -68,10 +68,10 @@
 
   - name: Get tailoring content information
     uri:
-      url: "{{ foreman_server_url }}/api/v2/compliance/tailoring_files/{{item.tailoring_file_id}}"
+      url: "{{ satellite_server_url }}/api/v2/compliance/tailoring_files/{{item.tailoring_file_id}}"
       method: GET
-      user: "{{ foreman_username }}"
-      password: "{{ foreman_password }}"
+      user: "{{ satellite_username }}"
+      password: "{{ satellite_password }}"
       force_basic_auth: yes
       body_format: json
       validate_certs: False
