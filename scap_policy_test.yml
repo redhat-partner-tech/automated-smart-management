@@ -29,6 +29,10 @@
     register: policies
     no_log: "{{ satellite_operations_scap_client_secure_logging }}"
 
+  - name: Display Policy parameters 
+    ansible.builtin.debug:
+      msg: "{{ policies }}"
+
   - name: Build policy {{ policy_name }} parameters
     set_fact:
       policy: "{{ policy | default([]) | combine ([item]) }}"
@@ -38,6 +42,21 @@
   - name: Fail if no policy found with required name
     fail:
     when: policy is not defined
+
+  - name: Display Policy {{ policy_name }} parameters 
+    ansible.builtin.debug:
+      msg: "{{ policy }}"
+
+  - name: Display policy via with_dict
+    ansible.builtin.debug:
+      msg: "{{item.key}}: {{item.value}}"
+    with_dict: "{{ policy }}"
+
+  - name: Display policy via with_dict and when item.key equals scap_content_id
+    ansible.builtin.debug:
+      msg: "{{ item.value }}"
+    with_dict: "{{ policy }}"
+    when: item.key == "scap_content_id"
 
   - set_fact: 
       scap_content_id_dict: "{{ scap_content_id_dict | default({}) | combine ({ item.key : item.value }) }}"
@@ -89,5 +108,5 @@
     loop: "{{ tailoringfiles.results }}"
 
   - name: show templating results
-    debug:
+    ansible.builtin.debug:
       msg: "{{ lookup('template', 'openscap_client_config.yaml.j2') }}"
