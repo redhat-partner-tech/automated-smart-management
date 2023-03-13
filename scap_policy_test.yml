@@ -91,6 +91,7 @@
     when: item.json is defined
     loop: "{{ tailoringfiles.results }}"
 
-  - name: show templating results
-    ansible.builtin.debug:
-      msg: "{{ lookup('template', 'openscap_client_config.yaml.j2') }}"
+# If you want to test this, you need to place the openscap_client_config.yaml.j2 local to the project via template dir
+#  - name: show templating results
+#    ansible.builtin.debug:
+#      msg: "{{ lookup('template', 'openscap_client_config.yaml.j2') }}"
