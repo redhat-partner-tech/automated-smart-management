@@ -10,7 +10,7 @@ BASEIMAGEOWNER=ansible-automation-platform-22
 #BIVERSION=1.0.0-229
 #minimal EE
 BASEIMAGENAME=ee-minimal-rhel8
-BIVERSION=1.0.0-264
+BIVERSION=1.0.0-270
 #smart-mgmt-ee
 IMAGE=ee-automated-smart-mgmt-aap2-dev
 VERSION=1.0.0
