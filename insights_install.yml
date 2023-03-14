@@ -11,7 +11,7 @@
         name: redhat.insights.insights_client
     - name: Include randomized delay between role invocations
       command: |
-        python3 -c 'import time;import random;zzzzz=random.uniform(5.0,10.0);time.sleep(zzzzz);print(zzzzz)'
+        /usr/bin/python3.9 -c 'import time;import random;zzzzz=random.uniform(5.0,10.0);time.sleep(zzzzz);print(zzzzz)'
     - name: Install insights compliance
       ansible.builtin.include_role:
         name: redhat.insights.compliance
