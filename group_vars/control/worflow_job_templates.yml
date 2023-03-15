@@ -1,0 +1,54 @@
+---
+controller_workflows:
+  - name: SETUP / Insights
+    description: this workflow configures insights for this workshop
+    extra_vars:
+      manifest_name: smrtmgmt-wrksp
+      offline_token: value
+      rhsm_org_id: value
+      insights_user: username
+      insights_password: password
+    inventory: Workshop Inventory
+    state: present
+    organization: Default
+    survey_enabled: true
+    survey_spec:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Server Name or Pattern
+          type: text
+          variable: PREFIX
+          required: false
+        - question_name: Choose Environment
+          type: multiplechoice
+          variable: env
+          choices:
+            - Dev
+            - QA
+            - Prod
+          required: true
+    simplified_workflow_nodes:
+      - identifier: Insights / Replace Satellite Manifest
+        all_parents_must_converge: false
+        unified_job_template: Insights / Replace Satellite Manifest
+        success_nodes: SERVER / RHEL7 - Register
+        organization: Default
+      - identifier: SERVER / RHEL7 - Register
+        unified_job_template: SERVER / RHEL7 - Register
+        success_nodes: Insights / Install and Register
+        organization: Default
+      - identifier: Insights / Install and Register
+        all_parents_must_converge: false
+        unified_job_template: Insights / Install and Register
+        success_nodes: Insights / Create Insights Credential
+        organization: Default
+      - identifier: Insights / Create Insights Credential
+        all_parents_must_converge: false
+        unified_job_template: Insights / Create Insights Credential
+        success_nodes: Insights / Create Insights Project
+        organization: Default
+      - identifier: Insights / Create Insights Project
+        all_parents_must_converge: false
+        unified_job_template: Insights / Create Insights Project
+        organization: Default

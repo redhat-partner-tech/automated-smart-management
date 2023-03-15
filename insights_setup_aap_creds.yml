@@ -1,0 +1,16 @@
+---
+- hosts: "{{ HOSTS | default('control[0]') }}"
+  connection: local
+  tasks:
+    #### CREDENTIAL
+  - name:  Add Insights Credential to Ansible Controller
+    ansible.controller.credential:
+      name: Insights-Credential
+      state: present
+      organization: Default
+      inputs:
+        username: "{{ insights_user }}"
+        password: "{{ insights_password }}"
+      credential_type: Insights
+
+    #### END OF CREDENTIAL

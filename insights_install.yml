@@ -1,0 +1,20 @@
+---
+- name: Install and register insights
+  hosts: "{{ HOSTS is defined | ternary(HOSTS, PREFIX|default('')+'*') }}"
+  become: true
+  gather_facts: false
+  strategy: free
+
+  tasks:
+    - name: Install and register insights
+      ansible.builtin.include_role:
+        name: redhat.insights.insights_client
+    - name: Include randomized delay between role invocations
+      command: |
+        python3 -c 'import time;import random;zzzzz=random.uniform(5.0,10.0);time.sleep(zzzzz);print(zzzzz)'
+      delegate_to: localhost
+      connection: local
+    - name: Install insights compliance
+      ansible.builtin.include_role:
+        name: redhat.insights.compliance
+        tasks_from: install

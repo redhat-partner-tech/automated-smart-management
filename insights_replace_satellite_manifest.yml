@@ -1,0 +1,80 @@
+---
+- name: Get satellite manifest from account
+  hosts: localhost
+  vars:
+  gather_facts: no
+
+  tasks:
+    - name: Get access token
+      uri:
+        url: "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
+        method: POST
+        return_content: True
+        body_format: form-urlencoded
+        headers:
+            accept: application/json
+        body:
+          grant_type: refresh_token
+          client_id: rhsm-api
+          refresh_token: "{{ offline_token }}"
+          validate_certs: False
+      register: access_token_response
+      until: "access_token_response.status == 200"
+      retries: 12
+      delay: 15
+
+    - name: Get manifest list
+      uri:
+        url: "https://api.access.redhat.com/management/v1/allocations?type=Satellite"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token_response.json.access_token }}"
+          Content-Type: "application/json"
+          accept: application/json
+        status_code: 200
+        return_content: yes
+        validate_certs: false
+        force_basic_auth: yes
+      register: manifests
+      until: "manifests.status == 200"
+      retries: 12
+      delay: 15
+
+    - name: Get manifest uuid
+      set_fact:
+        manifest_uuid: "{{ manifests | json_query(get_manifest_id) }}"
+      vars:
+        get_manifest_id: "json.body[?name == '{{ manifest_name }}'].uuid"
+
+    - name: Download  manifest
+      get_url:
+        url: "https://subscription.rhsm.redhat.com/subscription/consumers/{{ manifest_uuid[0] }}/export"
+        dest: "{{ playbook_dir }}/manifest_insights.zip"
+        validate_certs: false
+        headers:
+          Authorization: "Bearer {{ access_token_response.json.access_token }}"
+          Content-Type: "application/zip"
+        timeout: 60
+      register: results
+      delay: 60
+      until: "results.status_code == 200"
+      retries: 5
+
+- name: Replace manifest
+  hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  connection: local
+  gather_facts: no
+ 
+  tasks:
+    - name: Delete existing  manifest
+      redhat.satellite.subscription_manifest:
+        organization: "Default Organization"
+        state: absent
+      register: deleted_manifest
+
+    - name: replace with new manifest
+      redhat.satellite.subscription_manifest:
+        organization: "Default Organization"
+        state: present
+        manifest_path: "{{ playbook_dir }}/manifest_insights.zip"
+      register: imported_manifest

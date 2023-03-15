@@ -1,3 +1,5 @@
 ansible.cfg
+ansible-navigator.log
+artifacts
 private
 */*.pem
