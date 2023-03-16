@@ -1,0 +1,14 @@
+---
+- hosts: "{{ HOSTS | default('satellite.example.com') }}"
+  become: true
+  tasks:
+    - name: Satellite - resume paused/errored tasks
+      command: >-
+        hammer task resume
+      register: hammer_task_resume
+      ignore_errors: true
+
+    - name: hammer task resume output 
+      debug:
+        msg: "{{ hammer_task_resume }}"
+...
