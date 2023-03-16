@@ -17,13 +17,13 @@
 - hosts: "{{ HOSTS | default('satellite.example.com') }}"
   become: true
 - name: satellite disconnected mode
-  import_playbook: satellite_disconnected_mode.yml
+  ansible.builtin.import_playbook: satellite_disconnected_mode.yml
   vars:
     disconnected_mode: "false"
   when: refresh_satellite_manifest
 
 - name: satellite set bulk_load_size
-  import_playbook: satellite_set_bulk_load_size.yml
+  ansible.builtin.import_playbook: satellite_set_bulk_load_size.yml
   vars:
     bulk_load_size: 1000
 
@@ -55,7 +55,7 @@
   tasks:
     - name: >
         Watch the Satellite production.log until ManifestRefresh result ==> success appears before continuing...
-      wait_for:
+      ansible.builtin.wait_for:
         path: /var/log/foreman/production.log
         search_regex: "^.*ManifestRefresh.*state\ changed.*\ stopped\ \ result.*\ success"
         timeout: 1500
@@ -73,10 +73,5 @@
       - theforeman.foreman.activation_keys
 
   tasks:
-
-    - name: deploy satellite_infra workloads
-      include_role:
-        name: "{{ satellite_infra_vars }}"
-      loop: "{{ satellite_infra_workloads }}"
-      loop_control:
-        loop_var: satellite_infra_vars
+  - ansible.builtin.include_tasks: setup_satellite_infra_subtasks.yml
+...
