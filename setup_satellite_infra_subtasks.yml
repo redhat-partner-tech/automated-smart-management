@@ -7,9 +7,6 @@
       retry_count: "{{ 0 if retry_count is undefined else retry_count | int + 1 }}"
   - name: Resume failed Satellite tasks after each failed attempt
     ansible.builtin.include_tasks: satellite_hammer_task_resume.yml
-    args:
-      apply:
-        become: yes
     when: retry_count | int != 0
 
   - name: deploy satellite_infra workloads

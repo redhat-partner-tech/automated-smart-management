@@ -2,6 +2,7 @@
 - name: Satellite - resume paused/errored tasks
   command: >-
     hammer task resume
+  become: true
   register: hammer_task_resume
   ignore_errors: true
   delegate_to: satellite.example.com
