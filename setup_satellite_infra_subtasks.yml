@@ -1,15 +1,19 @@
 ---
 # https://devpress.csdn.net/cicd/62ec1d2689d9027116a10320.html
-- name: Deploy satellite_infra workloads
+- name: Deploy satellite_infra workloads Task Group
   block:
   - name: Increment retry count
     set_fact:
       retry_count: "{{ 0 if retry_count is undefined else retry_count | int + 1 }}"
   - name: Resume failed Satellite tasks after each failed attempt
-    import_playbook: satellite_hammer_task_resume.yml
+    ansible.builtin.include_tasks: satellite_hammer_task_resume.yml
+    args:
+      apply:
+        become: yes
+    when: retry_count | int != 0
 
   - name: deploy satellite_infra workloads
-    include_role:
+    ansible.builtin.include_role:
       name: "{{ satellite_infra_vars }}"
     loop: "{{ satellite_infra_workloads }}"
     loop_control:
@@ -18,10 +22,11 @@
   rescue:
     - fail:
         msg: Maximum retries of grouped tasks reached
-      when: retry_count | int == 5
+      # initial try plus 4 retries = 5 total tries
+      when: retry_count | int == 4
 
     - debug:
-        msg: "Task Group failed, let's give it another shot"
+        msg: "satellite_infra workloads Task Group failed, retry count: {{ retry_count }}"
 
-    - include_task: setup_satellite_infra_subtasks.yml
+    - ansible.builtin.include_tasks: setup_satellite_infra_subtasks.yml
 ...
