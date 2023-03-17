@@ -10,7 +10,7 @@
     when: retry_count | int != 0
 
   - name: deploy satellite_infra workloads
-    ansible.builtin.include_role:
+    ansible.builtin.import_role:
       name: "{{ satellite_infra_vars }}"
     loop: "{{ satellite_infra_workloads }}"
     loop_control:
