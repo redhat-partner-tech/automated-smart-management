@@ -1,0 +1,16 @@
+---
+- name: Satellite - resume paused/errored tasks
+  command: >-
+    hammer task resume
+  become: true
+  register: hammer_task_resume
+  ignore_errors: true
+
+- name: Pause for 1 minute to allow paused/errored tasks to complete
+  ansible.builtin.pause:
+    minutes: 1
+
+- name: hammer task resume output 
+  debug:
+    msg: "{{ hammer_task_resume }}"
+...

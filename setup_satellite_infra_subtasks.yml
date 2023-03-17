@@ -1,0 +1,42 @@
+---
+# https://devpress.csdn.net/cicd/62ec1d2689d9027116a10320.html
+- name: Deploy satellite_infra workloads Task Group
+  block:
+  - name: Increment retry count
+    set_fact:
+      retry_count: "{{ 0 if retry_count is undefined else retry_count | int + 1 }}"
+  - name: Resume failed Satellite tasks after each failed attempt
+    ansible.builtin.include_tasks: satellite_hammer_task_resume.yml
+    when: retry_count | int != 0
+
+  - name: execute theforeman.foreman.repositories role
+    ansible.builtin.import_role:
+      name: "theforeman.foreman.repositories"
+    delegate_to: localhost
+
+  - name: execute theforeman.foreman.lifecycle_environments role
+    ansible.builtin.import_role:
+      name: "theforeman.foreman.lifecycle_environments"
+    delegate_to: localhost
+
+  - name: execute content_views role
+    ansible.builtin.import_role:
+      name: "content_views"
+    delegate_to: localhost
+
+  - name: execute theforeman.foreman.activation_keys role
+    ansible.builtin.import_role:
+      name: "theforeman.foreman.activation_keys"
+    delegate_to: localhost
+
+  rescue:
+    - fail:
+        msg: Maximum retries of grouped tasks reached
+      # initial try plus 4 retries = 5 total tries
+      when: retry_count | int == 4
+
+    - debug:
+        msg: "satellite_infra workloads Task Group failed, retry count: {{ retry_count }}"
+
+    - ansible.builtin.include_tasks: setup_satellite_infra_subtasks.yml
+...
