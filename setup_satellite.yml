@@ -63,7 +63,7 @@
       when: refresh_satellite_manifest
 
 - hosts: "{{ HOSTS | default('satellite.example.com') }}"
-  connection: local
+  #connection: local
   gather_facts: no
   vars:
     satellite_infra_workloads:

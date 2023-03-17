@@ -15,6 +15,7 @@
     loop: "{{ satellite_infra_workloads }}"
     loop_control:
       loop_var: satellite_infra_vars
+    delegate_to: localhost
 
   rescue:
     - fail:
