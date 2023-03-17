@@ -4,6 +4,7 @@
     hammer task resume
   register: hammer_task_resume
   ignore_errors: true
+  delegate_to: satellite.example.com
 
 - name: Pause for 1 minute to allow paused/errored tasks to complete
   ansible.builtin.pause:
