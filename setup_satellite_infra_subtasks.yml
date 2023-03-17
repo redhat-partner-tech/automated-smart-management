@@ -9,12 +9,24 @@
     ansible.builtin.include_tasks: satellite_hammer_task_resume.yml
     when: retry_count | int != 0
 
-  - name: deploy satellite_infra workloads
+  - name: execute theforeman.foreman.repositories role
     ansible.builtin.import_role:
-      name: "{{ satellite_infra_vars }}"
-    loop: "{{ satellite_infra_workloads }}"
-    loop_control:
-      loop_var: satellite_infra_vars
+      name: "theforeman.foreman.repositories"
+    delegate_to: localhost
+
+  - name: execute theforeman.foreman.lifecycle_environments role
+    ansible.builtin.import_role:
+      name: "theforeman.foreman.lifecycle_environments"
+    delegate_to: localhost
+
+  - name: execute content_views role
+    ansible.builtin.import_role:
+      name: "content_views"
+    delegate_to: localhost
+
+  - name: execute theforeman.foreman.activation_keys role
+    ansible.builtin.import_role:
+      name: "theforeman.foreman.activation_keys"
     delegate_to: localhost
 
   rescue:
