@@ -1,6 +1,10 @@
 #!/bin/bash
 set -ex
 
+# NOTE: In order to use driver overlay mount in rootless mode,
+# you will need to run this script in a `buildah unshare` session
+# buildah unshare ./ee_buildah_aap2_22.sh
+
 # podman login registry.redhat.io
 # Username: {REGISTRY-SERVICE-ACCOUNT-USERNAME}
 # Password: {REGISTRY-SERVICE-ACCOUNT-PASSWORD}
@@ -31,7 +35,7 @@ buildah run $ctr /bin/sh -c 'python3 -m pip install jmespath==0.10.0'
 cd $TMP_WRKDIR
 git clone https://github.com/redhat-partner-tech/automated-smart-management.git
 cd automated-smart-management
-git checkout ee-build-source-aap2-22-dev
+git checkout ee-build-source-aap2-22
 buildah run $ctr /bin/sh -c 'ansible-galaxy collection install community.general -p /usr/share/ansible/collections'
 buildah copy $ctr 'roles/content_views' '/usr/share/ansible/roles/content_views'
 buildah copy $ctr 'roles/ec2_node_tools' '/usr/share/ansible/roles/ec2_node_tools'
