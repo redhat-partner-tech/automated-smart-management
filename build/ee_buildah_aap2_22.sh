@@ -16,7 +16,7 @@ BASEIMAGEOWNER=ansible-automation-platform-22
 BASEIMAGENAME=ee-minimal-rhel8
 BIVERSION=1.0.0-270
 #smart-mgmt-ee
-IMAGE=ee-automated-smart-mgmt-aap2-dev
+IMAGE=ee-automated-smart-mgmt-aap2
 VERSION=1.0.0
 START_DIR=$(pwd)
 TMP_WRKDIR=$(mktemp -d /tmp/XXXXXXXX)
