@@ -1,3 +1,4 @@
+---
 satellite_content_views: []
 satellite_configuration_content_views_secure_logging: "{{satellite_configuration_secure_logging | default(false) }}" 
 publish_timeout: 14400

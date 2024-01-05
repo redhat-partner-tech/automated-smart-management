@@ -3,26 +3,26 @@
 
 # Gather info
 - name: Get instance details
-  include_tasks: get_instance_details.yml
+  ansible.builtin.include_tasks: get_instance_details.yml
   when: ec2_instance_action != "snapshot_delete"
 
 # Actions
 - name: Start instance
-  include_tasks: instance/start_instances.yml
+  ansible.builtin.include_tasks: instance/start_instances.yml
   when: ec2_instance_action == "start"
 
 - name: Stop instance
-  include_tasks: instance/stop_instances.yml
+  ansible.builtin.include_tasks: instance/stop_instances.yml
   when: ec2_instance_action == "stop"
 
 - name: Create instance snapshot
-  include_tasks: snapshot/create.yml
+  ansible.builtin.include_tasks: snapshot/create.yml
   when: ec2_instance_action == "snapshot_create"
 
 - name: Delete instance snapshot
-  include_tasks: snapshot/delete.yml
+  ansible.builtin.include_tasks: snapshot/delete.yml
   when: ec2_instance_action == "snapshot_delete"
 
 - name: Revert instance snapshot
-  include_tasks: snapshot/revert.yml
+  ansible.builtin.include_tasks: snapshot/revert.yml
   when: ec2_instance_action == "snapshot_revert"

@@ -1,6 +1,6 @@
 ---
 - name: Format snapshot selection tags for ec2_snapshot_info
-  command: python3 /usr/share/ansible/roles/ec2_node_tools/files/build_tags_dict.py "{{snapshots.tags}}"
+  ansible.builtin.command: python3 /usr/share/ansible/roles/ec2_node_tools/files/build_tags_dict.py "{{snapshots.tags}}"
   delegate_to: localhost
   connection: local
   register: ec2_snapshot_tags

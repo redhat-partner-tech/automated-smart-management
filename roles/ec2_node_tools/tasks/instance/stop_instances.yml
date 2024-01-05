@@ -13,7 +13,7 @@
 #    - "{{ instances_details.instances|[0]|network_interfaces[0].subnet_id }}"
 
 - name: ensure host is down via ssh port probe 
-  wait_for: "port=22 host={{ item.0 }} delay=10 state=stopped timeout=60"
+  ansible.builtin.wait_for: "port=22 host={{ item.0 }} delay=10 state=stopped timeout=60"
   delegate_to: localhost
   connection: local
   with_together:
@@ -23,7 +23,7 @@
     - item.1 == None
 
 - name: ensure host is down via WinRM port probe 
-  wait_for: "port=5986 host={{ item.0 }} delay=10 state=stopped timeout=60"
+  ansible.builtin.wait_for: "port=5986 host={{ item.0 }} delay=10 state=stopped timeout=60"
   delegate_to: localhost
   connection: local
   with_together:

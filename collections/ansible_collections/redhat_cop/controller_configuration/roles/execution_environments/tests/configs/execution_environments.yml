@@ -1,7 +1,0 @@
----
-controller_execution_environments:
-  - name: Tower env
-    organization: Default
-    image: quay.io/ansible/awx-ee
-    pull: always
-...

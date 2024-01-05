@@ -1,3 +1,4 @@
+---
 galaxy_info:
   author: willtome/heatmiser
   description: This role registers RHEL/CentOS nodes to Red Hat Satellite.

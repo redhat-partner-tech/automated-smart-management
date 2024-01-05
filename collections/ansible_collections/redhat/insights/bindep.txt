@@ -1,1 +1,0 @@
-python38-requests [platform:centos-8 platform:rhel-8]

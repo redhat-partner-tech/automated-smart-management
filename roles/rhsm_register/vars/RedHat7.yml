@@ -1,5 +1,0 @@
----
-rhsm_enabled_repos:
-  - rhel-7-server-rpms
-  - rhel-7-server-satellite-client-6-rpms
-  - rhel-7-server-satellite-utils-6.11-rpms
