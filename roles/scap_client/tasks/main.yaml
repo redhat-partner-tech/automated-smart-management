@@ -18,11 +18,11 @@
   register: policies
   no_log: "{{ satellite_operations_scap_client_secure_logging }}"
 
-- set_fact:
+- ansible.builtin.set_fact:
     policy: []
 
 - name: Build policy {{ policy_name }} parameters
-  set_fact:
+  ansible.builtin.set_fact:
     #Python2 version
     #policy: "{{ policy | default([]) }} + {{ [item] }}"
     policy: "{{ policy + [item] }}"
@@ -30,7 +30,7 @@
   when: item.name in policy_name or policy_name == 'all'
 
 - name: Fail if no policy found with required name
-  fail:
+  ansible.builtin.fail:
   when: policy is not defined
 
 - name: Get scap content information
@@ -61,12 +61,12 @@
   no_log: "{{ satellite_operations_scap_client_secure_logging }}"
 
 - name: Build scap content parameters
-  set_fact:
+  ansible.builtin.set_fact:
     scap_content: "{{ scap_content | default({}) | combine({item.json.id: item.json }) }}"
   loop: "{{ scapcontents.results }}"
 
 - name: Build tailoring content parameters
-  set_fact:
+  ansible.builtin.set_fact:
     tailoring_files: "{{ tailoring_files | default({}) | combine({item.json.id: item.json }) }}"
   when: item.json is defined
   loop: "{{ tailoringfiles.results }}"

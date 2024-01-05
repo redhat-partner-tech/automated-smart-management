@@ -14,7 +14,7 @@
   register: publish_async
 
 - name: Check if content view  is finished
-  async_status:
+  ansible.builtin.async_status:
     jid: "{{ publish_async.ansible_job_id }}"
   register: job_result
   until: job_result.finished

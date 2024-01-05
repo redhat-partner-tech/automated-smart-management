@@ -1,6 +1,6 @@
 ---
 - name: Format instance selection tags for ec2_remote_info
-  command: python3 /usr/share/ansible/roles/ec2_node_tools/files/build_tags_dict.py "{{instances.tags}}"
+  ansible.builtin.command: python3 /usr/share/ansible/roles/ec2_node_tools/files/build_tags_dict.py "{{instances.tags}}"
   delegate_to: localhost
   connection: local
   register: ec2_remote_tags

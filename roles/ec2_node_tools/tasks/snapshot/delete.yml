@@ -1,8 +1,8 @@
 ---
 - block:
 
-  - include_tasks: get_snapshot_details.yml
+  - ansible.builtin.include_tasks: get_snapshot_details.yml
 
-  - include_tasks: snapshot/snapshot_delete.yml
+  - ansible.builtin.include_tasks: snapshot/snapshot_delete.yml
 
   delegate_to: localhost
